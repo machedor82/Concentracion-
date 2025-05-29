@@ -10,7 +10,12 @@ st.title("¿Y si pudieras entregar igual de rápido… pero gastando menos?")
 # Cargar los datos
 @st.cache_data
 def load_data():
-    return pd.read_csv("dfminu.csv.gz", compression="gzip")
+    try:
+        return pd.read_csv("dfminu.csv.gz", compression="gzip")
+    except Exception as e:
+        st.error(f"Error al cargar el archivo: {e}")
+        return pd.DataFrame()  # retorna vacío para que no truene el script
+
 
 
 df = load_data()
