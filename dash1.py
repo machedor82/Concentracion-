@@ -71,4 +71,4 @@ st.markdown("Ya cumplen. Ahora toca optimizar.")
 st.markdown("> No venimos a ofrecer velocidad. Venimos a ofrecer **control**.")
 
 # Botón de contacto
-st.button("Solicitar demo del modelo 📬") tengo este codigo 
+st.button("Solicitar demo del modelo 📬")
