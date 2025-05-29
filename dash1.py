@@ -1,89 +1,74 @@
 import streamlit as st
-
-st.set_page_config(page_title="Cabrito Analytics | Storytelling Logístico")
-
+st.set_page_config(page_title="Cabrito Analytics | Storytelling Logístico", layout="wide")
 import pandas as pd
 import plotly.express as px
 
+
+# Configuración inicial
+
+st.title("¿Y si pudieras entregar igual de rápido… pero gastando menos?")
+
+# Cargar los datos
 @st.cache_data
 def load_data():
     try:
         return pd.read_csv("dfminu.csv.gz", compression="gzip")
     except Exception as e:
         st.error(f"Error al cargar el archivo: {e}")
-        return pd.DataFrame()
+        return pd.DataFrame()  # retorna vacío para que no truene el script
+
+
 
 df = load_data()
 
-# ================== TÍTULO ==================
+# Introducción
 st.markdown("""
-    <h2 style="margin-bottom: 0; color: #0074D9;">Cabrito Analytics</h2>
-    <p style="margin-top: 0; font-size: 18px; color: #444;">Eficiencia logística sin inflar costos</p>
-""", unsafe_allow_html=True)
+Camiones medio vacíos. Entregas infladas con 10 días de colchón. Costos invisibles.
+Esta historia es sobre cómo pasamos del 96% de entregas a tiempo… al 100% de eficiencia logística.
+""")
 
-# ================== KPIs ==================
+# Sección 1: Métricas Generales
+st.header("🔎 Evolución de la operación logística")
 col1, col2, col3 = st.columns(3)
-col1.metric("Pedidos totales", f"{df.shape[0]:,}")
+col1.metric("Pedidos analizados", f"{df.shape[0]:,}")
 col2.metric("% Entregas a tiempo", f"{df['entrega_a_tiempo'].mean()*100:.2f}%")
-col3.metric("Desviación promedio", f"{df['desviacion_entrega'].mean():.2f} días")
+col3.metric("Promedio desviación (días)", f"{df['desviacion_entrega'].mean():.2f}")
 
-# ================== GRÁFICAS PRINCIPALES ==================
+# Sección 2: Pedidos por región
+st.subheader("📍 Pedidos por región")
+region_counts = df['region'].value_counts().reset_index()
+region_counts.columns = ['Región', 'Pedidos']
+fig_region = px.bar(region_counts, x='Región', y='Pedidos', color='Región', title="Distribución de pedidos por región")
+st.plotly_chart(fig_region, use_container_width=True)
+
+# Sección 3: Costo logístico y anticipación
+st.subheader("💸 Costo y anticipación logística")
 col4, col5 = st.columns(2)
-
 with col4:
-    region_counts = df['region'].value_counts().reset_index()
-    region_counts.columns = ['Región', 'Pedidos']
-    fig_barh = px.bar(region_counts, x='Pedidos', y='Región', orientation='h',
-                      color='Región',
-                      color_discrete_sequence=['#0074D9', '#AAAAAA'],
-                      title="Distribución por región", height=300)
-    fig_barh.update_layout(paper_bgcolor="white", plot_bgcolor="white", showlegend=False)
-    st.plotly_chart(fig_barh, use_container_width=True)
-
-with col5:
-    if 'cliente' in df.columns:
-        top_clientes = df['cliente'].value_counts().nlargest(10).reset_index()
-        top_clientes.columns = ['Cliente', 'Pedidos']
-        fig_treemap = px.treemap(top_clientes, path=['Cliente'], values='Pedidos',
-                                 color_discrete_sequence=['#0074D9'],
-                                 title="Top 10 clientes")
-        fig_treemap.update_layout(paper_bgcolor="white")
-        st.plotly_chart(fig_treemap, use_container_width=True)
-
-# ================== HISTOGRAMAS ==================
-col6, col7 = st.columns(2)
-
-with col6:
-    fig_costo = px.histogram(df, x='costo_relativo_envio', nbins=40,
-                             color_discrete_sequence=['#AAAAAA'],
-                             title="Costo relativo de envío", height=250)
-    fig_costo.update_layout(paper_bgcolor="white", plot_bgcolor="white")
+    fig_costo = px.histogram(df, x='costo_relativo_envio', nbins=50, title="Distribución del costo relativo de envío")
     st.plotly_chart(fig_costo, use_container_width=True)
-
-with col7:
-    fig_anticipacion = px.histogram(df, x='desviacion_vs_promesa', nbins=40,
-                                     color_discrete_sequence=['#0074D9'],
-                                     title="Días de anticipación", height=250)
-    fig_anticipacion.update_layout(paper_bgcolor="white", plot_bgcolor="white")
+with col5:
+    fig_anticipacion = px.histogram(df, x='desviacion_vs_promesa', nbins=50, title="Días de anticipación vs promesa")
     st.plotly_chart(fig_anticipacion, use_container_width=True)
 
-# ================== PIE CHART INTERACTIVO ==================
-if 'tipo_de_pago' in df.columns:
-    col8, col9 = st.columns([1, 1])
-    with col8:
-        pie_data = df['tipo_de_pago'].value_counts().reset_index()
-        pie_data.columns = ['Tipo de Pago', 'Cantidad']
-        fig_pie = px.pie(pie_data, names='Tipo de Pago', values='Cantidad',
-                         color_discrete_sequence=px.colors.sequential.Blues,
-                         title="Métodos de pago")
-        fig_pie.update_traces(textinfo='percent+label')
-        fig_pie.update_layout(paper_bgcolor="white", height=300)
-        st.plotly_chart(fig_pie, use_container_width=True)
+# Sección 4: Mapa interactivo
+st.subheader("🗺️ Mapa de origen de pedidos")
+mapa_df = df.dropna(subset=['lat_origen', 'lon_origen'])
+st.map(mapa_df[['lat_origen', 'lon_origen']].rename(columns={'lat_origen': 'lat', 'lon_origen': 'lon'}))
 
-# ================== MAPA COMPACTO ==================
-col10, _ = st.columns([2, 1])
-mapa_df = df.dropna(subset=['lat_origen', 'lon_origen']).copy()
-mapa_df = mapa_df[['lat_origen', 'lon_origen']].drop_duplicates().rename(
-    columns={'lat_origen': 'lat', 'lon_origen': 'lon'}
-)
-col10.map(mapa_df, zoom=3)
+# Sección 5: Insights Clave
+st.header("💡 Hallazgos clave")
+st.markdown("""
+- ✅ **83%** de los pedidos llegan más de 5 días antes → oportunidad de optimizar rutas.
+- 🚫 **16%** tienen un **costo de flete > 50% del valor del producto**.
+- 📦 **25%** de los días: camiones van medio vacíos.
+- 🔁 Solo **10 clientes** han pedido más de 5 veces.
+""")
+
+# Sección 6: Conclusión
+st.header("🧠 De la predicción… a la planeación")
+st.markdown("Ya cumplen. Ahora toca optimizar.")
+st.markdown("> No venimos a ofrecer velocidad. Venimos a ofrecer **control**.")
+
+# Botón de contacto
+st.button("Solicitar demo del modelo 📬") tengo este codigo 
