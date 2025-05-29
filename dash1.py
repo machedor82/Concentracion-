@@ -72,3 +72,11 @@ st.markdown("> No venimos a ofrecer velocidad. Venimos a ofrecer **control**.")
 
 # Botón de contacto
 st.button("Solicitar demo del modelo 📬")
+
+st.sidebar.header("🔧 Filtros")
+region_sel = st.sidebar.multiselect("Selecciona región", options=df['region'].dropna().unique(), default=df['region'].dropna().unique())
+df_filtrado = df[df['region'].isin(region_sel)]
+
+st.markdown("### ¿Quieres saber si puedes ahorrar en tu operación?")
+st.markdown("[🚀 Agenda una demo personalizada](mailto:equipo@cabritoanalytics.com)")
+
