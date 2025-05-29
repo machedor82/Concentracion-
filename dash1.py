@@ -3,7 +3,7 @@ st.set_page_config(page_title="Cabrito Analytics | Storytelling Logístico", lay
 import pandas as pd
 import plotly.express as px
 
-
+#Tablero
 # Configuración inicial
 
 st.title("¿Y si pudieras entregar igual de rápido… pero gastando menos?")
