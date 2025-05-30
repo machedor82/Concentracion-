@@ -1,74 +1,75 @@
 import streamlit as st
-st.set_page_config(page_title="Cabrito Analytics | Storytelling Logístico", layout="wide")
+st.set_page_config(page_title="Cabrito Dashboard", layout="wide")
 import pandas as pd
 import plotly.express as px
 
 
-# Configuración inicial
-
-st.title("¿Y si pudieras entregar igual de rápido… pero gastando menos?")
-
-# Cargar los datos
 @st.cache_data
 def load_data():
     try:
         return pd.read_csv("dfminu.csv.gz", compression="gzip")
     except Exception as e:
-        st.error(f"Error al cargar el archivo: {e}")
-        return pd.DataFrame()  # retorna vacío para que no truene el script
-
-
+        st.error(f"Error al cargar los datos: {e}")
+        return pd.DataFrame()
 
 df = load_data()
 
-# Introducción
-st.markdown("""
-Camiones medio vacíos. Entregas infladas con 10 días de colchón. Costos invisibles.
-Esta historia es sobre cómo pasamos del 96% de entregas a tiempo… al 100% de eficiencia logística.
-""")
+# === Sidebar: filtros sincronizados ===
+st.sidebar.title("🔍 Filtros")
+regiones = st.sidebar.multiselect("Región", df['region'].dropna().unique(), default=df['region'].dropna().unique())
+pagos = df['tipo_de_pago'].dropna().unique() if 'tipo_de_pago' in df.columns else []
+tipo_pago = st.sidebar.multiselect("Tipo de Pago", pagos, default=pagos)
 
-# Sección 1: Métricas Generales
-st.header("🔎 Evolución de la operación logística")
-col1, col2, col3 = st.columns(3)
-col1.metric("Pedidos analizados", f"{df.shape[0]:,}")
-col2.metric("% Entregas a tiempo", f"{df['entrega_a_tiempo'].mean()*100:.2f}%")
-col3.metric("Promedio desviación (días)", f"{df['desviacion_entrega'].mean():.2f}")
+df_filtrado = df[df['region'].isin(regiones)]
+if 'tipo_de_pago' in df.columns:
+    df_filtrado = df_filtrado[df_filtrado['tipo_de_pago'].isin(tipo_pago)]
 
-# Sección 2: Pedidos por región
-st.subheader("📍 Pedidos por región")
-region_counts = df['region'].value_counts().reset_index()
-region_counts.columns = ['Región', 'Pedidos']
-fig_region = px.bar(region_counts, x='Región', y='Pedidos', color='Región', title="Distribución de pedidos por región")
-st.plotly_chart(fig_region, use_container_width=True)
+# === Colores corporativos ===
+azul = "#004C99"
+gris = "#AAAAAA"
 
-# Sección 3: Costo logístico y anticipación
-st.subheader("💸 Costo y anticipación logística")
-col4, col5 = st.columns(2)
+# === Título superior ===
+st.markdown(f"<h3 style='text-align:center; color:{azul}; margin-bottom:0'>CABRITO ANALYTICS</h3>", unsafe_allow_html=True)
+
+# === KPIs en fila 1 ===
+k1, k2, k3 = st.columns(3)
+k1.metric("📦 Pedidos", f"{df_filtrado.shape[0]:,}")
+k2.metric("⏱️ A Tiempo", f"{df_filtrado['entrega_a_tiempo'].mean()*100:.2f}%")
+k3.metric("📉 Desviación", f"{df_filtrado['desviacion_entrega'].mean():.2f} días")
+
+# === Fila 2: región y cliente ===
+col1, col2 = st.columns(2)
+with col1:
+    regiones_df = df_filtrado['region'].value_counts().reset_index()
+    regiones_df.columns = ['Región', 'Pedidos']
+    fig1 = px.bar(regiones_df, x='Pedidos', y='Región', orientation='h',
+                  color='Región', height=200,
+                  color_discrete_sequence=[azul, gris])
+    fig1.update_layout(margin=dict(t=30, b=30), plot_bgcolor="white", paper_bgcolor="white", showlegend=False)
+    st.plotly_chart(fig1, use_container_width=True)
+
+with col2:
+    if 'cliente' in df.columns:
+        top_clientes = df_filtrado['cliente'].value_counts().head(5).reset_index()
+        top_clientes.columns = ['Cliente', 'Pedidos']
+        fig2 = px.treemap(top_clientes, path=['Cliente'], values='Pedidos',
+                          color_discrete_sequence=[azul], height=200)
+        fig2.update_layout(margin=dict(t=30, l=0, r=0, b=0))
+        st.plotly_chart(fig2, use_container_width=True)
+
+# === Fila 3: costos y mapa ===
+col3, col4 = st.columns(2)
+with col3:
+    fig3 = px.histogram(df_filtrado, x='costo_relativo_envio', nbins=30,
+                        color_discrete_sequence=[gris], title="Costo relativo", height=200)
+    fig3.update_layout(margin=dict(t=30, b=30), plot_bgcolor="white", paper_bgcolor="white")
+    st.plotly_chart(fig3, use_container_width=True)
+
 with col4:
-    fig_costo = px.histogram(df, x='costo_relativo_envio', nbins=50, title="Distribución del costo relativo de envío")
-    st.plotly_chart(fig_costo, use_container_width=True)
-with col5:
-    fig_anticipacion = px.histogram(df, x='desviacion_vs_promesa', nbins=50, title="Días de anticipación vs promesa")
-    st.plotly_chart(fig_anticipacion, use_container_width=True)
-
-# Sección 4: Mapa interactivo
-st.subheader("🗺️ Mapa de origen de pedidos")
-mapa_df = df.dropna(subset=['lat_origen', 'lon_origen'])
-st.map(mapa_df[['lat_origen', 'lon_origen']].rename(columns={'lat_origen': 'lat', 'lon_origen': 'lon'}))
-
-# Sección 5: Insights Clave
-st.header("💡 Hallazgos clave")
-st.markdown("""
-- ✅ **83%** de los pedidos llegan más de 5 días antes → oportunidad de optimizar rutas.
-- 🚫 **16%** tienen un **costo de flete > 50% del valor del producto**.
-- 📦 **25%** de los días: camiones van medio vacíos.
-- 🔁 Solo **10 clientes** han pedido más de 5 veces.
-""")
-
-# Sección 6: Conclusión
-st.header("🧠 De la predicción… a la planeación")
-st.markdown("Ya cumplen. Ahora toca optimizar.")
-st.markdown("> No venimos a ofrecer velocidad. Venimos a ofrecer **control**.")
-
-# Botón de contacto
-st.button("Solicitar demo del modelo 📬")
+    mapa_df = df_filtrado.dropna(subset=['lat_origen', 'lon_origen'])
+    fig4 = px.scatter_geo(mapa_df,
+                          lat='lat_origen', lon='lon_origen',
+                          scope='north america',
+                          height=200, title="Orígenes", opacity=0.6)
+    fig4.update_layout(margin=dict(t=30, b=30), geo=dict(bgcolor="white"), paper_bgcolor="white")
+    st.plotly_chart(fig4, use_container_width=True)
