@@ -1,8 +1,8 @@
 import streamlit as st
-st.set_page_config(page_title="Cabrito Dashboard", layout="wide")
 import pandas as pd
 import plotly.express as px
 
+st.set_page_config(page_title="Cabrito Dashboard", layout="wide")
 
 @st.cache_data
 def load_data():
