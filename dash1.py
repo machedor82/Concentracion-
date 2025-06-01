@@ -2,74 +2,124 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(page_title="Cabrito Dashboard", layout="wide")
+# ==== CONFIGURACION AVANZADA ====
+st.set_page_config(
+    page_title="Cabrito Analytics | Control Total",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-@st.cache_data
+# ==== ESTILO GLOBAL AVANZADO ====
+st.markdown("""
+    <style>
+    body, .main, .block-container {
+        background-color: white !important;
+        color: #000000;
+    }
+    header, footer {
+        visibility: hidden;
+    }
+    .metric-label, .metric-value {
+        font-weight: 600;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# ==== CARGA DE DATOS ROBUSTA ====
+@st.cache_data(show_spinner="Cargando datos logísticos...")
 def load_data():
     try:
         return pd.read_csv("dfminu.csv.gz", compression="gzip")
     except Exception as e:
-        st.error(f"Error al cargar los datos: {e}")
+        st.exception(f"❌ Error al cargar datos: {e}")
         return pd.DataFrame()
 
 df = load_data()
 
-# === Sidebar: filtros sincronizados ===
-st.sidebar.title("🔍 Filtros")
+# ==== VERIFICACIÓN DE DATOS ====
+required_cols = ['region', 'cliente', 'entrega_a_tiempo', 'desviacion_entrega',
+                 'costo_relativo_envio', 'desviacion_vs_promesa',
+                 'lat_origen', 'lon_origen', 'tipo_de_pago']
+
+if not all(col in df.columns for col in required_cols):
+    st.error("🚫 El archivo no contiene todas las columnas necesarias para mostrar el dashboard.")
+    st.stop()
+
+# ==== SIDEBAR INTERACTIVO ====
+st.sidebar.header("🎛️ Filtros dinámicos")
 regiones = st.sidebar.multiselect("Región", df['region'].dropna().unique(), default=df['region'].dropna().unique())
-pagos = df['tipo_de_pago'].dropna().unique() if 'tipo_de_pago' in df.columns else []
-tipo_pago = st.sidebar.multiselect("Tipo de Pago", pagos, default=pagos)
+tipos_pago = df['tipo_de_pago'].dropna().unique()
+pago_sel = st.sidebar.multiselect("Tipo de pago", tipos_pago, default=tipos_pago)
 
-df_filtrado = df[df['region'].isin(regiones)]
-if 'tipo_de_pago' in df.columns:
-    df_filtrado = df_filtrado[df_filtrado['tipo_de_pago'].isin(tipo_pago)]
+# ==== FILTRO GLOBAL ====
+df_filtrado = df[df['region'].isin(regiones) & df['tipo_de_pago'].isin(pago_sel)]
 
-# === Colores corporativos ===
-azul = "#004C99"
-gris = "#AAAAAA"
+# ==== TÍTULO ====
+st.markdown("""
+    <h1 style='text-align:center; color:#004C99; margin-bottom:0'>Cabrito Analytics</h1>
+    <p style='text-align:center; color:#333; font-size:18px;'>Dashboard ejecutivo conectado • 100% optimizado</p>
+""", unsafe_allow_html=True)
 
-# === Título superior ===
-st.markdown(f"<h3 style='text-align:center; color:{azul}; margin-bottom:0'>CABRITO ANALYTICS</h3>", unsafe_allow_html=True)
+# ==== KPIs ====
+kpi1, kpi2, kpi3 = st.columns(3)
+kpi1.metric("📦 Pedidos", f"{df_filtrado.shape[0]:,}")
+kpi2.metric("✅ A tiempo", f"{df_filtrado['entrega_a_tiempo'].mean()*100:.2f}%")
+kpi3.metric("📉 Desviación prom.", f"{df_filtrado['desviacion_entrega'].mean():.2f} días")
 
-# === KPIs en fila 1 ===
-k1, k2, k3 = st.columns(3)
-k1.metric("📦 Pedidos", f"{df_filtrado.shape[0]:,}")
-k2.metric("⏱️ A Tiempo", f"{df_filtrado['entrega_a_tiempo'].mean()*100:.2f}%")
-k3.metric("📉 Desviación", f"{df_filtrado['desviacion_entrega'].mean():.2f} días")
-
-# === Fila 2: región y cliente ===
+# ==== GRÁFICAS MULTIFILA ULTRA COMPACTAS ====
 col1, col2 = st.columns(2)
+
 with col1:
-    regiones_df = df_filtrado['region'].value_counts().reset_index()
-    regiones_df.columns = ['Región', 'Pedidos']
-    fig1 = px.bar(regiones_df, x='Pedidos', y='Región', orientation='h',
-                  color='Región', height=200,
-                  color_discrete_sequence=[azul, gris])
-    fig1.update_layout(margin=dict(t=30, b=30), plot_bgcolor="white", paper_bgcolor="white", showlegend=False)
-    st.plotly_chart(fig1, use_container_width=True)
+    fig_region = px.bar(df_filtrado['region'].value_counts().reset_index(),
+                        x='index', y='region',
+                        title="Distribución por región",
+                        color_discrete_sequence=['#004C99'])
+    fig_region.update_layout(height=220, margin=dict(t=40, b=30))
+    st.plotly_chart(fig_region, use_container_width=True)
 
 with col2:
-    if 'cliente' in df.columns:
-        top_clientes = df_filtrado['cliente'].value_counts().head(5).reset_index()
-        top_clientes.columns = ['Cliente', 'Pedidos']
-        fig2 = px.treemap(top_clientes, path=['Cliente'], values='Pedidos',
-                          color_discrete_sequence=[azul], height=200)
-        fig2.update_layout(margin=dict(t=30, l=0, r=0, b=0))
-        st.plotly_chart(fig2, use_container_width=True)
+    fig_treemap = px.treemap(df_filtrado['cliente'].value_counts().reset_index().head(10),
+                              path=['index'], values='cliente',
+                              title="Top 10 Clientes",
+                              color_discrete_sequence=['#AAAAAA'])
+    fig_treemap.update_layout(height=220)
+    st.plotly_chart(fig_treemap, use_container_width=True)
 
-# === Fila 3: costos y mapa ===
 col3, col4 = st.columns(2)
 with col3:
-    fig3 = px.histogram(df_filtrado, x='costo_relativo_envio', nbins=30,
-                        color_discrete_sequence=[gris], title="Costo relativo", height=200)
-    fig3.update_layout(margin=dict(t=30, b=30), plot_bgcolor="white", paper_bgcolor="white")
-    st.plotly_chart(fig3, use_container_width=True)
+    fig_hist = px.histogram(df_filtrado, x='costo_relativo_envio', nbins=30,
+                            title="Costo relativo de envío",
+                            color_discrete_sequence=['#AAAAAA'])
+    fig_hist.update_layout(height=220)
+    st.plotly_chart(fig_hist, use_container_width=True)
 
 with col4:
-    mapa_df = df_filtrado.dropna(subset=['lat_origen', 'lon_origen'])
-    fig4 = px.scatter_geo(mapa_df,
-                          lat='lat_origen', lon='lon_origen',
-                          scope='north america',
-                          height=200, title="Orígenes", opacity=0.6)
-    fig4.update_layout(margin=dict(t=30, b=30), geo=dict(bgcolor="white"), paper_bgcolor="white")
-    st.plotly_chart(fig4, use_container_width=True)
+    fig_box = px.box(df_filtrado, x='desviacion_vs_promesa',
+                     title="Anticipación vs promesa",
+                     color_discrete_sequence=['#004C99'])
+    fig_box.update_layout(height=220)
+    st.plotly_chart(fig_box, use_container_width=True)
+
+col5, col6 = st.columns(2)
+with col5:
+    pie_data = df_filtrado['tipo_de_pago'].value_counts().reset_index()
+    pie_data.columns = ['Tipo de Pago', 'Cantidad']
+    fig_pie = px.pie(pie_data, names='Tipo de Pago', values='Cantidad',
+                     title="Distribución de pago",
+                     color_discrete_sequence=px.colors.sequential.Blues)
+    fig_pie.update_traces(textinfo='percent+label')
+    fig_pie.update_layout(height=220)
+    st.plotly_chart(fig_pie, use_container_width=True)
+
+with col6:
+    geo_df = df_filtrado.dropna(subset=['lat_origen', 'lon_origen'])
+    fig_geo = px.scatter_geo(geo_df, lat='lat_origen', lon='lon_origen',
+                             title="Origen de pedidos",
+                             scope='north america',
+                             color_discrete_sequence=['#004C99'],
+                             opacity=0.6)
+    fig_geo.update_layout(height=220)
+    st.plotly_chart(fig_geo, use_container_width=True)
+
+# ==== NOTA FINAL PEQUEÑA ====
+st.caption("Versión pro optimizada en Streamlit con layout avanzado y filtros conectados.")
