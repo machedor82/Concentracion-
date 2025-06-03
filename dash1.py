@@ -59,19 +59,19 @@ with tabs[0]:
             st.markdown("### 🔢 Indicadores clave")
             col1, col2, col3, col4, col5 = st.columns(5)
             with col1:
-    st.metric(label="Total de pedidos", value=f"{len(df):,}")
-with col2:
-    pct_ontime = df['entrega_a_tiempo'].mean() * 100
-    st.metric(label="Entregas a tiempo (%)", value=f"{pct_ontime:.1f}%")
-with col3:
-    pct_flete_alto = (df['costo_de_flete'] / df['precio'] > 0.5).mean() * 100
-    st.metric(label="Flete > 50% del producto (%)", value=f"{pct_flete_alto:.1f}%")
-with col4:
-    pct_anticipadas = (df['desviacion_vs_promesa'] < -5).mean() * 100
-    st.metric(label="Entregas anticipadas (%)", value=f"{pct_anticipadas:.1f}%")
-with col5:
-    clientes_frecuentes = df['cliente_id'].value_counts().gt(5).sum()
-    st.metric(label="Clientes frecuentes", value=clientes_frecuentes)
+                st.metric(label="Total de pedidos", value=f"{len(df):,}")
+            with col2:
+                pct_ontime = df['entrega_a_tiempo'].mean() * 100
+                st.metric(label="Entregas a tiempo (%)", value=f"{pct_ontime:.1f}%")
+            with col3:
+                pct_flete_alto = (df['costo_de_flete'] / df['precio'] > 0.5).mean() * 100
+                st.metric(label="Flete > 50% del producto (%)", value=f"{pct_flete_alto:.1f}%")
+            with col4:
+                pct_anticipadas = (df['desviacion_vs_promesa'] < -5).mean() * 100
+                st.metric(label="Entregas anticipadas (%)", value=f"{pct_anticipadas:.1f}%")
+            with col5:
+                clientes_frecuentes = df['cliente_id'].value_counts().gt(5).sum()
+                st.metric(label="Clientes frecuentes", value=clientes_frecuentes)
 
         # Gráficas
         with st.container():
