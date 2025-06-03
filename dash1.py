@@ -134,6 +134,7 @@ with tabs[0]:
                         path=['Categoría'],
                         values='precio',  # usa 'precio' si quieres áreas proporcionales a monto
                         color='Categoría',
+                        custom_data=['Categoría'],
                         color_discrete_sequence=px.colors.qualitative.Pastel
                     )
             
