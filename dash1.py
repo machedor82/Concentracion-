@@ -193,23 +193,29 @@ with tabs[0]:
             st.plotly_chart(fig_box, use_container_width=True)
             
             # Línea de entregas a tiempo por mes
+            # Línea de entregas a tiempo por mes
             st.subheader("📈 Evolución mensual de entregas a tiempo")
-            df_filtrado["mes_año"] = df_filtrado["mes"] + " " + df_filtrado["año"].astype(str)
-            entregas_tiempo = df_filtrado.groupby("mes_año")["entrega_a_tiempo"].mean().reset_index()
+            
+            # Convertir mes y año a datetime para ordenar correctamente
+            df_filtrado["mes"] = df_filtrado["mes"].astype(str).str.zfill(2)  # aseguramos formato MM
+            df_filtrado["mes_año_dt"] = pd.to_datetime(df_filtrado["año"].astype(str) + "-" + df_filtrado["mes"])
+            
+            # Agrupamos por fecha real
+            entregas_tiempo = df_filtrado.groupby("mes_año_dt")["entrega_a_tiempo"].mean().reset_index()
             entregas_tiempo["entrega_a_tiempo"] *= 100
             
             fig_line = px.line(
-                entregas_tiempo.sort_values(by="mes_año"),
-                x="mes_año",
+                entregas_tiempo.sort_values(by="mes_año_dt"),
+                x="mes_año_dt",
                 y="entrega_a_tiempo",
                 markers=True,
                 title="Porcentaje mensual de entregas a tiempo",
-                labels={"entrega_a_tiempo": "Entregas a tiempo (%)"},
+                labels={"mes_año_dt": "Fecha", "entrega_a_tiempo": "Entregas a tiempo (%)"},
                 line_shape="spline",
                 color_discrete_sequence=["#00bfae"]
             )
             fig_line.update_layout(
-                xaxis_title="Mes y año",
+                xaxis_title="Mes",
                 yaxis_title="Entregas a tiempo (%)",
                 plot_bgcolor='rgba(0,0,0,0)',
                 paper_bgcolor='rgba(0,0,0,0)'
