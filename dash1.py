@@ -6,6 +6,26 @@ import plotly.graph_objects as go
 
 # ========================== CONFIGURACIÓN INICIAL ==========================
 st.set_page_config(page_title="Cabrito Analytics", layout="wide", initial_sidebar_state="collapsed")
+st.markdown("""
+    <style>
+        [data-testid="stSidebar"] {
+            background-color: #002244;
+            color: white;
+        }
+        .stSlider > div[data-testid="stTickBar"] {
+            background-color: #ffffff11;
+        }
+        .stSlider .css-14pt78w {
+            color: white !important;
+        }
+        .stMultiSelect, .stSlider {
+            color: black !important;
+        }
+        [data-testid="stSidebar"] label {
+            color: white;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 st.markdown("""
     <style>
@@ -48,42 +68,38 @@ with tabs[0]:
             st.success("✅ Datos cargados exitosamente")
 
             # ========== FILTROS ==========
-            with st.expander("🎛️ Filtros del dashboard", expanded=False):
-                st.markdown("Selecciona los valores que quieres visualizar:")
-                clear_all = st.button("🧹 Quitar toda la selección")
-
+            # ========== FILTROS EN SIDEBAR ==========
+            with st.sidebar:
+                st.header("🎛️ Filtros")
+                clear_all = st.button("🧹 Quitar selección")
+            
                 categorias = df['Categoría'].dropna().unique()
                 regiones = df['region'].dropna().unique()
                 meses = sorted(df['mes'].dropna().unique())
-
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    categoria_sel = st.multiselect("Categoría de producto", categorias, default=[] if clear_all else list(categorias))
-                with col2:
-                    region_sel = st.multiselect("Región", regiones, default=[] if clear_all else list(regiones))
-                with col3:
-                    mes_sel = st.multiselect("Mes", meses, default=[] if clear_all else meses)
-
+            
+                categoria_sel = st.multiselect("Categoría de producto", categorias, default=[] if clear_all else list(categorias))
+                region_sel = st.multiselect("Región", regiones, default=[] if clear_all else list(regiones))
+                mes_sel = st.multiselect("Mes", meses, default=[] if clear_all else meses)
+            
                 df_filtrado = df[
                     (df['Categoría'].isin(categoria_sel)) &
                     (df['region'].isin(region_sel)) &
                     (df['mes'].isin(mes_sel))
                 ]
-
-            # ========== SLIDERS ==========
-            st.markdown("### 📏 Filtros avanzados")
-            col1, col2 = st.columns(2)
-            with col1:
+            
+                st.markdown("---")
+                st.subheader("📏 Filtros avanzados")
+                
                 min_flete, max_flete = float(df_filtrado['costo_relativo_envio'].min()), float(df_filtrado['costo_relativo_envio'].max())
                 rango_flete = st.slider("Costo relativo de envío (%)", min_value=round(min_flete, 2), max_value=round(max_flete, 2), value=(round(min_flete, 2), round(max_flete, 2)))
-            with col2:
+            
                 min_peso, max_peso = int(df_filtrado['total_peso_g'].min()), int(df_filtrado['total_peso_g'].max())
                 rango_peso = st.slider("Peso total del pedido (g)", min_value=min_peso, max_value=max_peso, value=(min_peso, max_peso))
-
-            df_filtrado = df_filtrado[
-                (df_filtrado['costo_relativo_envio'].between(*rango_flete)) &
-                (df_filtrado['total_peso_g'].between(*rango_peso))
-            ]
+            
+                df_filtrado = df_filtrado[
+                    (df_filtrado['costo_relativo_envio'].between(*rango_flete)) &
+                    (df_filtrado['total_peso_g'].between(*rango_peso))
+                ]
 
             # ========== KPIs ==========
             st.markdown("## 🧭 Visión General de la Operación")
