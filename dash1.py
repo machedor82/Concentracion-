@@ -1,17 +1,28 @@
 import streamlit as st
 import pandas as pd
 import zipfile
+import io
 
-# Ruta al archivo ZIP
-zip_path = "DF.zip"
+st.markdown("## 📂 Cargar base de datos")
 
-# Abrir el ZIP y cargar el CSV
-with zipfile.ZipFile(zip_path, 'r') as z:
-    with z.open('DF.csv') as f:
-        df = pd.read_csv(f)
+uploaded_file = st.file_uploader("Sube tu archivo ZIP con el CSV adentro", type="zip")
 
-# Vista previa para confirmar carga
-st.write(df.head())
+@st.cache_data
+def load_zip_csv(uploaded_zip, internal_csv_name):
+    with zipfile.ZipFile(uploaded_zip) as z:
+        with z.open(internal_csv_name) as f:
+            df = pd.read_csv(f)
+    return df
+
+df = None
+if uploaded_file:
+    try:
+        # Aquí defines cómo se llama el CSV dentro del ZIP
+        df = load_zip_csv(uploaded_file, "DF.csv")
+        st.success("✅ ¡Datos cargados exitosamente!")
+        st.dataframe(df.head())
+    except Exception as e:
+        st.error(f"⚠️ Error al cargar el archivo: {e}")
 
 # Configuración de la página
 st.set_page_config(page_title="Dashboard Empresarial", layout="wide", initial_sidebar_state="collapsed")
