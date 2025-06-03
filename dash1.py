@@ -159,22 +159,7 @@ with tabs[0]:
             fig_tree = px.treemap(df_filtrado, path=['Categoría'], values='precio', color='Categoría', color_discrete_sequence=px.colors.qualitative.Pastel)
             st.plotly_chart(fig_tree, use_container_width=True)
 
-            st.subheader("🧭 Gauge de entregas a tiempo (último mes)")
-            if not entregas_tiempo.empty:
-                gauge_value = entregas_tiempo['entrega_a_tiempo'].iloc[-1]
-                fig_gauge = go.Figure(go.Indicator(
-                    mode="gauge+number",
-                    value=gauge_value,
-                    title={'text': "📍 % Entregas a Tiempo"},
-                    gauge={'axis': {'range': [0, 100]},
-                           'bar': {'color': "#00bfae"},
-                           'steps': [
-                               {'range': [0, 70], 'color': "#ffcccc"},
-                               {'range': [70, 90], 'color': "#fff6b3"},
-                               {'range': [90, 100], 'color': "#ccffcc"}]
-                          }))
-                st.plotly_chart(fig_gauge, use_container_width=True)
-
+            
             st.subheader("🗺️ Mapa de entregas de clientes")
             df_mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
             if not df_mapa.empty:
