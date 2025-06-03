@@ -97,7 +97,6 @@ with tabs[0]:
 
             # ========== GRÁFICAS ==========
             with st.container():
-            with st.container():
                 st.markdown("### 📊 Análisis visual")
             
                 # ===== Pedidos por Año =====
