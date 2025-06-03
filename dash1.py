@@ -52,22 +52,37 @@ with tabs[0]:
 with st.expander("🎛️ Filtros del dashboard", expanded=False):
     st.markdown("Selecciona los valores que quieres visualizar:")
 
-    col1, col2, col3 = st.columns([1, 1, 1])
+    # Botón para limpiar todo
+    clear_all = st.button("🧹 Quitar toda la selección")
+
+    # Opciones únicas
+    categorias = df['Categoría'].dropna().unique()
+    regiones = df['region'].dropna().unique()
+    meses = sorted(df['mes'].dropna().unique())
+
+    # Columnas de filtros
+    col1, col2, col3 = st.columns(3)
 
     with col1:
-        categorias = df['Categoría'].dropna().unique()
-        clear_cat = st.button("Quitar selección - Categoría")
-        categoria_sel = st.multiselect("Categoría de producto", categorias, default=categorias if not clear_cat else [])
+        categoria_sel = st.multiselect(
+            "Categoría de producto",
+            categorias,
+            default=[] if clear_all else list(categorias)
+        )
 
     with col2:
-        regiones = df['region'].dropna().unique()
-        clear_reg = st.button("Quitar selección - Región")
-        region_sel = st.multiselect("Región", regiones, default=regiones if not clear_reg else [])
+        region_sel = st.multiselect(
+            "Región",
+            regiones,
+            default=[] if clear_all else list(regiones)
+        )
 
     with col3:
-        meses = sorted(df['mes'].dropna().unique())
-        clear_mes = st.button("Quitar selección - Mes")
-        mes_sel = st.multiselect("Mes", meses, default=meses if not clear_mes else [])
+        mes_sel = st.multiselect(
+            "Mes",
+            meses,
+            default=[] if clear_all else meses
+        )
 
     # Aplicar filtros
     df_filtrado = df[
@@ -76,7 +91,7 @@ with st.expander("🎛️ Filtros del dashboard", expanded=False):
         (df['mes'].isin(mes_sel))
     ]
 
-
+    
             # ========== KPIs ==========
             st.markdown("## 🧭 Visión General de la Operación")
             with st.container():
