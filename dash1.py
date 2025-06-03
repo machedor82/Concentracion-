@@ -50,9 +50,9 @@ with tabs[0]:
             st.dataframe(df.head())
 
             # ========== FILTROS ==========
+
             with st.expander("🎛️ Filtros del dashboard", expanded=False):
                 st.markdown("Selecciona los valores que quieres visualizar:")
-
                 clear_all = st.button("🧹 Quitar toda la selección")
 
                 categorias = df['Categoría'].dropna().unique()
@@ -73,40 +73,25 @@ with tabs[0]:
                     (df['region'].isin(region_sel)) &
                     (df['mes'].isin(mes_sel))
                 ]
-# ========== SLIDERS AVANZADOS ==========
-st.markdown("### 📏 Filtros adicionales avanzados")
 
-col1, col2 = st.columns(2)
+            # ========== SLIDERS AVANZADOS ==========
+            st.markdown("### 📏 Filtros adicionales avanzados")
+            col1, col2 = st.columns(2)
 
-with col1:
-    min_flete = float(df_filtrado['costo_relativo_envio'].min())
-    max_flete = float(df_filtrado['costo_relativo_envio'].max())
+            with col1:
+                min_flete = float(df_filtrado['costo_relativo_envio'].min())
+                max_flete = float(df_filtrado['costo_relativo_envio'].max())
+                rango_flete = st.slider("Costo relativo de envío (%)", min_value=round(min_flete, 2), max_value=round(max_flete, 2), value=(round(min_flete, 2), round(max_flete, 2)))
 
-    rango_flete = st.slider(
-        "Costo relativo de envío (%)",
-        min_value=round(min_flete, 2),
-        max_value=round(max_flete, 2),
-        value=(round(min_flete, 2), round(max_flete, 2))
-    )
+            with col2:
+                min_peso = int(df_filtrado['total_peso_g'].min())
+                max_peso = int(df_filtrado['total_peso_g'].max())
+                rango_peso = st.slider("Peso total del pedido (g)", min_value=min_peso, max_value=max_peso, value=(min_peso, max_peso))
 
-with col2:
-    min_peso = int(df_filtrado['total_peso_g'].min())
-    max_peso = int(df_filtrado['total_peso_g'].max())
-
-    rango_peso = st.slider(
-        "Peso total del pedido (g)",
-        min_value=min_peso,
-        max_value=max_peso,
-        value=(min_peso, max_peso)
-    )
-
-# Aplicar filtros de sliders
-df_filtrado = df_filtrado[
-    (df_filtrado['costo_relativo_envio'].between(rango_flete[0], rango_flete[1])) &
-    (df_filtrado['total_peso_g'].between(rango_peso[0], rango_peso[1]))
-]
-
-# 
+            df_filtrado = df_filtrado[
+                (df_filtrado['costo_relativo_envio'].between(rango_flete[0], rango_flete[1])) &
+                (df_filtrado['total_peso_g'].between(rango_peso[0], rango_peso[1]))
+            ]
 
             # ========== KPIs ==========
             st.markdown("## 🧭 Visión General de la Operación")
@@ -130,96 +115,48 @@ df_filtrado = df_filtrado[
                     st.metric(label="Clientes frecuentes", value=clientes_frecuentes)
 
             # ========== GRÁFICAS ==========
-            with st.container():
-                st.markdown("### 📊 Análisis visual")
-            
-                # ===== Pedidos por Año =====
-                st.subheader("📦 Total de pedidos por año")
-                pedidos_por_año = df_filtrado['año'].value_counts().sort_index().reset_index()
-                pedidos_por_año.columns = ['Año', 'Cantidad de pedidos']
-                fig1 = px.bar(
-                    pedidos_por_año,
-                    x='Cantidad de pedidos',
-                    y='Año',
-                    orientation='h',
-                    color='Cantidad de pedidos',
-                    color_continuous_scale='Blues'
-                )
-                fig1.update_layout(
-                    xaxis_title="Cantidad de pedidos",
-                    yaxis_title="Año",
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    height=400
-                )
-                st.plotly_chart(fig1, use_container_width=True)
-            
-                # ===== Centros de Distribución =====
-                st.subheader("🏭 Top 10 centros de distribución")
-                top_dc = df_filtrado['dc_asignado'].value_counts().head(10).reset_index()
-                top_dc.columns = ['Centro de distribución', 'Cantidad de pedidos']
-                fig2 = px.bar(
-                    top_dc,
-                    x='Cantidad de pedidos',
-                    y='Centro de distribución',
-                    orientation='h',
-                    color='Cantidad de pedidos',
-                    color_continuous_scale='Teal'
-                )
-                fig2.update_layout(
-                    xaxis_title="Cantidad de pedidos",
-                    yaxis_title="Centro de distribución",
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    height=400
-                )
-                st.plotly_chart(fig2, use_container_width=True)
-            
-                # ===== Pedidos por Estado =====
-                st.subheader("🌎 Pedidos por estado de destino")
-                demanda_estado = df_filtrado['estado_del_cliente'].value_counts().reset_index()
-                demanda_estado.columns = ['Estado', 'Cantidad de pedidos']
-                fig3 = px.bar(
-                    demanda_estado,
-                    x='Cantidad de pedidos',
-                    y='Estado',
-                    orientation='h',
-                    color='Cantidad de pedidos',
-                    color_continuous_scale='Oranges'
-                )
-                fig3.update_layout(
-                    xaxis_title="Cantidad de pedidos",
-                    yaxis_title="Estado",
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    height=500
-                )
-                st.plotly_chart(fig3, use_container_width=True)
+            st.markdown("### 📊 Análisis visual")
 
+            st.subheader("📦 Total de pedidos por año")
+            pedidos_por_año = df_filtrado['año'].value_counts().sort_index().reset_index()
+            pedidos_por_año.columns = ['Año', 'Cantidad de pedidos']
+            fig1 = px.bar(pedidos_por_año, x='Cantidad de pedidos', y='Año', orientation='h',
+                          color='Cantidad de pedidos', color_continuous_scale='Blues')
+            st.plotly_chart(fig1, use_container_width=True)
 
-                    
+            st.subheader("🏭 Top 10 centros de distribución")
+            top_dc = df_filtrado['dc_asignado'].value_counts().head(10).reset_index()
+            top_dc.columns = ['Centro de distribución', 'Cantidad de pedidos']
+            fig2 = px.bar(top_dc, x='Cantidad de pedidos', y='Centro de distribución', orientation='h',
+                          color='Cantidad de pedidos', color_continuous_scale='Teal')
+            st.plotly_chart(fig2, use_container_width=True)
+
+            st.subheader("🌎 Pedidos por estado de destino")
+            demanda_estado = df_filtrado['estado_del_cliente'].value_counts().reset_index()
+            demanda_estado.columns = ['Estado', 'Cantidad de pedidos']
+            fig3 = px.bar(demanda_estado, x='Cantidad de pedidos', y='Estado', orientation='h',
+                          color='Cantidad de pedidos', color_continuous_scale='Oranges')
+            st.plotly_chart(fig3, use_container_width=True)
+
+            # ========== MAPA ==========
+            st.markdown("### 🗺️ Mapa de entregas de clientes")
+            df_mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
+            if not df_mapa.empty:
+                st.map(df_mapa[['lat_cliente', 'lon_cliente']])
+            else:
+                st.warning("⚠️ No hay ubicaciones para mostrar con los filtros actuales.")
+
             # ========== MODELOS ==========
-            with st.container():
-                st.markdown("### 🤖 Modelos de predicción")
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.success("Modelo de clasificación de días de entrega: Accuracy ~69%, F1 ~68")
-                with col2:
-                    st.success("Modelo de regresión del flete: R² ~0.71")
-                st.caption("Estos modelos pueden usarse para consolidar entregas, prevenir sobrecostos y predecir el precio antes de la compra.")
+            st.markdown("### 🤖 Modelos de predicción")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.success("Modelo de clasificación de días de entrega: Accuracy ~69%, F1 ~68")
+            with col2:
+                st.success("Modelo de regresión del flete: R² ~0.71")
+            st.caption("Estos modelos pueden usarse para consolidar entregas, prevenir sobrecostos y predecir el precio antes de la compra.")
 
         except Exception as e:
             st.error(f"⚠️ Error al cargar los datos: {e}")
-
-#========== MAPA DE ENTREGAS ==========
-st.markdown("### 🗺️ Mapa de entregas de clientes")
-
-df_mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
-
-if not df_mapa.empty:
-    st.map(df_mapa[['lat_cliente', 'lon_cliente']])
-else:
-    st.warning("⚠️ No hay ubicaciones para mostrar con los filtros actuales.")
 
 # ========================== PESTAÑA 2: CALCULADORA ==========================
 with tabs[1]:
