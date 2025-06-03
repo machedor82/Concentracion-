@@ -32,7 +32,6 @@ tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora", "🔧 Por definir"])
 # Pestaña 1: Dashboard
 with tabs[0]:
     st.subheader("Vista General de KPIs y Gráficas")
-import streamlit as st
 
 # Título de la primera pestaña
 st.markdown("## 🧭 Visión General de la Operación")
