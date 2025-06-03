@@ -2,6 +2,28 @@ import streamlit as st
 import pandas as pd
 import zipfile
 
+with st.container():
+    st.markdown("### 🎚️ Filtros del dashboard")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        categoria_sel = st.multiselect("Categoría de producto", df['Categoría'].dropna().unique(), default=df['Categoría'].dropna().unique())
+    with col2:
+        region_sel = st.multiselect("Región", df['region'].dropna().unique(), default=df['region'].dropna().unique())
+    with col3:
+        mes_sel = st.multiselect("Mes", sorted(df['mes'].dropna().unique()), default=sorted(df['mes'].dropna().unique()))
+
+    # Aplicar filtros
+    df_filtrado = df[
+        (df['Categoría'].isin(categoria_sel)) &
+        (df['region'].isin(region_sel)) &
+        (df['mes'].isin(mes_sel))
+    ]
+
+
+
+
 # Configurar la página
 st.set_page_config(page_title="Dashboard Empresarial", layout="wide", initial_sidebar_state="collapsed")
 
