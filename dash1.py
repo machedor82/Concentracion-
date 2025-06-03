@@ -49,22 +49,33 @@ with tabs[0]:
             st.dataframe(df.head())
 
             # ========== FILTROS ==========
-            with st.container():
-                st.markdown("### 🎚️ Filtros del dashboard")
-                col1, col2, col3 = st.columns(3)
+with st.expander("🎛️ Filtros del dashboard", expanded=False):
+    st.markdown("Selecciona los valores que quieres visualizar:")
 
-                with col1:
-                    categoria_sel = st.multiselect("Categoría de producto", df['Categoría'].dropna().unique(), default=df['Categoría'].dropna().unique())
-                with col2:
-                    region_sel = st.multiselect("Región", df['region'].dropna().unique(), default=df['region'].dropna().unique())
-                with col3:
-                    mes_sel = st.multiselect("Mes", sorted(df['mes'].dropna().unique()), default=sorted(df['mes'].dropna().unique()))
+    col1, col2, col3 = st.columns([1, 1, 1])
 
-                df_filtrado = df[
-                    (df['Categoría'].isin(categoria_sel)) &
-                    (df['region'].isin(region_sel)) &
-                    (df['mes'].isin(mes_sel))
-                ]
+    with col1:
+        categorias = df['Categoría'].dropna().unique()
+        clear_cat = st.button("Quitar selección - Categoría")
+        categoria_sel = st.multiselect("Categoría de producto", categorias, default=categorias if not clear_cat else [])
+
+    with col2:
+        regiones = df['region'].dropna().unique()
+        clear_reg = st.button("Quitar selección - Región")
+        region_sel = st.multiselect("Región", regiones, default=regiones if not clear_reg else [])
+
+    with col3:
+        meses = sorted(df['mes'].dropna().unique())
+        clear_mes = st.button("Quitar selección - Mes")
+        mes_sel = st.multiselect("Mes", meses, default=meses if not clear_mes else [])
+
+    # Aplicar filtros
+    df_filtrado = df[
+        (df['Categoría'].isin(categoria_sel)) &
+        (df['region'].isin(region_sel)) &
+        (df['mes'].isin(mes_sel))
+    ]
+
 
             # ========== KPIs ==========
             st.markdown("## 🧭 Visión General de la Operación")
