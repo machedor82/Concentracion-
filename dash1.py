@@ -4,7 +4,7 @@ import zipfile
 import plotly.express as px
 
 # ========================== CONFIGURACIÓN INICIAL ==========================
-st.set_page_config(page_title="Dashboard Empresarial", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Cabrito Analytics", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
     <style>
@@ -25,7 +25,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("📊 Panel Empresarial")
+st.title("📊 ")
 tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora", "🔧 Por definir"])
 
 # ========================== PESTAÑA 1: DASHBOARD ==========================
@@ -75,7 +75,7 @@ with tabs[0]:
                 ]
 
             # ========== SLIDERS AVANZADOS ==========
-            st.markdown("### 📏 Filtros adicionales avanzados")
+            st.markdown("### 📏 Filtros avanzados")
             col1, col2 = st.columns(2)
 
             with col1:
@@ -97,7 +97,7 @@ with tabs[0]:
             # ========== KPIs ==========  
             st.markdown("## 🧭 Visión General de la Operación")
             with st.container():
-                st.markdown("### 🔢 Indicadores clave")
+                st.markdown("### 🔢 Indicadores")
                 col1, col2, col3 = st.columns(3)
             
                 with col1:
