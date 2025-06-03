@@ -29,7 +29,7 @@ st.title("📊 Panel Empresarial")
 # Crear las tres pestañas
 tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora", "🔧 Por definir"])
 
-# Pestaña 1: Dashboard
+###### Pestaña 1: Dashboard
 with tabs[0]:
     st.subheader("Vista General de KPIs y Gráficas")
 
