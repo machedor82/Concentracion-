@@ -117,29 +117,53 @@ with tabs[0]:
             # ========== GRÁFICAS ==========
             from streamlit_plotly_events import plotly_events
             
-            # Crear Treemap con capacidad de clic
-            st.markdown("### 🌳 Treemap por categoría")
-            fig_tree = px.treemap(df_filtrado, path=['Categoría'], values='precio', color='Categoría',
-                                  color_discrete_sequence=px.colors.qualitative.Pastel)
+            # Asegúrate de que df_filtrado existe
+            st.markdown("### 📊 Análisis visual")
             
-            selected_points = plotly_events(fig_tree, click_event=True, hover_event=False, select_event=False, key="treemap")
+            with st.container():
+                col1, col2 = st.columns(2)
             
-            # Detectar la categoría clickeada
-            if selected_points:
-                categoria_click = selected_points[0]["label"]
-                st.success(f"Categoría seleccionada: {categoria_click}")
-                df_mapa = df_filtrado[df_filtrado["Categoría"] == categoria_click]
-            else:
-                df_mapa = df_filtrado
+                with col1:
+                    st.markdown("<div style='border:2px solid #ccc; padding:10px; border-radius:10px;'>", unsafe_allow_html=True)
+                    st.subheader("🌳 Treemap por categoría")
             
-            # Mostrar mapa filtrado
-            st.markdown("### 🗺️ Mapa de entregas de clientes")
-            df_mapa = df_mapa.dropna(subset=['lat_cliente', 'lon_cliente'])
-            if not df_mapa.empty:
-                st.map(df_mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
-            else:
-                st.warning("⚠️ No hay ubicaciones para mostrar con la categoría seleccionada.")
+                    # Asegurar que 'precio' esté limpio
+                    df_filtrado['precio'] = pd.to_numeric(df_filtrado['precio'], errors='coerce')
             
+                    fig_tree = px.treemap(
+                        df_filtrado,
+                        path=['Categoría'],
+                        values='precio',  # usa 'precio' si quieres áreas proporcionales a monto
+                        color='Categoría',
+                        color_discrete_sequence=px.colors.qualitative.Pastel
+                    )
+            
+                    selected = plotly_events(
+                        fig_tree,
+                        click_event=True,
+                        hover_event=False,
+                        select_event=False,
+                        key="treemap_click"
+                    )
+                    st.markdown("</div>", unsafe_allow_html=True)
+            
+                with col2:
+                    st.markdown("<div style='border:2px solid #ccc; padding:10px; border-radius:10px;'>", unsafe_allow_html=True)
+                    st.subheader("🗺️ Mapa de entregas de clientes")
+            
+                    if selected:
+                        categoria_clic = selected[0]["label"]
+                        st.caption(f"🔍 Mostrando entregas para: **{categoria_clic}**")
+                        df_mapa = df_filtrado[df_filtrado["Categoría"] == categoria_clic]
+                    else:
+                        df_mapa = df_filtrado
+            
+                    df_mapa = df_mapa.dropna(subset=["lat_cliente", "lon_cliente"])
+                    if not df_mapa.empty:
+                        st.map(df_mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
+                    else:
+                        st.warning("⚠️ No hay ubicaciones para mostrar con la categoría seleccionada.")
+                    st.markdown("</div>", unsafe_allow_html=True)
 
             # ========== DESCARGA ==========
             st.download_button("⬇️ Descargar datos filtrados", df_filtrado.to_csv(index=False), "datos_filtrados.csv", "text/csv")
