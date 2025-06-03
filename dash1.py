@@ -73,6 +73,40 @@ with tabs[0]:
                     (df['region'].isin(region_sel)) &
                     (df['mes'].isin(mes_sel))
                 ]
+# ========== SLIDERS AVANZADOS ==========
+st.markdown("### 📏 Filtros adicionales avanzados")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    min_flete = float(df_filtrado['costo_relativo_envio'].min())
+    max_flete = float(df_filtrado['costo_relativo_envio'].max())
+
+    rango_flete = st.slider(
+        "Costo relativo de envío (%)",
+        min_value=round(min_flete, 2),
+        max_value=round(max_flete, 2),
+        value=(round(min_flete, 2), round(max_flete, 2))
+    )
+
+with col2:
+    min_peso = int(df_filtrado['total_peso_g'].min())
+    max_peso = int(df_filtrado['total_peso_g'].max())
+
+    rango_peso = st.slider(
+        "Peso total del pedido (g)",
+        min_value=min_peso,
+        max_value=max_peso,
+        value=(min_peso, max_peso)
+    )
+
+# Aplicar filtros de sliders
+df_filtrado = df_filtrado[
+    (df_filtrado['costo_relativo_envio'].between(rango_flete[0], rango_flete[1])) &
+    (df_filtrado['total_peso_g'].between(rango_peso[0], rango_peso[1]))
+]
+
+# 
 
             # ========== KPIs ==========
             st.markdown("## 🧭 Visión General de la Operación")
@@ -176,6 +210,16 @@ with tabs[0]:
 
         except Exception as e:
             st.error(f"⚠️ Error al cargar los datos: {e}")
+
+#========== MAPA DE ENTREGAS ==========
+st.markdown("### 🗺️ Mapa de entregas de clientes")
+
+df_mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
+
+if not df_mapa.empty:
+    st.map(df_mapa[['lat_cliente', 'lon_cliente']])
+else:
+    st.warning("⚠️ No hay ubicaciones para mostrar con los filtros actuales.")
 
 # ========================== PESTAÑA 2: CALCULADORA ==========================
 with tabs[1]:
