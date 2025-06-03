@@ -138,11 +138,14 @@ with tabs[0]:
                           color='Cantidad de pedidos', color_continuous_scale='Oranges')
             st.plotly_chart(fig3, use_container_width=True)
 
+            
             # ========== MAPA ==========
             st.markdown("### 🗺️ Mapa de entregas de clientes")
             df_mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
+            
             if not df_mapa.empty:
-                st.map(df_mapa[['lat_cliente', 'lon_cliente']])
+                df_mapa_renombrado = df_mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})
+                st.map(df_mapa_renombrado[['lat', 'lon']])
             else:
                 st.warning("⚠️ No hay ubicaciones para mostrar con los filtros actuales.")
 
