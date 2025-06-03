@@ -125,8 +125,15 @@ with tabs[0]:
             demanda_estado.columns = ['Estado', 'Cantidad de pedidos']
             st.plotly_chart(px.bar(demanda_estado, x='Cantidad de pedidos', y='Estado', orientation='h', color='Cantidad de pedidos', color_continuous_scale='Oranges'), use_container_width=True)
 
-            st.subheader("🌀 Dispersión peso vs costo de envío")
-            fig_scatter = px.scatter(df_filtrado, x='total_peso_g', y='costo_relativo_envio', color='Categoría', opacity=0.6, trendline="ols", hover_data=['estado_del_cliente'])
+           
+            st.subheader("🌀 Dispersión peso vs costo de flete")
+            fig_scatter = px.scatter(df_filtrado,
+                                     x='total_peso_g',
+                                     y='costo_de_flete',
+                                     color='Categoría',
+                                     opacity=0.6,
+                                     hover_data=['estado_del_cliente', 'precio'])
+            fig_scatter.update_layout(xaxis_title="Peso total del pedido (g)", yaxis_title="Costo de flete ($)")
             st.plotly_chart(fig_scatter, use_container_width=True)
 
             st.subheader("🌳 Treemap por categoría")
