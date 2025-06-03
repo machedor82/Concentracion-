@@ -150,7 +150,7 @@ with tabs[0]:
                     st.subheader("🗺️ Mapa de entregas de clientes")
             
                     if selected:
-                        categoria_clic = selected[0]["label"]
+                        categoria_clic = selected[0]["customdata"][0]
                         st.caption(f"🔍 Mostrando entregas para: **{categoria_clic}**")
                         df_mapa = df_filtrado[df_filtrado["Categoría"] == categoria_clic]
                     else:
