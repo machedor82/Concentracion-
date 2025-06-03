@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import zipfile
-
+import plotly.express as px
 # ========================== CONFIGURACIÓN INICIAL ==========================
 st.set_page_config(page_title="Dashboard Empresarial", layout="wide", initial_sidebar_state="collapsed")
 
@@ -112,9 +112,69 @@ with tabs[0]:
             with st.container():
                 st.markdown("### 📊 Análisis visual")
                 tab1, tab2, tab3 = st.tabs(["Pedidos por Año", "Centros de Distribución", "Demanda por Estado"])
-                with tab1: st.write("⬅️ Aquí irá la gráfica de pedidos por año.")
-                with tab2: st.write("⬅️ Aquí irá el treemap o barras de centros de distribución.")
-                with tab3: st.write("⬅️ Aquí irá la gráfica de estados con más entregas.")
+            
+
+st.markdown("### 📊 Análisis visual")
+tab1, tab2, tab3 = st.tabs(["Pedidos por Año", "Centros de Distribución", "Demanda por Estado"])
+
+# ===== TAB 1: Pedidos por año =====
+with tab1:
+    pedidos_por_año = df_filtrado['año'].value_counts().sort_index()
+    pedidos_df = pedidos_por_año.reset_index()
+    pedidos_df.columns = ['Año', 'Cantidad de pedidos']
+
+    fig1 = px.bar(
+        pedidos_df,
+        x='Cantidad de pedidos',
+        y='Año',
+        orientation='h',
+        color='Cantidad de pedidos',
+        color_continuous_scale='Blues',
+        labels={'Cantidad de pedidos': 'Pedidos'},
+        title="📦 Total de pedidos por año"
+    )
+
+    fig1.update_layout(
+        xaxis_title="Cantidad de pedidos",
+        yaxis_title="Año",
+        title_x=0.2,
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        height=400
+    )
+
+    st.plotly_chart(fig1, use_container_width=True)
+
+# ===== TAB 2: Pedidos por centro de distribución =====
+with tab2:
+    top_dc = df_filtrado['dc_asignado'].value_counts().head(10).reset_index()
+    top_dc.columns = ['Centro de distribución', 'Cantidad de pedidos']
+
+    fig2 = px.bar(
+        top_dc,
+        x='Cantidad de pedidos',
+        y='Centro de distribución',
+        orientation='h',
+        color='Cantidad de pedidos',
+        color_continuous_scale='teal',
+        title="🏭 Top 10 centros de distribución por volumen"
+    )
+
+    fig2.update_layout(
+        xaxis_title="Cantidad de pedidos",
+        yaxis_title="Centro de distribución",
+        title_x=0.2,
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        height=400
+    )
+
+    st.plotly_chart(fig2, use_container_width=True)
+
+# ===== TAB 3: Pendiente =====
+with tab3:
+    st.write("⬅️ Aquí irá la gráfica de estados con más entregas.")
+
 
             # ========== INSIGHTS ==========
             with st.container():
