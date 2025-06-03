@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import zipfile
 import plotly.express as px
+
 # ========================== CONFIGURACIÓN INICIAL ==========================
 st.set_page_config(page_title="Dashboard Empresarial", layout="wide", initial_sidebar_state="collapsed")
 
@@ -61,25 +62,11 @@ with tabs[0]:
                 col1, col2, col3 = st.columns(3)
 
                 with col1:
-                    categoria_sel = st.multiselect(
-                        "Categoría de producto",
-                        categorias,
-                        default=[] if clear_all else list(categorias)
-                    )
-
+                    categoria_sel = st.multiselect("Categoría de producto", categorias, default=[] if clear_all else list(categorias))
                 with col2:
-                    region_sel = st.multiselect(
-                        "Región",
-                        regiones,
-                        default=[] if clear_all else list(regiones)
-                    )
-
+                    region_sel = st.multiselect("Región", regiones, default=[] if clear_all else list(regiones))
                 with col3:
-                    mes_sel = st.multiselect(
-                        "Mes",
-                        meses,
-                        default=[] if clear_all else meses
-                    )
+                    mes_sel = st.multiselect("Mes", meses, default=[] if clear_all else meses)
 
                 df_filtrado = df[
                     (df['Categoría'].isin(categoria_sel)) &
@@ -112,69 +99,79 @@ with tabs[0]:
             with st.container():
                 st.markdown("### 📊 Análisis visual")
                 tab1, tab2, tab3 = st.tabs(["Pedidos por Año", "Centros de Distribución", "Demanda por Estado"])
-            
 
-st.markdown("### 📊 Análisis visual")
-tab1, tab2, tab3 = st.tabs(["Pedidos por Año", "Centros de Distribución", "Demanda por Estado"])
+                # TAB 1: Pedidos por Año
+                with tab1:
+                    pedidos_por_año = df_filtrado['año'].value_counts().sort_index()
+                    pedidos_df = pedidos_por_año.reset_index()
+                    pedidos_df.columns = ['Año', 'Cantidad de pedidos']
 
-# ===== TAB 1: Pedidos por año =====
-with tab1:
-    pedidos_por_año = df_filtrado['año'].value_counts().sort_index()
-    pedidos_df = pedidos_por_año.reset_index()
-    pedidos_df.columns = ['Año', 'Cantidad de pedidos']
+                    fig1 = px.bar(
+                        pedidos_df,
+                        x='Cantidad de pedidos',
+                        y='Año',
+                        orientation='h',
+                        color='Cantidad de pedidos',
+                        color_continuous_scale='Blues',
+                        title="📦 Total de pedidos por año"
+                    )
+                    fig1.update_layout(
+                        xaxis_title="Cantidad de pedidos",
+                        yaxis_title="Año",
+                        title_x=0.2,
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        height=400
+                    )
+                    st.plotly_chart(fig1, use_container_width=True)
 
-    fig1 = px.bar(
-        pedidos_df,
-        x='Cantidad de pedidos',
-        y='Año',
-        orientation='h',
-        color='Cantidad de pedidos',
-        color_continuous_scale='Blues',
-        labels={'Cantidad de pedidos': 'Pedidos'},
-        title="📦 Total de pedidos por año"
-    )
+                # TAB 2: Centros de Distribución
+                with tab2:
+                    top_dc = df_filtrado['dc_asignado'].value_counts().head(10).reset_index()
+                    top_dc.columns = ['Centro de distribución', 'Cantidad de pedidos']
 
-    fig1.update_layout(
-        xaxis_title="Cantidad de pedidos",
-        yaxis_title="Año",
-        title_x=0.2,
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        height=400
-    )
+                    fig2 = px.bar(
+                        top_dc,
+                        x='Cantidad de pedidos',
+                        y='Centro de distribución',
+                        orientation='h',
+                        color='Cantidad de pedidos',
+                        color_continuous_scale='Teal',
+                        title="🏭 Top 10 centros de distribución"
+                    )
+                    fig2.update_layout(
+                        xaxis_title="Cantidad de pedidos",
+                        yaxis_title="Centro de distribución",
+                        title_x=0.2,
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        height=400
+                    )
+                    st.plotly_chart(fig2, use_container_width=True)
 
-    st.plotly_chart(fig1, use_container_width=True)
+                # TAB 3: Demanda por Estado
+                with tab3:
+                    demanda_estado = df_filtrado['estado_del_cliente'].value_counts().reset_index()
+                    demanda_estado.columns = ['Estado', 'Cantidad de pedidos']
 
-# ===== TAB 2: Pedidos por centro de distribución =====
-with tab2:
-    top_dc = df_filtrado['dc_asignado'].value_counts().head(10).reset_index()
-    top_dc.columns = ['Centro de distribución', 'Cantidad de pedidos']
-
-    fig2 = px.bar(
-        top_dc,
-        x='Cantidad de pedidos',
-        y='Centro de distribución',
-        orientation='h',
-        color='Cantidad de pedidos',
-        color_continuous_scale='teal',
-        title="🏭 Top 10 centros de distribución por volumen"
-    )
-
-    fig2.update_layout(
-        xaxis_title="Cantidad de pedidos",
-        yaxis_title="Centro de distribución",
-        title_x=0.2,
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        height=400
-    )
-
-    st.plotly_chart(fig2, use_container_width=True)
-
-# ===== TAB 3: Pendiente =====
-with tab3:
-    st.write("⬅️ Aquí irá la gráfica de estados con más entregas.")
-
+                    fig3 = px.bar(
+                        demanda_estado,
+                        x='Cantidad de pedidos',
+                        y='Estado',
+                        orientation='h',
+                        color='Cantidad de pedidos',
+                        color_continuous_scale='Oranges',
+                        title="🌎 Pedidos por estado de destino"
+                    )
+                    fig3.update_layout(
+                        xaxis_title="Cantidad de pedidos",
+                        yaxis_title="Estado",
+                        title_x=0.2,
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        height=500
+                    )
+                    st.plotly_chart(fig3, use_container_width=True)
 
             # ========== INSIGHTS ==========
             with st.container():
