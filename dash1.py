@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import zipfile
 import plotly.express as px
+import plotly.graph_objects as go
 
 # ========================== CONFIGURACIÓN INICIAL ==========================
 st.set_page_config(page_title="Cabrito Analytics", layout="wide", initial_sidebar_state="collapsed")
@@ -25,10 +26,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("📊 Panel BI ")
+st.title("📊 Panel BI")
 tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora", "🔧 Por definir"])
 
-# ========================== PESTAÑA 1: DASHBOARD ==========================
+# ========================== PESTAÑA 1 ==========================
 with tabs[0]:
     st.subheader("📂 Cargar base de datos")
     uploaded_file = st.file_uploader("Sube un ZIP que contenga el archivo 'DF.csv'", type="zip")
@@ -45,7 +46,6 @@ with tabs[0]:
         try:
             df = load_zip_csv(uploaded_file)
             st.success("✅ Datos cargados exitosamente")
-            
 
             # ========== FILTROS ==========
             with st.expander("🎛️ Filtros del dashboard", expanded=False):
@@ -85,7 +85,7 @@ with tabs[0]:
                 (df_filtrado['total_peso_g'].between(*rango_peso))
             ]
 
-            # ========== KPIs ESTILO MAMALÓN ==========
+            # ========== KPIs ==========
             st.markdown("## 🧭 Visión General de la Operación")
             with st.container():
                 st.markdown("### 🔢 Indicadores")
@@ -108,34 +108,58 @@ with tabs[0]:
             entregas_tiempo = df_filtrado.groupby("mes_año_dt")["entrega_a_tiempo"].mean().reset_index()
             entregas_tiempo["entrega_a_tiempo"] *= 100
             fig_line = px.line(entregas_tiempo.sort_values(by="mes_año_dt"), x="mes_año_dt", y="entrega_a_tiempo", markers=True, line_shape="spline", color_discrete_sequence=["#00bfae"])
-            fig_line.update_layout(xaxis_title="Mes", yaxis_title="Entregas a tiempo (%)", plot_bgcolor='rgba(0,0,0,0)')
             st.plotly_chart(fig_line, use_container_width=True)
 
             st.subheader("📦 Total de pedidos por año")
             pedidos_por_año = df_filtrado['año'].value_counts().sort_index().reset_index()
             pedidos_por_año.columns = ['Año', 'Cantidad de pedidos']
-            fig1 = px.bar(pedidos_por_año, x='Cantidad de pedidos', y='Año', orientation='h', color='Cantidad de pedidos', color_continuous_scale='Blues')
-            st.plotly_chart(fig1, use_container_width=True)
+            st.plotly_chart(px.bar(pedidos_por_año, x='Cantidad de pedidos', y='Año', orientation='h', color='Cantidad de pedidos', color_continuous_scale='Blues'), use_container_width=True)
 
             st.subheader("🏭 Top 10 centros de distribución")
             top_dc = df_filtrado['dc_asignado'].value_counts().head(10).reset_index()
             top_dc.columns = ['Centro de distribución', 'Cantidad de pedidos']
-            fig2 = px.bar(top_dc, x='Cantidad de pedidos', y='Centro de distribución', orientation='h', color='Cantidad de pedidos', color_continuous_scale='Teal')
-            st.plotly_chart(fig2, use_container_width=True)
+            st.plotly_chart(px.bar(top_dc, x='Cantidad de pedidos', y='Centro de distribución', orientation='h', color='Cantidad de pedidos', color_continuous_scale='Teal'), use_container_width=True)
 
             st.subheader("🌎 Pedidos por estado de destino")
             demanda_estado = df_filtrado['estado_del_cliente'].value_counts().reset_index()
             demanda_estado.columns = ['Estado', 'Cantidad de pedidos']
-            fig3 = px.bar(demanda_estado, x='Cantidad de pedidos', y='Estado', orientation='h', color='Cantidad de pedidos', color_continuous_scale='Oranges')
-            st.plotly_chart(fig3, use_container_width=True)
+            st.plotly_chart(px.bar(demanda_estado, x='Cantidad de pedidos', y='Estado', orientation='h', color='Cantidad de pedidos', color_continuous_scale='Oranges'), use_container_width=True)
 
-            st.markdown("### 🗺️ Mapa de entregas de clientes")
+            st.subheader("🌀 Dispersión peso vs costo de envío")
+            fig_scatter = px.scatter(df_filtrado, x='total_peso_g', y='costo_relativo_envio', color='Categoría', opacity=0.6, trendline="ols", hover_data=['estado_del_cliente'])
+            st.plotly_chart(fig_scatter, use_container_width=True)
+
+            st.subheader("🌳 Treemap por categoría")
+            fig_tree = px.treemap(df_filtrado, path=['Categoría'], values='precio', color='Categoría', color_discrete_sequence=px.colors.qualitative.Pastel)
+            st.plotly_chart(fig_tree, use_container_width=True)
+
+            st.subheader("🧭 Gauge de entregas a tiempo (último mes)")
+            if not entregas_tiempo.empty:
+                gauge_value = entregas_tiempo['entrega_a_tiempo'].iloc[-1]
+                fig_gauge = go.Figure(go.Indicator(
+                    mode="gauge+number",
+                    value=gauge_value,
+                    title={'text': "📍 % Entregas a Tiempo"},
+                    gauge={'axis': {'range': [0, 100]},
+                           'bar': {'color': "#00bfae"},
+                           'steps': [
+                               {'range': [0, 70], 'color': "#ffcccc"},
+                               {'range': [70, 90], 'color': "#fff6b3"},
+                               {'range': [90, 100], 'color': "#ccffcc"}]
+                          }))
+                st.plotly_chart(fig_gauge, use_container_width=True)
+
+            st.subheader("🗺️ Mapa de entregas de clientes")
             df_mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
             if not df_mapa.empty:
                 st.map(df_mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
             else:
                 st.warning("⚠️ No hay ubicaciones para mostrar con los filtros actuales.")
 
+            # ========== DESCARGA ==========
+            st.download_button("⬇️ Descargar datos filtrados", df_filtrado.to_csv(index=False), "datos_filtrados.csv", "text/csv")
+
+            # ========== MODELOS ========== 
             st.markdown("### 🤖 Modelos de predicción")
             col1, col2 = st.columns(2)
             col1.success("Modelo de clasificación de días de entrega: Accuracy ~69%, F1 ~68")
@@ -145,7 +169,7 @@ with tabs[0]:
         except Exception as e:
             st.error(f"⚠️ Error al cargar los datos: {e}")
 
-# ========================== PESTAÑA 2 Y 3 ==========================
+# ========================== PESTAÑAS 2 y 3 ==========================
 with tabs[1]:
     st.subheader("🧮 Herramienta de Cálculo")
     st.warning("Aquí se incluirán funciones interactivas para cálculos personalizados.")
@@ -154,5 +178,3 @@ with tabs[2]:
     st.subheader("🔧 Contenido en Desarrollo")
     st.success("Esta sección está en construcción. Pronto habrá más.")
 
-
-      
