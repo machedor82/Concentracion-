@@ -116,23 +116,22 @@ with tabs[0]:
     
             # ========== GRÁFICAS ==========
             from streamlit_plotly_events import plotly_events
+            # Asegúrate que df_filtrado está cargado
             
-            # Asegúrate de que df_filtrado existe
             st.markdown("### 📊 Análisis visual")
-            
             with st.container():
                 col1, col2 = st.columns(2)
             
                 with col1:
+                    st.markdown("<div style='border:2px solid #ccc; padding:10px; border-radius:10px;'>", unsafe_allow_html=True)
                     st.subheader("🌳 Treemap por categoría")
             
-                    # Asegurar que 'precio' esté limpio
                     df_filtrado['precio'] = pd.to_numeric(df_filtrado['precio'], errors='coerce')
             
                     fig_tree = px.treemap(
                         df_filtrado,
                         path=['Categoría'],
-                        values='precio',  # usa 'precio' si quieres áreas proporcionales a monto
+                        values='precio',
                         color='Categoría',
                         custom_data=['Categoría'],
                         color_discrete_sequence=px.colors.qualitative.Pastel
@@ -148,6 +147,7 @@ with tabs[0]:
                     st.markdown("</div>", unsafe_allow_html=True)
             
                 with col2:
+                    st.markdown("<div style='border:2px solid #ccc; padding:10px; border-radius:10px;'>", unsafe_allow_html=True)
                     st.subheader("🗺️ Mapa de entregas de clientes")
             
                     if selected:
@@ -163,19 +163,18 @@ with tabs[0]:
                     else:
                         st.warning("⚠️ No hay ubicaciones para mostrar con la categoría seleccionada.")
                     st.markdown("</div>", unsafe_allow_html=True)
-
-            # ========== DESCARGA ==========
-            st.download_button("⬇️ Descargar datos filtrados", df_filtrado.to_csv(index=False), "datos_filtrados.csv", "text/csv")
-
-            # ========== MODELOS ========== 
-            st.markdown("### 🤖 Modelos de predicción")
-            col1, col2 = st.columns(2)
-            col1.success("Modelo de clasificación de días de entrega: Accuracy ~69%, F1 ~68")
-            col2.success("Modelo de regresión del flete: R² ~0.71")
-            st.caption("Estos modelos pueden usarse para consolidar entregas, prevenir sobrecostos y predecir el precio antes de la compra.")
-
-        except Exception as e:
-            st.error(f"⚠️ Error al cargar los datos: {e}")
+                        # ========== DESCARGA ==========
+                        st.download_button("⬇️ Descargar datos filtrados", df_filtrado.to_csv(index=False), "datos_filtrados.csv", "text/csv")
+            
+                        # ========== MODELOS ========== 
+                        st.markdown("### 🤖 Modelos de predicción")
+                        col1, col2 = st.columns(2)
+                        col1.success("Modelo de clasificación de días de entrega: Accuracy ~69%, F1 ~68")
+                        col2.success("Modelo de regresión del flete: R² ~0.71")
+                        st.caption("Estos modelos pueden usarse para consolidar entregas, prevenir sobrecostos y predecir el precio antes de la compra.")
+            
+                    except Exception as e:
+                        st.error(f"⚠️ Error al cargar los datos: {e}")
 
 # ========================== PESTAÑAS 2 y 3 ==========================
 with tabs[1]:
