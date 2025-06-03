@@ -155,6 +155,66 @@ with tabs[0]:
 
             # ========== GRÁFICAS ==========
             st.markdown("### 📊 Análisis visual")
+        
+            
+            # Histograma de desviaciones
+            st.subheader("📉 Distribución de desviación en días")
+            fig_hist = px.histogram(
+                df_filtrado,
+                x="desviacion_vs_promesa",
+                nbins=30,
+                title="Distribución de desviación vs promesa de entrega (días)",
+                color_discrete_sequence=["#42a5f5"]
+            )
+            fig_hist.update_layout(
+                xaxis_title="Días de desviación",
+                yaxis_title="Cantidad de pedidos",
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_hist, use_container_width=True)
+            
+            # Boxplot por región
+            st.subheader("📦 Variabilidad de entregas por región")
+            fig_box = px.box(
+                df_filtrado,
+                x="region",
+                y="desviacion_vs_promesa",
+                color="region",
+                title="Variabilidad en días de entrega por región",
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+            fig_box.update_layout(
+                xaxis_title="Región",
+                yaxis_title="Días de desviación",
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_box, use_container_width=True)
+            
+            # Línea de entregas a tiempo por mes
+            st.subheader("📈 Evolución mensual de entregas a tiempo")
+            df_filtrado["mes_año"] = df_filtrado["mes"] + " " + df_filtrado["año"].astype(str)
+            entregas_tiempo = df_filtrado.groupby("mes_año")["entrega_a_tiempo"].mean().reset_index()
+            entregas_tiempo["entrega_a_tiempo"] *= 100
+            
+            fig_line = px.line(
+                entregas_tiempo.sort_values(by="mes_año"),
+                x="mes_año",
+                y="entrega_a_tiempo",
+                markers=True,
+                title="Porcentaje mensual de entregas a tiempo",
+                labels={"entrega_a_tiempo": "Entregas a tiempo (%)"},
+                line_shape="spline",
+                color_discrete_sequence=["#00bfae"]
+            )
+            fig_line.update_layout(
+                xaxis_title="Mes y año",
+                yaxis_title="Entregas a tiempo (%)",
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_line, use_container_width=True)
 
             st.subheader("📦 Total de pedidos por año")
             pedidos_por_año = df_filtrado['año'].value_counts().sort_index().reset_index()
