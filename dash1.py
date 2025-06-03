@@ -163,6 +163,7 @@ with tabs[0]:
                     else:
                         st.warning("⚠️ No hay ubicaciones para mostrar con la categoría seleccionada.")
                     st.markdown("</div>", unsafe_allow_html=True)
+                    
                         # ========== DESCARGA ==========
                         st.download_button("⬇️ Descargar datos filtrados", df_filtrado.to_csv(index=False), "datos_filtrados.csv", "text/csv")
             
