@@ -67,29 +67,31 @@ with tabs[0]:
             df = load_zip_csv(uploaded_file)
             st.success("✅ Datos cargados exitosamente")
 
-            # ========== FILTROS ==========
             # ========== FILTROS EN SIDEBAR ==========
             with st.sidebar:
                 st.header("🎛️ Filtros")
                 clear_all = st.button("🧹 Quitar selección")
             
                 categorias = df['Categoría'].dropna().unique()
-                regiones = df['region'].dropna().unique()
+                estados = df['estado_del_cliente'].dropna().unique()
+                años = sorted(df['año'].dropna().unique())
                 meses = sorted(df['mes'].dropna().unique())
             
                 categoria_sel = st.multiselect("Categoría de producto", categorias, default=[] if clear_all else list(categorias))
-                region_sel = st.multiselect("Región", regiones, default=[] if clear_all else list(regiones))
+                estado_sel = st.multiselect("Estado del cliente", estados, default=[] if clear_all else list(estados))
+                año_sel = st.multiselect("Año", años, default=[] if clear_all else años)
                 mes_sel = st.multiselect("Mes", meses, default=[] if clear_all else meses)
             
                 df_filtrado = df[
                     (df['Categoría'].isin(categoria_sel)) &
-                    (df['region'].isin(region_sel)) &
+                    (df['estado_del_cliente'].isin(estado_sel)) &
+                    (df['año'].isin(año_sel)) &
                     (df['mes'].isin(mes_sel))
                 ]
             
                 st.markdown("---")
                 st.subheader("📏 Filtros avanzados")
-                
+            
                 min_flete, max_flete = float(df_filtrado['costo_relativo_envio'].min()), float(df_filtrado['costo_relativo_envio'].max())
                 rango_flete = st.slider("Costo relativo de envío (%)", min_value=round(min_flete, 2), max_value=round(max_flete, 2), value=(round(min_flete, 2), round(max_flete, 2)))
             
@@ -100,6 +102,7 @@ with tabs[0]:
                     (df_filtrado['costo_relativo_envio'].between(*rango_flete)) &
                     (df_filtrado['total_peso_g'].between(*rango_peso))
                 ]
+
 
             # ========== KPIs ==========
             st.markdown("## 🧭 Visión General de la Operación")
