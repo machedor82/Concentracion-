@@ -94,7 +94,7 @@ with tabs[0]:
             ]
 
             
-            # ========== KPIs ==========  
+            # ========== KPIs ESTILO MAMALÓN ==========  
             st.markdown("## 🧭 Visión General de la Operación")
             with st.container():
                 st.markdown("### 🔢 Indicadores")
@@ -103,9 +103,16 @@ with tabs[0]:
                 with col1:
                     st.markdown(
                         f"""
-                        <div style='background-color:#E3F2FD;padding:20px;border-radius:10px;text-align:center'>
-                            <h4 style='margin-bottom:10px;'>Total de pedidos</h4>
-                            <h2>{len(df_filtrado):,}</h2>
+                        <div style='
+                            background: linear-gradient(135deg, #2196F3, #64B5F6);
+                            padding: 20px;
+                            border-radius: 15px;
+                            text-align: center;
+                            box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+                            color: white;
+                        '>
+                            <div style='font-size:24px;'>📦 Total de pedidos</div>
+                            <div style='font-size:36px;font-weight:bold;'>{len(df_filtrado):,}</div>
                         </div>
                         """, unsafe_allow_html=True
                     )
@@ -114,9 +121,16 @@ with tabs[0]:
                     pct_flete_alto = (df_filtrado['costo_de_flete'] / df_filtrado['precio'] > 0.5).mean() * 100
                     st.markdown(
                         f"""
-                        <div style='background-color:#FFF9C4;padding:20px;border-radius:10px;text-align:center'>
-                            <h4 style='margin-bottom:10px;'>Flete > 50% del producto (%)</h4>
-                            <h2>{pct_flete_alto:.1f}%</h2>
+                        <div style='
+                            background: linear-gradient(135deg, #FDD835, #FFF176);
+                            padding: 20px;
+                            border-radius: 15px;
+                            text-align: center;
+                            box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+                            color: #333;
+                        '>
+                            <div style='font-size:24px;'>🚚 Flete > 50%</div>
+                            <div style='font-size:36px;font-weight:bold;'>{pct_flete_alto:.1f}%</div>
                         </div>
                         """, unsafe_allow_html=True
                     )
@@ -125,9 +139,16 @@ with tabs[0]:
                     pct_anticipadas = (df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100
                     st.markdown(
                         f"""
-                        <div style='background-color:#C8E6C9;padding:20px;border-radius:10px;text-align:center'>
-                            <h4 style='margin-bottom:10px;'>Entregas anticipadas (≥7 días antes)</h4>
-                            <h2>{pct_anticipadas:.1f}%</h2>
+                        <div style='
+                            background: linear-gradient(135deg, #66BB6A, #A5D6A7);
+                            padding: 20px;
+                            border-radius: 15px;
+                            text-align: center;
+                            box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+                            color: white;
+                        '>
+                            <div style='font-size:24px;'>⏱️ Entregas ≥7 días antes</div>
+                            <div style='font-size:36px;font-weight:bold;'>{pct_anticipadas:.1f}%</div>
                         </div>
                         """, unsafe_allow_html=True
                     )
