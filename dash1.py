@@ -118,54 +118,33 @@ with tabs[0]:
                 pct_anticipadas = (df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100
                 col3.markdown(f"""<div style='background:linear-gradient(135deg,#66BB6A,#A5D6A7);padding:20px;border-radius:15px;text-align:center;box-shadow:2px 2px 10px rgba(0,0,0,0.1);color:white;'><div style='font-size:24px;'>⏱️ Entregas ≥7 días antes</div><div style='font-size:36px;font-weight:bold;'>{pct_anticipadas:.1f}%</div></div>""", unsafe_allow_html=True)
 
+    
             # ========== GRÁFICAS ==========
             st.markdown("### 📊 Análisis visual")
-
-            st.subheader("📈 Evolución mensual de entregas a tiempo")
-            df_filtrado["mes"] = df_filtrado["mes"].astype(str).str.zfill(2)
-            df_filtrado["mes_año_dt"] = pd.to_datetime(df_filtrado["año"].astype(str) + "-" + df_filtrado["mes"])
-            entregas_tiempo = df_filtrado.groupby("mes_año_dt")["entrega_a_tiempo"].mean().reset_index()
-            entregas_tiempo["entrega_a_tiempo"] *= 100
-            fig_line = px.line(entregas_tiempo.sort_values(by="mes_año_dt"), x="mes_año_dt", y="entrega_a_tiempo", markers=True, line_shape="spline", color_discrete_sequence=["#00bfae"])
-            st.plotly_chart(fig_line, use_container_width=True)
-
-            st.subheader("📦 Total de pedidos por año")
-            pedidos_por_año = df_filtrado['año'].value_counts().sort_index().reset_index()
-            pedidos_por_año.columns = ['Año', 'Cantidad de pedidos']
-            st.plotly_chart(px.bar(pedidos_por_año, x='Cantidad de pedidos', y='Año', orientation='h', color='Cantidad de pedidos', color_continuous_scale='Blues'), use_container_width=True)
-
-            st.subheader("🏭 Top 10 centros de distribución")
-            top_dc = df_filtrado['dc_asignado'].value_counts().head(10).reset_index()
-            top_dc.columns = ['Centro de distribución', 'Cantidad de pedidos']
-            st.plotly_chart(px.bar(top_dc, x='Cantidad de pedidos', y='Centro de distribución', orientation='h', color='Cantidad de pedidos', color_continuous_scale='Teal'), use_container_width=True)
-
-            st.subheader("🌎 Pedidos por estado de destino")
-            demanda_estado = df_filtrado['estado_del_cliente'].value_counts().reset_index()
-            demanda_estado.columns = ['Estado', 'Cantidad de pedidos']
-            st.plotly_chart(px.bar(demanda_estado, x='Cantidad de pedidos', y='Estado', orientation='h', color='Cantidad de pedidos', color_continuous_scale='Oranges'), use_container_width=True)
-
-           
-            st.subheader("🌀 Dispersión peso vs costo de flete")
-            fig_scatter = px.scatter(df_filtrado,
-                                     x='total_peso_g',
-                                     y='costo_de_flete',
-                                     color='Categoría',
-                                     opacity=0.6,
-                                     hover_data=['estado_del_cliente', 'precio'])
-            fig_scatter.update_layout(xaxis_title="Peso total del pedido (g)", yaxis_title="Costo de flete ($)")
-            st.plotly_chart(fig_scatter, use_container_width=True)
-
-            st.subheader("🌳 Treemap por categoría")
-            fig_tree = px.treemap(df_filtrado, path=['Categoría'], values='precio', color='Categoría', color_discrete_sequence=px.colors.qualitative.Pastel)
-            st.plotly_chart(fig_tree, use_container_width=True)
-
             
-            st.subheader("🗺️ Mapa de entregas de clientes")
-            df_mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
-            if not df_mapa.empty:
-                st.map(df_mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
-            else:
-                st.warning("⚠️ No hay ubicaciones para mostrar con los filtros actuales.")
+            with st.container():
+                col1, col2 = st.columns(2)
+            
+                with col1:
+                    st.markdown("""
+                        <div style='border:2px solid #ccc; padding:10px; border-radius:10px;'>
+                    """, unsafe_allow_html=True)
+                    st.subheader("🌳 Treemap por categoría")
+                    fig_tree = px.treemap(df_filtrado, path=['Categoría'], values='precio', color='Categoría', color_discrete_sequence=px.colors.qualitative.Pastel)
+                    st.plotly_chart(fig_tree, use_container_width=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
+            
+                with col2:
+                    st.markdown("""
+                        <div style='border:2px solid #ccc; padding:10px; border-radius:10px;'>
+                    """, unsafe_allow_html=True)
+                    st.subheader("🗺️ Mapa de entregas de clientes")
+                    df_mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
+                    if not df_mapa.empty:
+                        st.map(df_mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
+                    else:
+                        st.warning("⚠️ No hay ubicaciones para mostrar con los filtros actuales.")
+                    st.markdown("</div>", unsafe_allow_html=True)
 
             # ========== DESCARGA ==========
             st.download_button("⬇️ Descargar datos filtrados", df_filtrado.to_csv(index=False), "datos_filtrados.csv", "text/csv")
