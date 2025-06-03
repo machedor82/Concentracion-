@@ -25,7 +25,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("📊 ")
+st.title("📊 Panel BI ")
 tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora", "🔧 Por definir"])
 
 # ========================== PESTAÑA 1: DASHBOARD ==========================
@@ -45,7 +45,7 @@ with tabs[0]:
         try:
             df = load_zip_csv(uploaded_file)
             st.success("✅ Datos cargados exitosamente")
-            st.dataframe(df.head())
+            
 
             # ========== FILTROS ==========
             with st.expander("🎛️ Filtros del dashboard", expanded=False):
