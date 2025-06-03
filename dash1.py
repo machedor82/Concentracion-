@@ -115,25 +115,31 @@ with tabs[0]:
 
     
             # ========== GRÁFICAS ==========
-            st.markdown("### 📊 Análisis visual")
+            from streamlit_plotly_events import plotly_events
             
-            with st.container():
-                col1, col2 = st.columns(2)
+            # Crear Treemap con capacidad de clic
+            st.markdown("### 🌳 Treemap por categoría")
+            fig_tree = px.treemap(df_filtrado, path=['Categoría'], values='precio', color='Categoría',
+                                  color_discrete_sequence=px.colors.qualitative.Pastel)
             
-                with col1:
-                    st.subheader("🌳 Treemap por categoría")
-                    fig_tree = px.treemap(df_filtrado, path=['Categoría'], values='precio', color='Categoría', color_discrete_sequence=px.colors.qualitative.Pastel)
-                    st.plotly_chart(fig_tree, use_container_width=True)
-                    st.markdown("</div>", unsafe_allow_html=True)
+            selected_points = plotly_events(fig_tree, click_event=True, hover_event=False, select_event=False, key="treemap")
             
-                with col2:
-                    st.subheader("🗺️ Mapa de entregas de clientes")
-                    df_mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
-                    if not df_mapa.empty:
-                        st.map(df_mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
-                    else:
-                        st.warning("⚠️ No hay ubicaciones para mostrar con los filtros actuales.")
-                    st.markdown("</div>", unsafe_allow_html=True)
+            # Detectar la categoría clickeada
+            if selected_points:
+                categoria_click = selected_points[0]["label"]
+                st.success(f"Categoría seleccionada: {categoria_click}")
+                df_mapa = df_filtrado[df_filtrado["Categoría"] == categoria_click]
+            else:
+                df_mapa = df_filtrado
+            
+            # Mostrar mapa filtrado
+            st.markdown("### 🗺️ Mapa de entregas de clientes")
+            df_mapa = df_mapa.dropna(subset=['lat_cliente', 'lon_cliente'])
+            if not df_mapa.empty:
+                st.map(df_mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
+            else:
+                st.warning("⚠️ No hay ubicaciones para mostrar con la categoría seleccionada.")
+            
 
             # ========== DESCARGA ==========
             st.download_button("⬇️ Descargar datos filtrados", df_filtrado.to_csv(index=False), "datos_filtrados.csv", "text/csv")
