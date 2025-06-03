@@ -1,4 +1,17 @@
 import streamlit as st
+import pandas as pd
+import zipfile
+
+# Ruta al archivo ZIP
+zip_path = "DF.zip"
+
+# Abrir el ZIP y cargar el CSV
+with zipfile.ZipFile(zip_path, 'r') as z:
+    with z.open('DF.csv') as f:
+        df = pd.read_csv(f)
+
+# Vista previa para confirmar carga
+st.write(df.head())
 
 # Configuración de la página
 st.set_page_config(page_title="Dashboard Empresarial", layout="wide", initial_sidebar_state="collapsed")
