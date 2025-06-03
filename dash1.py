@@ -93,26 +93,44 @@ with tabs[0]:
                 (df_filtrado['total_peso_g'].between(rango_peso[0], rango_peso[1]))
             ]
 
-            # ========== KPIs ==========
+            
+            # ========== KPIs ==========  
             st.markdown("## 🧭 Visión General de la Operación")
             with st.container():
                 st.markdown("### 🔢 Indicadores clave")
-                col1, col2, col3, col4, col5 = st.columns(5)
-
+                col1, col2, col3 = st.columns(3)
+            
                 with col1:
-                    st.metric(label="Total de pedidos", value=f"{len(df_filtrado):,}")
+                    st.markdown(
+                        f"""
+                        <div style='background-color:#E3F2FD;padding:20px;border-radius:10px;text-align:center'>
+                            <h4 style='margin-bottom:10px;'>Total de pedidos</h4>
+                            <h2>{len(df_filtrado):,}</h2>
+                        </div>
+                        """, unsafe_allow_html=True
+                    )
+            
                 with col2:
-                    pct_ontime = df_filtrado['entrega_a_tiempo'].mean() * 100
-                    st.metric(label="Entregas a tiempo (%)", value=f"{pct_ontime:.1f}%")
-                with col3:
                     pct_flete_alto = (df_filtrado['costo_de_flete'] / df_filtrado['precio'] > 0.5).mean() * 100
-                    st.metric(label="Flete > 50% del producto (%)", value=f"{pct_flete_alto:.1f}%")
-                with col4:
-                    pct_anticipadas = (df_filtrado['desviacion_vs_promesa'] < -5).mean() * 100
-                    st.metric(label="Entregas anticipadas (%)", value=f"{pct_anticipadas:.1f}%")
-                with col5:
-                    clientes_frecuentes = df_filtrado['cliente_id'].value_counts().gt(5).sum()
-                    st.metric(label="Clientes frecuentes", value=clientes_frecuentes)
+                    st.markdown(
+                        f"""
+                        <div style='background-color:#FFF9C4;padding:20px;border-radius:10px;text-align:center'>
+                            <h4 style='margin-bottom:10px;'>Flete > 50% del producto (%)</h4>
+                            <h2>{pct_flete_alto:.1f}%</h2>
+                        </div>
+                        """, unsafe_allow_html=True
+                    )
+            
+                with col3:
+                    pct_anticipadas = (df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100
+                    st.markdown(
+                        f"""
+                        <div style='background-color:#C8E6C9;padding:20px;border-radius:10px;text-align:center'>
+                            <h4 style='margin-bottom:10px;'>Entregas anticipadas (≥7 días antes)</h4>
+                            <h2>{pct_anticipadas:.1f}%</h2>
+                        </div>
+                        """, unsafe_allow_html=True
+                    )
 
             # ========== GRÁFICAS ==========
             st.markdown("### 📊 Análisis visual")
