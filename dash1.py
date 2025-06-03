@@ -172,16 +172,7 @@ with tabs[0]:
                         height=500
                     )
                     st.plotly_chart(fig3, use_container_width=True)
-
-            # ========== INSIGHTS ==========
-            with st.container():
-                st.markdown("### 🔍 Hallazgos operativos clave")
-                st.info("""
-                • Muchos pedidos llegan antes de tiempo → rutas mal optimizadas.  
-                • Hay días con camiones medio vacíos → oportunidad para consolidación.  
-                • Alta proporción de pedidos con flete muy caro respecto al producto.  
-                """)
-
+                    
             # ========== MODELOS ==========
             with st.container():
                 st.markdown("### 🤖 Modelos de predicción")
