@@ -101,16 +101,48 @@ with tabs[0]:
 
             # ========== GRÁFICAS ==========
             st.markdown("### 📊 Análisis visual")
+ # ===== Gráfico de barras apiladas: tipo de cumplimiento vs rango distancia =====
+            st.subheader("📏 Cumplimiento por rango de distancia")
+            bins = [0, 10, 50, 100, 300, 1000, float('inf')]
+            labels = ['0-10km', '10-50km', '50-100km', '100-300km', '300-1000km', '1000km+']
+            df_filtrado['rango_dist'] = pd.cut(df_filtrado['rango_distancia'], bins=bins, labels=labels)
+            df_filtrado['tipo_cumplimiento'] = df_filtrado['desviacion_vs_promesa'].apply(lambda x: 'Anticipado' if x < -1 else ('A tiempo' if x == 0 else 'Tarde'))
 
-            st.subheader("📉 Distribución de desviación en días")
-            fig_hist = px.histogram(df_filtrado, x="desviacion_vs_promesa", nbins=30, color_discrete_sequence=["#42a5f5"])
-            fig_hist.update_layout(xaxis_title="Días de desviación", yaxis_title="Cantidad de pedidos", plot_bgcolor='rgba(0,0,0,0)')
-            st.plotly_chart(fig_hist, use_container_width=True)
+            cumplimiento = df_filtrado.groupby(['rango_dist', 'tipo_cumplimiento']).size().reset_index(name='Cantidad')
+            fig_apilado = px.bar(cumplimiento, x='rango_dist', y='Cantidad', color='tipo_cumplimiento', barmode='stack',
+                                color_discrete_map={'Anticipado':'#66bb6a', 'A tiempo':'#42a5f5', 'Tarde':'#ef5350'})
+            fig_apilado.update_layout(title="Tipo de cumplimiento por rango de distancia", xaxis_title="Rango de distancia", yaxis_title="Cantidad")
+            st.plotly_chart(fig_apilado, use_container_width=True)
 
-            st.subheader("📦 Variabilidad de entregas por región")
-            fig_box = px.box(df_filtrado, x="region", y="desviacion_vs_promesa", color="region", color_discrete_sequence=px.colors.qualitative.Pastel)
-            fig_box.update_layout(xaxis_title="Región", yaxis_title="Días de desviación", plot_bgcolor='rgba(0,0,0,0)')
-            st.plotly_chart(fig_box, use_container_width=True)
+            # ===== Radar: desempeño por región =====
+            st.subheader("📡 Desempeño logístico por región")
+            radar_data = df_filtrado.groupby("region").agg({
+                'entrega_a_tiempo': 'mean',
+                'desviacion_vs_promesa': 'mean',
+                'costo_relativo_envio': 'mean',
+                'desviacion_vs_promesa': lambda x: (x < -7).mean()
+            }).reset_index()
+            radar_data.columns = ['region', '%_a_tiempo', 'desv_prom', 'costo_prom', '%_anticipadas']
+            radar_data[['%_a_tiempo','%_anticipadas']] *= 100
+
+            fig_radar = go.Figure()
+            for i, row in radar_data.iterrows():
+                fig_radar.add_trace(go.Scatterpolar(
+                    r=[row['%_a_tiempo'], row['%_anticipadas'], abs(row['desv_prom']), row['costo_prom']],
+                    theta=['% A Tiempo', '% Anticipadas', 'Desviación Prom.', 'Costo Rel. Prom.'],
+                    fill='toself',
+                    name=row['region']
+                ))
+            fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=True, height=500)
+            st.plotly_chart(fig_radar, use_container_width=True)
+
+            # ===== Boxplot de costo relativo vs distancia =====
+            st.subheader("📊 Distribución de costo de envío por distancia")
+            fig_box2 = px.box(df_filtrado, x='rango_dist', y='costo_relativo_envio', color='rango_dist',
+                            title='Costo relativo de envío por rango de distancia',
+                            color_discrete_sequence=px.colors.qualitative.Set3)
+            fig_box2.update_layout(xaxis_title="Rango de distancia", yaxis_title="Costo relativo de envío (%)")
+            st.plotly_chart(fig_box2, use_container_width=True)
 
             st.subheader("📈 Evolución mensual de entregas a tiempo")
             df_filtrado["mes"] = df_filtrado["mes"].astype(str).str.zfill(2)
