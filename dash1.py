@@ -42,98 +42,51 @@ with tabs[0]:
     df = None
     df_filtrado = None
 
-if uploaded_file:
-    try:
-        df = load_zip_csv(uploaded_file)
-        st.success("✅ Datos cargados exitosamente")
-        st.dataframe(df.head())
-
-        # === Filtros dentro del try ===
-        with st.expander("🎛️ Filtros del dashboard", expanded=False):
-            st.markdown("Selecciona los valores que quieres visualizar:")
-
-            clear_all = st.button("🧹 Quitar toda la selección")
-
-            categorias = df['Categoría'].dropna().unique()
-            regiones = df['region'].dropna().unique()
-            meses = sorted(df['mes'].dropna().unique())
-
-            col1, col2, col3 = st.columns(3)
-
-            with col1:
-                categoria_sel = st.multiselect(
-                    "Categoría de producto",
-                    categorias,
-                    default=[] if clear_all else list(categorias)
-                )
-
-            with col2:
-                region_sel = st.multiselect(
-                    "Región",
-                    regiones,
-                    default=[] if clear_all else list(regiones)
-                )
-
-            with col3:
-                mes_sel = st.multiselect(
-                    "Mes",
-                    meses,
-                    default=[] if clear_all else meses
-                )
-
-            df_filtrado = df[
-                (df['Categoría'].isin(categoria_sel)) &
-                (df['region'].isin(region_sel)) &
-                (df['mes'].isin(mes_sel))
-            ]
-
-    except Exception as e:
-        st.error(f"⚠️ Error al cargar los datos: {e}")
+    if uploaded_file:
+        try:
+            df = load_zip_csv(uploaded_file)
+            st.success("✅ Datos cargados exitosamente")
+            st.dataframe(df.head())
 
             # ========== FILTROS ==========
-with st.expander("🎛️ Filtros del dashboard", expanded=False):
-    st.markdown("Selecciona los valores que quieres visualizar:")
+            with st.expander("🎛️ Filtros del dashboard", expanded=False):
+                st.markdown("Selecciona los valores que quieres visualizar:")
 
-    # Botón para limpiar todo
-    clear_all = st.button("🧹 Quitar toda la selección")
+                clear_all = st.button("🧹 Quitar toda la selección")
 
-    # Opciones únicas
-    categorias = df['Categoría'].dropna().unique()
-    regiones = df['region'].dropna().unique()
-    meses = sorted(df['mes'].dropna().unique())
+                categorias = df['Categoría'].dropna().unique()
+                regiones = df['region'].dropna().unique()
+                meses = sorted(df['mes'].dropna().unique())
 
-    # Columnas de filtros
-    col1, col2, col3 = st.columns(3)
+                col1, col2, col3 = st.columns(3)
 
-    with col1:
-        categoria_sel = st.multiselect(
-            "Categoría de producto",
-            categorias,
-            default=[] if clear_all else list(categorias)
-        )
+                with col1:
+                    categoria_sel = st.multiselect(
+                        "Categoría de producto",
+                        categorias,
+                        default=[] if clear_all else list(categorias)
+                    )
 
-    with col2:
-        region_sel = st.multiselect(
-            "Región",
-            regiones,
-            default=[] if clear_all else list(regiones)
-        )
+                with col2:
+                    region_sel = st.multiselect(
+                        "Región",
+                        regiones,
+                        default=[] if clear_all else list(regiones)
+                    )
 
-    with col3:
-        mes_sel = st.multiselect(
-            "Mes",
-            meses,
-            default=[] if clear_all else meses
-        )
+                with col3:
+                    mes_sel = st.multiselect(
+                        "Mes",
+                        meses,
+                        default=[] if clear_all else meses
+                    )
 
-    # Aplicar filtros
-    df_filtrado = df[
-        (df['Categoría'].isin(categoria_sel)) &
-        (df['region'].isin(region_sel)) &
-        (df['mes'].isin(mes_sel))
-    ]
+                df_filtrado = df[
+                    (df['Categoría'].isin(categoria_sel)) &
+                    (df['region'].isin(region_sel)) &
+                    (df['mes'].isin(mes_sel))
+                ]
 
-    
             # ========== KPIs ==========
             st.markdown("## 🧭 Visión General de la Operación")
             with st.container():
@@ -195,3 +148,4 @@ with tabs[2]:
     st.subheader("🔧 Contenido en Desarrollo")
     st.success("Esta sección está en construcción. Pronto habrá más.")
 
+      
