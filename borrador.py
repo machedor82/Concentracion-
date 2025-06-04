@@ -48,16 +48,16 @@ tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora", "🔧 Por definir"])
 
 # ========================== LÓGICA DE CARGA EN SIDEBAR ==========================
 with st.sidebar:
-    st.header("📂Carga de datos")
-    if "selected_tab" not in st.session_state:
-        st.session_state.selected_tab = "🏠 Dashboard"
+    st.header("📂 Carga de datos")
 
-    if tabs[0]:
-        st.session_state.selected_tab = "🏠 Dashboard"
-        uploaded_file = st.file_uploader("Sube un ZIP que contenga el archivo 'DF.csv'", type="zip", key="zip_uploader")
-    elif tabs[1]:
-        st.session_state.selected_tab = "🧮 Calculadora"
-        archivo_subido = st.sidebar.file_uploader("📂 Sube tu archivo CSV con pedidos", type=["csv"])
+    # ZIP para Dashboard
+    uploaded_file = st.file_uploader("📦 Sube un ZIP con el archivo 'DF.csv'", type="zip", key="zip_uploader")
+
+    # CSV para Calculadora
+    archivo_subido = st.file_uploader("📑 Sube tu archivo CSV para cálculo", type="csv", key="csv_uploader")
+
+    with st.expander("🎛️ Filtros"):
+        st.markdown("Los filtros se activan cuando cargas datos en la pestaña correspondiente.")
 
 
 # ========================== PESTAÑA 1 ==========================
