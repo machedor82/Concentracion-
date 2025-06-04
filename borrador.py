@@ -152,7 +152,16 @@ with tabs[0]:
 # Aquí sigue tu código de la calculadora, lo dejé fuera por límite de caracteres.
 with tabs[1]:
     st.subheader("🧮 Herramienta de Cálculo")
-    st.warning("Aquí se incluirán funciones interactivas para cálculos personalizados.")
+ # 📂 Subida de archivo estilo ZIP uploader
+    st.subheader("📂 Cargar base de datos CSV")
+    archivo_subido = st.file_uploader("Sube tu archivo CSV con pedidos", type=["csv"])
+
+    if archivo_subido:
+        df = pd.read_csv(archivo_subido)
+        st.success("✅ Archivo CSV cargado exitosamente")
+    else:
+        st.warning("Por favor, carga un archivo CSV para continuar.")
+        st.stop()
 
     modelo_flete = joblib.load('modelo_costoflete.sav')
     modelo_dias = joblib.load('modelo_dias_pipeline.joblib')
