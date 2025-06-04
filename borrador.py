@@ -49,8 +49,9 @@ tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora", "🔧 Por definir"])
 
 # ========================== PESTAÑA 1 ==========================
 with tabs[0]:
-    st.subheader("📂 Cargar base de datos")
-    uploaded_file = st.file_uploader("Sube un ZIP que contenga el archivo 'DF.csv'", type="zip")
+
+    st.sidebar.header("📂 Cargar base de datos")
+    uploaded_file = st.sidebar.file_uploader("Sube un ZIP que contenga el archivo 'DF.csv'", type="zip")
 
     @st.cache_data
     def load_zip_csv(upload, internal_name="DF.csv"):
@@ -148,25 +149,32 @@ with tabs[0]:
         except Exception as e:
             st.error(f"⚠️ Error al cargar los datos: {e}")
 
+
 # ========================== PESTAÑA 2 ==========================
-# Aquí sigue tu código de la calculadora, lo dejé fuera por límite de caracteres.
 with tabs[1]:
     st.subheader("🧮 Herramienta de Cálculo")
- # 📂 Subida de archivo estilo ZIP uploader
-    st.subheader("📂 Cargar base de datos CSV")
-    archivo_subido = st.file_uploader("Sube tu archivo CSV con pedidos", type=["csv"])
 
-    if archivo_subido:
-        df = pd.read_csv(archivo_subido)
-        st.success("✅ Archivo CSV cargado exitosamente")
-    else:
+    # 📂 Carga de archivo CSV
+    archivo_subido = st.sidebar.file_uploader("📂 Sube tu archivo CSV con pedidos", type=["csv"])
+
+    if archivo_subido is None:
         st.warning("Por favor, carga un archivo CSV para continuar.")
         st.stop()
 
-    modelo_flete = joblib.load('modelo_costoflete.sav')
-    modelo_dias = joblib.load('modelo_dias_pipeline.joblib')
-    label_encoder = joblib.load('label_encoder_dias.joblib')
+    df2 = pd.read_csv(archivo_subido)
+    st.success("✅ Archivo CSV cargado exitosamente")
 
+    # 📦 Cargar modelos una vez
+    @st.cache_resource
+    def cargar_modelos():
+        modelo_flete = joblib.load('modelo_costoflete.sav')
+        modelo_dias = joblib.load('modelo_dias_pipeline.joblib')
+        label_encoder = joblib.load('label_encoder_dias.joblib')
+        return modelo_flete, modelo_dias, label_encoder
+
+    modelo_flete, modelo_dias, label_encoder = cargar_modelos()
+
+    # 📅 Diccionario de meses
     meses_dict = {
         1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
         7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
@@ -174,21 +182,14 @@ with tabs[1]:
 
     st.title("Predicción de Costo de Flete y Clase de Entrega por Ciudad y Categoría")
 
-    st.sidebar.header("Carga tu archivo de datos")
-    archivo_subido = st.sidebar.file_uploader("Sube tu CSV con pedidos", type=["csv"])
+    # 🧽 Procesamiento de fecha
+    df2['orden_compra_timestamp'] = pd.to_datetime(df2['orden_compra_timestamp'])
+    df2['año'] = df2['orden_compra_timestamp'].dt.year
+    df2['mes'] = df2['orden_compra_timestamp'].dt.month
 
-    if archivo_subido:
-        df = pd.read_csv(archivo_subido)
-    else:
-        st.warning("Por favor, carga un archivo CSV para continuar.")
-        st.stop()
-
-    df['orden_compra_timestamp'] = pd.to_datetime(df['orden_compra_timestamp'])
-    df['año'] = df['orden_compra_timestamp'].dt.year
-    df['mes'] = df['orden_compra_timestamp'].dt.month
-
-    estado = st.sidebar.selectbox("Estado", sorted(df['estado_del_cliente'].dropna().unique()))
-    categorias = sorted(df['Categoría'].dropna().unique())
+    # 🧃 Filtros
+    estado = st.sidebar.selectbox("Estado", sorted(df2['estado_del_cliente'].dropna().unique()))
+    categorias = sorted(df2['Categoría'].dropna().unique())
     categoria = st.sidebar.selectbox("Categoría", categorias)
 
     col1, col2 = st.columns(2)
@@ -200,10 +201,11 @@ with tabs[1]:
     mes1_num = [k for k, v in meses_dict.items() if v == mes1_nombre][0]
     mes2_num = [k for k, v in meses_dict.items() if v == mes2_nombre][0]
 
-    filtro = (df['estado_del_cliente'] == estado) & (df['Categoría'] == categoria)
-    df_mes1 = df[(df['mes'] == mes1_num) & filtro].copy()
-    df_mes2 = df[(df['mes'] == mes2_num) & filtro].copy()
+    filtro = (df2['estado_del_cliente'] == estado) & (df2['Categoría'] == categoria)
+    df_mes1 = df2[(df2['mes'] == mes1_num) & filtro].copy()
+    df_mes2 = df2[(df2['mes'] == mes2_num) & filtro].copy()
 
+    # 🤖 Función de predicción
     def predecir(df_input):
         if df_input.empty:
             return df_input
@@ -241,6 +243,7 @@ with tabs[1]:
 
         return df_input
 
+    # 🧮 Agrupar y comparar
     def agrupar_resultados(df, nombre_mes):
         if 'costo_estimado' in df.columns and 'clase_entrega' in df.columns:
             return df.groupby('ciudad_cliente').agg({
@@ -272,6 +275,7 @@ with tabs[1]:
         f"Entrega {mes2_nombre}"
     ]].rename(columns={'ciudad_cliente': 'Ciudad'})
 
+    # 🎨 Estilo
     def resaltar_diferencia(val):
         if isinstance(val, (int, float)):
             if val > 0:
@@ -291,7 +295,7 @@ with tabs[1]:
 
     csv = comparacion.to_csv(index=False).encode('utf-8')
     st.download_button(
-        label="Descargar CSV de Comparación",
+        label=f"⬇️ Descargar comparación: {mes1_nombre} vs {mes2_nombre}",
         data=csv,
         file_name=f'comparacion_{estado}_{categoria}_{mes1_nombre}_vs_{mes2_nombre}.csv',
         mime='text/csv'
