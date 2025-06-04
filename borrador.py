@@ -61,9 +61,8 @@ with st.sidebar:
 
 
 # ========================== PESTAÑA 1 ==========================
+
 with tabs[0]:
-
-
 
     @st.cache_data
     def load_zip_csv(upload, internal_name="DF.csv"):
@@ -106,89 +105,72 @@ with tabs[0]:
                 (df['total_peso_g'].between(*rango_peso))
             ]
 
-            st.markdown("## 🧭 Visión General de la Operación")
-            with st.container():
+            if df_filtrado is not None and not df_filtrado.empty:
+                st.markdown("## 🧭 Visión General de la Operación")
                 st.markdown("### 🔢 Indicadores")
                 col1, col2, col3 = st.columns(3)
 
-                col1.markdown(f"""
-                    <div style='background:linear-gradient(135deg,#2196F3,#64B5F6);padding:20px;border-radius:15px;
-                    text-align:center;box-shadow:2px 2px 10px rgba(0,0,0,0.1);color:white;'>
-                    <div style='font-size:24px;'>📦 Total de pedidos</div>
-                    <div style='font-size:36px;font-weight:bold;'>{len(df_filtrado):,}</div></div>
-                """, unsafe_allow_html=True)
+                col1.metric("📦 Total de pedidos", f"{len(df_filtrado):,}")
 
                 pct_flete_alto = (df_filtrado['costo_de_flete'] / df_filtrado['precio'] > 0.5).mean() * 100
-                col2.markdown(f"""
-                    <div style='background:linear-gradient(135deg,#FDD835,#FFF176);padding:20px;border-radius:15px;
-                    text-align:center;box-shadow:2px 2px 10px rgba(0,0,0,0.1);color:#333;'>
-                    <div style='font-size:24px;'>🚚 Flete > 50%</div>
-                    <div style='font-size:36px;font-weight:bold;'>{pct_flete_alto:.1f}%</div></div>
-                """, unsafe_allow_html=True)
+                col2.metric("🚚 Flete > 50%", f"{pct_flete_alto:.1f}%")
 
                 pct_anticipadas = (df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100
-                col3.markdown(f"""
-                    <div style='background:linear-gradient(135deg,#66BB6A,#A5D6A7);padding:20px;border-radius:15px;
-                    text-align:center;box-shadow:2px 2px 10px rgba(0,0,0,0.1);color:white;'>
-                    <div style='font-size:24px;'>⏱️ Entregas ≥7 días antes</div>
-                    <div style='font-size:36px;font-weight:bold;'>{pct_anticipadas:.1f}%</div></div>
-                """, unsafe_allow_html=True)
+                col3.metric("⏱️ Entregas ≥7 días antes", f"{pct_anticipadas:.1f}%")
 
-            st.markdown("### 📊 Análisis visual")
-            col1, col2, col3 = st.columns(3)
+                st.markdown("### 📊 Análisis visual")
+                col1, col2, col3 = st.columns(3)
 
-            with col1:
-                st.subheader("🌳 Treemap por categoría")
-                if 'Categoría' in df_filtrado.columns and 'precio' in df_filtrado.columns and not df_filtrado.empty:
-                    try:
-                        fig_tree = px.treemap(
-                            df_filtrado,
-                            path=['Categoría'],
-                            values='precio',
-                            color='Categoría',
-                            color_discrete_sequence=px.colors.qualitative.Pastel
-                        )
-                        st.plotly_chart(fig_tree, use_container_width=True)
-                    except Exception as e:
-                        st.error(f"❌ Error al generar el Treemap: {e}")
-                else:
-                    st.warning("⚠️ No hay datos suficientes para mostrar el Treemap.")
-            
-            with col2:
-                st.subheader("🗺️ Mapa de entregas de clientes")
-                if 'lat_cliente' in df_filtrado.columns and 'lon_cliente' in df_filtrado.columns:
-                    df_mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
-                    if not df_mapa.empty:
-                        st.map(df_mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
+                with col1:
+                    st.subheader("🌳 Treemap por categoría")
+                    if 'Categoría' in df_filtrado.columns and 'precio' in df_filtrado.columns and not df_filtrado.empty:
+                        try:
+                            fig_tree = px.treemap(
+                                df_filtrado,
+                                path=['Categoría'],
+                                values='precio',
+                                color='Categoría',
+                                color_discrete_sequence=px.colors.qualitative.Pastel
+                            )
+                            st.plotly_chart(fig_tree, use_container_width=True)
+                        except Exception as e:
+                            st.error(f"❌ Error al generar el Treemap: {e}")
                     else:
-                        st.warning("⚠️ No hay ubicaciones disponibles con los filtros actuales.")
-                else:
-                    st.warning("⚠️ Las columnas de coordenadas no están disponibles en la base.")
-            
-            with col3:
-                st.subheader("📈 Promedio de entrega vs colchon por estado")
-            
-                # Validación
-                if all(col in df_filtrado.columns for col in ['estado_del_cliente', 'dias_entrega', 'colchon_dias']):
-                    df_promedios = df_filtrado.groupby('estado_del_cliente')[['dias_entrega', 'colchon_dias']].mean().reset_index()
-                    df_promedios = df_promedios.round(2)
-            
-                    fig_bar = px.bar(
-                        df_promedios,
-                        x='estado_del_cliente',
-                        y=['dias_entrega', 'colchon_dias'],
-                        barmode='group',
-                        labels={'value': 'Días promedio', 'estado_del_cliente': 'Estado'},
-                        title='Comparación de días de entrega vs colchón por estado',
-                        text_auto='.2s'
-                    )
-            
-                    fig_bar.update_layout(xaxis_tickangle=-45)
-                    st.plotly_chart(fig_bar, use_container_width=True)
-                else:
-                    st.warning("⚠️ Faltan columnas necesarias: 'estado_del_cliente', 'dias_entrega' o 'colchon_dias'.")
-            except Exception as e:
-                st.error(f"❌ Error al cargar el ZIP: {e}")                    
+                        st.warning("⚠️ No hay datos suficientes para mostrar el Treemap.")
+
+                with col2:
+                    st.subheader("🗺️ Mapa de entregas de clientes")
+                    if 'lat_cliente' in df_filtrado.columns and 'lon_cliente' in df_filtrado.columns:
+                        df_mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
+                        if not df_mapa.empty:
+                            st.map(df_mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
+                        else:
+                            st.warning("⚠️ No hay ubicaciones disponibles con los filtros actuales.")
+                    else:
+                        st.warning("⚠️ Las columnas de coordenadas no están disponibles en la base.")
+
+                with col3:
+                    st.subheader("📈 Promedio de entrega vs colchón por estado")
+                    if all(col in df_filtrado.columns for col in ['estado_del_cliente', 'dias_entrega', 'colchon_dias']):
+                        df_promedios = df_filtrado.groupby('estado_del_cliente')[['dias_entrega', 'colchon_dias']].mean().reset_index()
+                        df_promedios = df_promedios.round(2)
+
+                        fig_bar = px.bar(
+                            df_promedios,
+                            x='estado_del_cliente',
+                            y=['dias_entrega', 'colchon_dias'],
+                            barmode='group',
+                            labels={'value': 'Días promedio', 'estado_del_cliente': 'Estado'},
+                            title='Comparación de días de entrega vs colchón por estado',
+                            text_auto='.2s'
+                        )
+                        fig_bar.update_layout(xaxis_tickangle=-45)
+                        st.plotly_chart(fig_bar, use_container_width=True)
+                    else:
+                        st.warning("⚠️ Faltan columnas necesarias: 'estado_del_cliente', 'dias_entrega' o 'colchon_dias'.")
+        except Exception as e:
+            st.error(f"❌ Error al cargar el ZIP: {e}")
+           
                    
 
 # ========================== PESTAÑA 2 ==========================
