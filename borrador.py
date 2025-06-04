@@ -187,7 +187,7 @@ with tabs[0]:
                     st.plotly_chart(fig_bar, use_container_width=True)
                 else:
                     st.warning("⚠️ Faltan columnas necesarias: 'estado_del_cliente', 'dias_entrega' o 'colchon_dias'.")
-                except Exception as e:
+                except:
                     st.error(f"❌ Error al cargar el ZIP: {e}")
 
 
