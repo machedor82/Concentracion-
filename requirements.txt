@@ -4,3 +4,5 @@ seaborn
 matplotlib
 plotly
 streamlit-plotly-events==0.0.6
+numpy>=1.26.4
+joblib>=1.4.0
