@@ -244,9 +244,9 @@ with tabs[1]:
         return df_input
 
     # 🧮 Agrupar y comparar
-    def agrupar_resultados(df, nombre_mes):
+    def agrupar_resultados(df2, nombre_mes):
         if 'costo_estimado' in df.columns and 'clase_entrega' in df.columns:
-            return df.groupby('ciudad_cliente').agg({
+            return df2.groupby('ciudad_cliente').agg({
                 'costo_estimado': lambda x: round(x.mean(), 2),
                 'clase_entrega': lambda x: x.mode()[0] if not x.mode().empty else 'NA'
             }).rename(columns={
