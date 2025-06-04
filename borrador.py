@@ -5,9 +5,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import joblib
 import numpy as np
-
 # ========================== CONFIGURACIÓN INICIAL ==========================
-st.set_page_config(page_title="BORRRADOR", layout="wide", initial_sidebar_state="open")
+st.set_page_config(page_title="Cabrito Analytics", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
@@ -47,11 +46,24 @@ st.markdown("""
 st.title("📊 Panel BI")
 tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora", "🔧 Por definir"])
 
+# ========================== LÓGICA DE CARGA EN SIDEBAR ==========================
+with st.sidebar:
+    st.header("📂Carga de datos")
+    if "selected_tab" not in st.session_state:
+        st.session_state.selected_tab = "🏠 Dashboard"
+
+    if tabs[0]:
+        st.session_state.selected_tab = "🏠 Dashboard"
+        uploaded_file = st.file_uploader("Sube un ZIP que contenga el archivo 'DF.csv'", type="zip", key="zip_uploader")
+    elif tabs[1]:
+        st.session_state.selected_tab = "🧮 Calculadora"
+        archivo_subido = st.sidebar.file_uploader("📂 Sube tu archivo CSV con pedidos", type=["csv"])
+
+
 # ========================== PESTAÑA 1 ==========================
 with tabs[0]:
 
-    st.sidebar.header("📂 Cargar base de datos")
-    uploaded_file = st.sidebar.file_uploader("Sube un ZIP que contenga el archivo 'DF.csv'", type="zip")
+
 
     @st.cache_data
     def load_zip_csv(upload, internal_name="DF.csv"):
@@ -181,9 +193,6 @@ with tabs[0]:
 # ========================== PESTAÑA 2 ==========================
 with tabs[1]:
     st.subheader("🧮 Herramienta de Cálculo")
-
-    # 📂 Carga de archivo CSV
-    archivo_subido = st.sidebar.file_uploader("📂 Sube tu archivo CSV con pedidos", type=["csv"])
 
     if archivo_subido is None:
         st.warning("Por favor, carga un archivo CSV para continuar.")
