@@ -5,6 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import joblib
 import numpy as np
+#
 # ========================== CONFIGURACIÓN INICIAL ==========================
 st.set_page_config(page_title="Cabrito Analytics", layout="wide", initial_sidebar_state="expanded")
 
