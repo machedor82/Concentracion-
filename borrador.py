@@ -7,7 +7,7 @@ import joblib
 import numpy as np
 
 # ========================== CONFIGURACIÓN INICIAL ==========================
-st.set_page_config(page_title="BORRRADOR", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="BORRRADOR", layout="wide", initial_sidebar_state="open")
 
 st.markdown("""
     <style>
