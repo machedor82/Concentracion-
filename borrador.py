@@ -123,31 +123,59 @@ with tabs[0]:
                 """, unsafe_allow_html=True)
 
             st.markdown("### 📊 Análisis visual")
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
 
             with col1:
                 st.subheader("🌳 Treemap por categoría")
-                fig_tree = px.treemap(df_filtrado, path=['Categoría'], values='precio', color='Categoría', color_discrete_sequence=px.colors.qualitative.Pastel)
-                st.plotly_chart(fig_tree, use_container_width=True)
-
+                if 'Categoría' in df_filtrado.columns and 'precio' in df_filtrado.columns and not df_filtrado.empty:
+                    try:
+                        fig_tree = px.treemap(
+                            df_filtrado,
+                            path=['Categoría'],
+                            values='precio',
+                            color='Categoría',
+                            color_discrete_sequence=px.colors.qualitative.Pastel
+                        )
+                        st.plotly_chart(fig_tree, use_container_width=True)
+                    except Exception as e:
+                        st.error(f"❌ Error al generar el Treemap: {e}")
+                else:
+                    st.warning("⚠️ No hay datos suficientes para mostrar el Treemap.")
+            
             with col2:
                 st.subheader("🗺️ Mapa de entregas de clientes")
-                df_mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
-                if not df_mapa.empty:
-                    st.map(df_mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
+                if 'lat_cliente' in df_filtrado.columns and 'lon_cliente' in df_filtrado.columns:
+                    df_mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
+                    if not df_mapa.empty:
+                        st.map(df_mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
+                    else:
+                        st.warning("⚠️ No hay ubicaciones disponibles con los filtros actuales.")
                 else:
-                    st.warning("⚠️ No hay ubicaciones para mostrar con los filtros actuales.")
+                    st.warning("⚠️ Las columnas de coordenadas no están disponibles en la base.")
+            
+            with col3:
+                st.subheader("📈 Promedio de entrega vs colchon por estado")
+            
+                # Validación
+                if all(col in df_filtrado.columns for col in ['estado_del_cliente', 'dias_entrega', 'colchon_dias']):
+                    df_promedios = df_filtrado.groupby('estado_del_cliente')[['dias_entrega', 'colchon_dias']].mean().reset_index()
+                    df_promedios = df_promedios.round(2)
+            
+                    fig_bar = px.bar(
+                        df_promedios,
+                        x='estado_del_cliente',
+                        y=['dias_entrega', 'colchon_dias'],
+                        barmode='group',
+                        labels={'value': 'Días promedio', 'estado_del_cliente': 'Estado'},
+                        title='Comparación de días de entrega vs colchón por estado',
+                        text_auto='.2s'
+                    )
+            
+                    fig_bar.update_layout(xaxis_tickangle=-45)
+                    st.plotly_chart(fig_bar, use_container_width=True)
+                else:
+                    st.warning("⚠️ Faltan columnas necesarias: 'estado_del_cliente', 'dias_entrega' o 'colchon_dias'.")
 
-            st.download_button("⬇️ Descargar datos filtrados", df_filtrado.to_csv(index=False), "datos_filtrados.csv", "text/csv")
-
-            st.markdown("### 🤖 Modelos de predicción")
-            col1, col2 = st.columns(2)
-            col1.success("Modelo de clasificación de días de entrega: Accuracy ~69%, F1 ~68")
-            col2.success("Modelo de regresión del flete: R² ~0.71")
-            st.caption("Estos modelos pueden usarse para consolidar entregas, prevenir sobrecostos y predecir el precio antes de la compra.")
-
-        except Exception as e:
-            st.error(f"⚠️ Error al cargar los datos: {e}")
 
 
 # ========================== PESTAÑA 2 ==========================
