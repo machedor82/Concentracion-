@@ -1,157 +1,170 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import zipfile
-import os
-import tempfile
+import io
 import joblib
+import plotly.express as px
 import numpy as np
-from datetime import datetime
-#hola
-# ================== CONFIGURACIÓN ==================
-st.set_page_config(page_title="Cabrito Analytics", layout="wide", initial_sidebar_state="expanded")
 
-# Estilos
-st.markdown("""
-    <style>
-      
-    </style>
-""", unsafe_allow_html=True)
+st.set_page_config(page_title="Cabrito Analytics", layout="wide")
 
-'''
-# ================== CARGA ZIP ==================
-st.sidebar.header("📁 Subir archivo ZIP")
-zip_file = st.sidebar.file_uploader("Cargar archivo .zip", type="zip")
+st.title("📦 Cabrito Analytics App")
+tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora"])
 
-if zip_file:
-    try:
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            zip_path = os.path.join(tmpdirname, "uploaded.zip")
-            with open(zip_path, "wb") as f:
-                f.write(zip_file.read())
-            with zipfile.ZipFile(zip_path, "r") as zip_ref:
-                zip_ref.extractall(tmpdirname)
+with st.sidebar:
+    st.header("Sube tu archivo ZIP")
+    archivo_zip = st.file_uploader("ZIP con DF.csv, DF2.csv y modelos", type="zip")
 
-            # Cargar CSVs y modelos
-            df = pd.read_csv(os.path.join(tmpdirname, "DF.csv"))
-            df2 = pd.read_csv(os.path.join(tmpdirname, "DF2.csv"))
-            modelo_costoflete = joblib.load(os.path.join(tmpdirname, "modelo_costoflete.sav"))
-            modelo_dias = joblib.load(os.path.join(tmpdirname, "modelo_dias_pipeline.joblib"))
-            label_encoder = joblib.load(os.path.join(tmpdirname, "label_encoder_dias.joblib"))
+if archivo_zip:
+    with zipfile.ZipFile(archivo_zip) as z:
+        # Validación de archivos necesarios
+        requeridos = ['DF.csv', 'DF2.csv', 'modelo_costoflete.sav', 'modelo_dias_pipeline.joblib', 'label_encoder_dias.joblib']
+        contenidos = z.namelist()
+        faltantes = [r for r in requeridos if r not in contenidos]
+        if faltantes:
+            st.error(f"❌ Faltan archivos en el ZIP: {faltantes}")
+            st.stop()
 
-            # Pestañas
-            tabs = st.tabs(["📊 Dashboard", "📈 Calculadora"])
+        df = pd.read_csv(z.open('DF.csv'))
+        df2 = pd.read_csv(z.open('DF2.csv'))
+        modelo_flete = joblib.load(z.open('modelo_costoflete.sav'))
+        modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
+        label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
-            # ========== PESTAÑA 1: DASHBOARD ==========
-            with tabs[0]:
-                st.title("📊 Dashboard Logístico")
+    # ========================= DASHBOARD =========================
+    with tabs[0]:
+        st.header("🏠 Dashboard Logístico")
+        with st.sidebar:
+            st.subheader("🎛️ Filtros")
+            categorias = df['Categoría'].dropna().unique()
+            estados = df['estado_del_cliente'].dropna().unique()
+            años = sorted(df['año'].dropna().unique())
+            meses = sorted(df['mes'].dropna().unique())
 
-                st.sidebar.subheader("🎛️ Filtros")
-                categorias = df['Categoría'].dropna().unique()
-                estados = df['estado_del_cliente'].dropna().unique()
-                años = sorted(df['año'].dropna().unique())
-                meses = sorted(df['mes'].dropna().unique())
+            categoria_sel = st.multiselect("Categoría", categorias, default=list(categorias))
+            estado_sel = st.multiselect("Estado", estados, default=list(estados))
+            año_sel = st.multiselect("Año", años, default=años)
+            mes_sel = st.multiselect("Mes", meses, default=meses)
 
-                cat_sel = st.sidebar.multiselect("Categoría", categorias, default=list(categorias))
-                est_sel = st.sidebar.multiselect("Estado", estados, default=list(estados))
-                año_sel = st.sidebar.multiselect("Año", años, default=list(años))
-                mes_sel = st.sidebar.multiselect("Mes", meses, default=list(meses))
+        df_filtrado = df[
+            (df['Categoría'].isin(categoria_sel)) &
+            (df['estado_del_cliente'].isin(estado_sel)) &
+            (df['año'].isin(año_sel)) &
+            (df['mes'].isin(mes_sel))
+        ]
 
-                df_filtrado = df[
-                    (df['Categoría'].isin(cat_sel)) &
-                    (df['estado_del_cliente'].isin(est_sel)) &
-                    (df['año'].isin(año_sel)) &
-                    (df['mes'].isin(mes_sel))
-                ]
+        st.markdown("### 📊 Indicadores")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Pedidos", f"{len(df_filtrado):,}")
+        col2.metric("Flete > 50%", f"{(df_filtrado['costo_de_flete']/df_filtrado['precio'] > 0.5).mean() * 100:.1f}%")
+        col3.metric("≥7 días antes", f"{(df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100:.1f}%")
 
-                st.markdown("### 📌 Indicadores Clave")
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Total pedidos", f"{len(df_filtrado):,}")
-                pct_flete = (df_filtrado['costo_de_flete'] / df_filtrado['precio'] > 0.5).mean() * 100
-                c2.metric("Flete > 50%", f"{pct_flete:.1f}%")
-                anticipadas = (df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100
-                c3.metric("Entregas ≥7 días antes", f"{anticipadas:.1f}%")
+        col1, col2, col3 = st.columns(3)
 
-                st.markdown("### 📊 Visualizaciones")
-                col1, col2, col3 = st.columns(3)
+        with col1:
+            st.subheader("🌳 Treemap")
+            fig = px.treemap(df_filtrado, path=['Categoría'], values='precio')
+            st.plotly_chart(fig, use_container_width=True)
 
-                with col1:
-                    fig1 = px.treemap(df_filtrado, path=['Categoría'], values='precio', color='Categoría',
-                                      color_discrete_sequence=px.colors.sequential.Blues)
-                    st.plotly_chart(fig1, use_container_width=True)
+        with col2:
+            st.subheader("🗺️ Mapa")
+            mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
+            if not mapa.empty:
+                st.map(mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
+            else:
+                st.warning("Sin coordenadas válidas.")
 
-                with col2:
-                    mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
-                    if not mapa.empty:
-                        st.map(mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
-                    else:
-                        st.warning("No hay coordenadas para mostrar.")
+        with col3:
+            st.subheader("📈 Entrega vs Colchón")
+            if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
+                medios = df_filtrado.groupby('estado_del_cliente')[['dias_entrega', 'colchon_dias']].mean().reset_index()
+                fig2 = px.bar(medios, x='estado_del_cliente', y=['dias_entrega', 'colchon_dias'], barmode='group')
+                st.plotly_chart(fig2, use_container_width=True)
 
-                with col3:
-                    prom = df_filtrado.groupby('estado_del_cliente')[['dias_entrega', 'colchon_dias']].mean().reset_index()
-                    fig3 = px.bar(prom, x='estado_del_cliente', y=['dias_entrega', 'colchon_dias'],
-                                  barmode='group', color_discrete_sequence=px.colors.sequential.Blues)
-                    fig3.update_layout(xaxis_tickangle=-45)
-                    st.plotly_chart(fig3, use_container_width=True)
+    # ========================= CALCULADORA =========================
+    with tabs[1]:
+        st.header("🧮 Calculadora de Predicción")
 
-            # ========== PESTAÑA 2: CALCULADORA ==========
-            with tabs[1]:
-                st.title("📈 Calculadora Predictiva")
+        df2['orden_compra_timestamp'] = pd.to_datetime(df2['orden_compra_timestamp'])
+        df2['año'] = df2['orden_compra_timestamp'].dt.year
+        df2['mes'] = df2['orden_compra_timestamp'].dt.month
 
-                df2['orden_compra_timestamp'] = pd.to_datetime(df2['orden_compra_timestamp'])
-                df2['año'] = df2['orden_compra_timestamp'].dt.year
-                df2['mes'] = df2['orden_compra_timestamp'].dt.month
+        estados = df2['estado_del_cliente'].dropna().unique()
+        categorias = df2['Categoría'].dropna().unique()
 
-                estado = st.selectbox("Estado", sorted(df2['estado_del_cliente'].unique()))
-                categoria = st.selectbox("Categoría", sorted(df2['Categoría'].unique()))
+        col1, col2 = st.columns(2)
+        estado = col1.selectbox("Estado", sorted(estados))
+        categoria = col2.selectbox("Categoría", sorted(categorias))
 
-                meses_dict = {
-                    1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
-                    7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
-                }
+        meses_dict = {1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
+                      7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"}
 
-                col1, col2 = st.columns(2)
-                m1 = col1.selectbox("Mes 1", list(meses_dict.values()), index=0)
-                m2 = col2.selectbox("Mes 2", list(meses_dict.values()), index=1)
-                mes1 = [k for k, v in meses_dict.items() if v == m1][0]
-                mes2 = [k for k, v in meses_dict.items() if v == m2][0]
+        mes1_nombre = col1.selectbox("Mes 1", list(meses_dict.values()), index=0)
+        mes2_nombre = col2.selectbox("Mes 2", list(meses_dict.values()), index=1)
+        mes1, mes2 = [k for k,v in meses_dict.items() if v==mes1_nombre][0], [k for k,v in meses_dict.items() if v==mes2_nombre][0]
 
-                filtro = (df2['estado_del_cliente'] == estado) & (df2['Categoría'] == categoria)
-                df1 = df2[(df2['mes'] == mes1) & filtro].copy()
-                df2_ = df2[(df2['mes'] == mes2) & filtro].copy()
+        filtro = (df2['estado_del_cliente'] == estado) & (df2['Categoría'] == categoria)
+        df_mes1 = df2[(df2['mes'] == mes1) & filtro].copy()
+        df_mes2 = df2[(df2['mes'] == mes2) & filtro].copy()
 
-                def predecir(df_input):
-                    columnas_modelo = modelo_dias.feature_names_in_
-                    X_dias = df_input[columnas_modelo]
-                    X_costos = df_input[modelo_costoflete.feature_names_in_]
-                    df_input['costo_estimado'] = modelo_costoflete.predict(X_costos)
-                    df_input['clase_entrega'] = label_encoder.inverse_transform(modelo_dias.predict(X_dias))
-                    return df_input
+        def predecir(df_input):
+            if df_input.empty:
+                return df_input
 
-                def resumen(df_pred, nombre_mes):
-                    if df_pred.empty:
-                        return pd.DataFrame(columns=['ciudad_cliente', nombre_mes, f"Entrega {nombre_mes}"])
-                    df_pred = predecir(df_pred)
-                    return df_pred.groupby('ciudad_cliente').agg({
-                        'costo_estimado': 'mean',
-                        'clase_entrega': lambda x: x.mode()[0] if not x.mode().empty else 'N/A'
-                    }).reset_index().rename(columns={
-                        'costo_estimado': nombre_mes,
-                        'clase_entrega': f"Entrega {nombre_mes}"
-                    })
+            columnas_flete = ['total_peso_g', 'precio', '#_deproductos', 'duracion_estimada_min', 'ciudad_cliente',
+                              'nombre_dc', 'hora_compra', 'año', 'mes', 'datetime_origen', 'region',
+                              'dias_promedio_ciudad', 'Categoría', 'tipo_de_pago']
 
-                res1 = resumen(df1, m1)
-                res2 = resumen(df2_, m2)
-                merge = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
-                if m1 in merge and m2 in merge:
-                    merge['Diferencia'] = merge[m2] - merge[m1]
+            df_flete = df_input[columnas_flete].copy()
+            df_encoded = pd.get_dummies(df_flete)
+            columnas_modelo = modelo_flete.get_booster().feature_names
+            df_encoded = df_encoded.reindex(columns=columnas_modelo, fill_value=0)
 
-                st.dataframe(merge)
-                st.download_button("⬇️ Descargar comparación", merge.to_csv(index=False), "comparacion.csv", "text/csv")
-'''
-            # Footer
-            st.caption(f"Versión pro optimizada con fondo azul marino, filtros personalizados, carga ZIP, ML y más. Última actualización: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
-    except Exception as e:
-        st.error(f"❌ Error al cargar el ZIP: {e}")
-else:
-    st.warning("⬆️ Por favor, sube un archivo .zip que contenga DF.csv, DF2.csv y los modelos.")
+            df_input['costo_estimado'] = modelo_flete.predict(df_encoded).round(2)
+            df_input['costo_de_flete'] = df_input['costo_estimado']
+
+            columnas_dias = ['Categoría', 'categoría_peso', '#_deproductos', 'total_peso_g', 'precio',
+                             'costo_de_flete', 'distancia_km', 'velocidad_kmh', 'duracion_estimada_min', 'region',
+                             'dc_asignado', 'es_feriado', 'es_fin_de_semana', 'dias_promedio_ciudad', 'hora_compra',
+                             'nombre_dia', 'mes', 'año', 'temp_origen', 'precip_origen', 'cloudcover_origen',
+                             'conditions_origen', 'icon_origen', 'traffic', 'area']
+
+            if not all(c in df_input.columns for c in columnas_dias):
+                return df_input  # evita error si faltan columnas
+
+            X = df_input[columnas_dias]
+            pred = modelo_dias.predict(X)
+            df_input['clase_entrega'] = label_encoder.inverse_transform(pred)
+            return df_input
+
+        def resumen(df_pred, nombre_mes):
+            if 'costo_estimado' not in df_pred.columns or 'clase_entrega' not in df_pred.columns:
+                return pd.DataFrame(columns=['ciudad_cliente', nombre_mes, f"Entrega {nombre_mes}"])
+            return df_pred.groupby('ciudad_cliente').agg({
+                'costo_estimado': 'mean',
+                'clase_entrega': lambda x: x.mode()[0] if not x.mode().empty else 'N/A'
+            }).reset_index().rename(columns={
+                'costo_estimado': nombre_mes,
+                'clase_entrega': f"Entrega {nombre_mes}"
+            })
+
+        df_mes1 = predecir(df_mes1)
+        df_mes2 = predecir(df_mes2)
+        res1 = resumen(df_mes1, mes1_nombre)
+        res2 = resumen(df_mes2, mes2_nombre)
+
+        comparacion = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
+        comparacion['Diferencia'] = (comparacion[mes2_nombre] - comparacion[mes1_nombre]).round(2)
+        comparacion = comparacion[['ciudad_cliente', mes1_nombre, mes2_nombre, 'Diferencia',
+                                   f"Entrega {mes1_nombre}", f"Entrega {mes2_nombre}"]].rename(columns={'ciudad_cliente': 'Ciudad'})
+
+        def resaltar(val):
+            if isinstance(val, (int, float)):
+                if val > 0: return 'color: green; font-weight: bold'
+                elif val < 0: return 'color: red; font-weight: bold'
+            return ''
+
+        st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
+        st.dataframe(comparacion.style.applymap(resaltar, subset=['Diferencia']).format(precision=2))
+
+        st.download_button("⬇️ Descargar CSV", comparacion.to_csv(index=False), file_name="comparacion.csv", mime="text/csv")
