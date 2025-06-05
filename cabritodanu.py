@@ -76,60 +76,66 @@ if not zip_file:
 df, df2 = cargar_datos(zip_file)
 modelo_flete, modelo_dias, label_encoder = cargar_modelos()
 
+
 # ---------------- PESTAÑA 1: DASHBOARD ----------------
 with tabs[0]:
     st.header("📊 Panel Logístico")
 
-    # Filtros
-    categorias = df['Categoría'].dropna().unique()
-    estados = df['estado_del_cliente'].dropna().unique()
-    años = sorted(df['año'].dropna().unique())
-    meses = sorted(df['mes'].dropna().unique())
+    # === Filtros en sidebar con form ===
+    with st.sidebar.expander("🎛️ Filtros del Dashboard", expanded=True):
+        with st.form("form_filtros"):
+            categorias = df['Categoría'].dropna().unique()
+            estados = df['estado_del_cliente'].dropna().unique()
+            años = sorted(df['año'].dropna().unique())
+            meses = sorted(df['mes'].dropna().unique())
 
-    col1, col2, col3, col4 = st.columns(4)
-    cat_sel = col1.multiselect("Categoría", categorias, default=list(categorias))
-    est_sel = col2.multiselect("Estado", estados, default=list(estados))
-    año_sel = col3.multiselect("Año", años, default=años)
-    mes_sel = col4.multiselect("Mes", meses, default=meses)
+            cat_sel = st.multiselect("Categoría", categorias, default=list(categorias))
+            est_sel = st.multiselect("Estado", estados, default=list(estados))
+            año_sel = st.multiselect("Año", años, default=años)
+            mes_sel = st.multiselect("Mes", meses, default=meses)
 
-    df_filt = df[
-        (df['Categoría'].isin(cat_sel)) &
-        (df['estado_del_cliente'].isin(est_sel)) &
-        (df['año'].isin(año_sel)) &
-        (df['mes'].isin(mes_sel))
-    ]
+            aplicar = st.form_submit_button("Aplicar filtros")
 
-    st.subheader("📌 Indicadores principales")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("📦 Total pedidos", f"{len(df_filt):,}")
-    pct_flete = (df_filt['costo_de_flete'] / df_filt['precio'] > 0.5).mean() * 100
-    col2.metric("🚚 Flete > 50%", f"{pct_flete:.1f}%")
-    anticipadas = (df_filt['desviacion_vs_promesa'] < -7).mean() * 100
-    col3.metric("⏱ Entregas ≥7 días antes", f"{anticipadas:.1f}%")
+    if aplicar:
+        df_filt = df[
+            (df['Categoría'].isin(cat_sel)) &
+            (df['estado_del_cliente'].isin(est_sel)) &
+            (df['año'].isin(año_sel)) &
+            (df['mes'].isin(mes_sel))
+        ]
+        
+        # KPIs
+        st.subheader("📌 Indicadores principales")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("📦 Total pedidos", f"{len(df_filt):,}")
+        pct_flete = (df_filt['costo_de_flete'] / df_filt['precio'] > 0.5).mean() * 100
+        col2.metric("🚚 Flete > 50%", f"{pct_flete:.1f}%")
+        anticipadas = (df_filt['desviacion_vs_promesa'] < -7).mean() * 100
+        col3.metric("⏱ Entregas ≥7 días antes", f"{anticipadas:.1f}%")
 
-    st.subheader("📊 Visualizaciones")
+        # Gráficas
+        st.subheader("📊 Visualizaciones")
+        col1, col2, col3 = st.columns(3)
 
-    col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("*Treemap por Categoría*")
+            fig = px.treemap(df_filt, path=['Categoría'], values='precio', color='Categoría')
+            st.plotly_chart(fig, use_container_width=True)
 
-    with col1:
-        st.markdown("*Treemap por Categoría*")
-        fig = px.treemap(df_filt, path=['Categoría'], values='precio', color='Categoría')
-        st.plotly_chart(fig, use_container_width=True)
+        with col2:
+            st.markdown("*Mapa de entregas*")
+            df_mapa = df_filt.dropna(subset=['lat_cliente', 'lon_cliente'])
+            if not df_mapa.empty:
+                st.map(df_mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
+            else:
+                st.info("Sin ubicaciones disponibles")
 
-    with col2:
-        st.markdown("*Mapa de entregas*")
-        df_mapa = df_filt.dropna(subset=['lat_cliente', 'lon_cliente'])
-        if not df_mapa.empty:
-            st.map(df_mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
-        else:
-            st.info("Sin ubicaciones disponibles")
-
-    with col3:
-        st.markdown("*Entrega vs Colchón*")
-        promedio = df_filt.groupby('estado_del_cliente')[['dias_entrega', 'colchon_dias']].mean().reset_index()
-        fig = px.bar(promedio, x='estado_del_cliente', y=['dias_entrega', 'colchon_dias'], barmode='group')
-        fig.update_layout(xaxis_tickangle=-45)
-        st.plotly_chart(fig, use_container_width=True)
+        with col3:
+            st.markdown("*Entrega vs Colchón*")
+            promedio = df_filt.groupby('estado_del_cliente')[['dias_entrega', 'colchon_dias']].mean().reset_index()
+            fig = px.bar(promedio, x='estado_del_cliente', y=['dias_entrega', 'colchon_dias'], barmode='group')
+            fig.update_layout(xaxis_tickangle=-45)
+            st.plotly_chart(fig, use_container_width=True)
 
 # ---------------- PESTAÑA 2: CALCULADORA ----------------
 with tabs[1]:
