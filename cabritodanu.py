@@ -40,7 +40,8 @@ st.markdown("""
 # ---------------- TÍTULO & LOGO ----------------
 with st.sidebar:
     logo = Image.open("danu_logo.png")
-    st.image(logo, use_column_width=True)
+    st.image(logo, use_container_width=True)
+
     st.title("Cabrito Analytics")
 
 tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora"])
