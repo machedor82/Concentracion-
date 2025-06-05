@@ -81,21 +81,20 @@ modelo_flete, modelo_dias, label_encoder = cargar_modelos()
 with tabs[0]:
     st.header("📊 Panel Logístico")
 
-    # === Filtros en sidebar con form ===
-    with st.sidebar.expander("🎛️ Filtros del Dashboard", expanded=True):
-        with st.form("form_filtros"):
-            categorias = df['Categoría'].dropna().unique()
-            estados = df['estado_del_cliente'].dropna().unique()
-            años = sorted(df['año'].dropna().unique())
-            meses = sorted(df['mes'].dropna().unique())
+    # ========== FILTROS EN SIDEBAR ========== #
+    with st.sidebar.form("form_filtros"):
+        with st.expander("📂 Categoría"):
+            cat_sel = st.multiselect("Selecciona categoría", sorted(df['Categoría'].dropna().unique()))
+        with st.expander("🗺️ Estado"):
+            est_sel = st.multiselect("Selecciona estado", sorted(df['estado_del_cliente'].dropna().unique()))
+        with st.expander("📅 Año"):
+            año_sel = st.multiselect("Selecciona año", sorted(df['año'].dropna().unique()))
+        with st.expander("🗓️ Mes"):
+            mes_sel = st.multiselect("Selecciona mes", sorted(df['mes'].dropna().unique()))
+        
+        aplicar = st.form_submit_button("✅ Aplicar filtros")
 
-            cat_sel = st.multiselect("Categoría", categorias, default=list(categorias))
-            est_sel = st.multiselect("Estado", estados, default=list(estados))
-            año_sel = st.multiselect("Año", años, default=años)
-            mes_sel = st.multiselect("Mes", meses, default=meses)
-
-            aplicar = st.form_submit_button("Aplicar filtros")
-
+    # ========== FILTRADO Y CONTENIDO SI SE APLICAN FILTROS ========== #
     if aplicar:
         df_filt = df[
             (df['Categoría'].isin(cat_sel)) &
@@ -103,8 +102,8 @@ with tabs[0]:
             (df['año'].isin(año_sel)) &
             (df['mes'].isin(mes_sel))
         ]
-        
-        # KPIs
+
+        # -------- KPIs -------- #
         st.subheader("📌 Indicadores principales")
         col1, col2, col3 = st.columns(3)
         col1.metric("📦 Total pedidos", f"{len(df_filt):,}")
@@ -113,7 +112,7 @@ with tabs[0]:
         anticipadas = (df_filt['desviacion_vs_promesa'] < -7).mean() * 100
         col3.metric("⏱ Entregas ≥7 días antes", f"{anticipadas:.1f}%")
 
-        # Gráficas
+        # -------- VISUALIZACIONES -------- #
         st.subheader("📊 Visualizaciones")
         col1, col2, col3 = st.columns(3)
 
@@ -136,18 +135,6 @@ with tabs[0]:
             fig = px.bar(promedio, x='estado_del_cliente', y=['dias_entrega', 'colchon_dias'], barmode='group')
             fig.update_layout(xaxis_tickangle=-45)
             st.plotly_chart(fig, use_container_width=True)
-            
-with st.sidebar.form("form_filtros"):
-    with st.expander("Categoría"):
-        cat_sel = st.multiselect("Selecciona categoría", sorted(df['Categoría'].dropna().unique()))
-    with st.expander("Estado"):
-        est_sel = st.multiselect("Selecciona estado", sorted(df['estado_del_cliente'].dropna().unique()))
-    with st.expander("Año"):
-        año_sel = st.multiselect("Selecciona año", sorted(df['año'].dropna().unique()))
-    with st.expander("Mes"):
-        mes_sel = st.multiselect("Selecciona mes", sorted(df['mes'].dropna().unique()))
-    
-    aplicar = st.form_submit_button("Aplicar filtros")
 
 
 # ---------------- PESTAÑA 2: CALCULADORA ----------------
