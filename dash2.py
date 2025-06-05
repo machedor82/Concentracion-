@@ -34,6 +34,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+'''
 # ================== CARGA ZIP ==================
 st.sidebar.header("📁 Subir archivo ZIP")
 zip_file = st.sidebar.file_uploader("Cargar archivo .zip", type="zip")
@@ -163,7 +164,7 @@ if zip_file:
 
                 st.dataframe(merge)
                 st.download_button("⬇️ Descargar comparación", merge.to_csv(index=False), "comparacion.csv", "text/csv")
-
+'''
             # Footer
             st.caption(f"Versión pro optimizada con fondo azul marino, filtros personalizados, carga ZIP, ML y más. Última actualización: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
     except Exception as e:
