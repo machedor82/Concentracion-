@@ -93,7 +93,8 @@ with tabs[0]:
 
     with col1:
         st.subheader("🌳 Treemap por categoría")
-        fig_tree = px.treemap(df_filtrado, path=['Categoría'], values='precio', color='Categoría')
+        fig_tree = px.treemap(df_filtrado, path=['Categoría'], values='precio', color='Categoría',
+                              color_discrete_sequence=px.colors.sequential.Blues)
         st.plotly_chart(fig_tree, use_container_width=True)
 
     with col2:
@@ -107,7 +108,8 @@ with tabs[0]:
     with col3:
         st.subheader("📈 Entrega vs colchón")
         df_promedios = df_filtrado.groupby('estado_del_cliente')[['dias_entrega', 'colchon_dias']].mean().reset_index()
-        fig_bar = px.bar(df_promedios, x='estado_del_cliente', y=['dias_entrega', 'colchon_dias'], barmode='group')
+        fig_bar = px.bar(df_promedios, x='estado_del_cliente', y=['dias_entrega', 'colchon_dias'],
+                         barmode='group', color_discrete_sequence=px.colors.sequential.Blues)
         fig_bar.update_layout(xaxis_tickangle=-45)
         st.plotly_chart(fig_bar, use_container_width=True)
 
@@ -150,4 +152,3 @@ with tabs[1]:
 
     st.dataframe(comparacion)
     st.download_button("⬇️ Descargar comparación", comparacion.to_csv(index=False), "comparacion.csv", "text/csv")
-
