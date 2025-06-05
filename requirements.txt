@@ -1,10 +1,10 @@
 streamlit
 pandas
-seaborn
+numpy>=1.26.4
 matplotlib
+seaborn
 plotly
 streamlit-plotly-events==0.0.6
-numpy>=1.26.4
 joblib>=1.4.0
 scikit-learn
 xgboost
