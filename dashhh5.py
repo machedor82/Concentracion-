@@ -139,12 +139,12 @@ with tabs[0]:
             fig.update_layout(xaxis_tickangle=-45)
             st.plotly_chart(fig, use_container_width=True)
 
-# ======================= PESTAÑA 2: CALCULADORA =======================
 
+# ======================= PESTAÑA 2: CALCULADORA =======================
 with tabs[1]:
     st.header("📈 Calculadora con ML")
 
-    # ---------- Selección de estado, categoría y meses ----------
+    # --- Selección de filtros ---
     estados_calc = sorted(df2['estado_del_cliente'].dropna().unique())
     categorias_calc = sorted(df2['Categoría'].dropna().unique())
 
@@ -163,7 +163,7 @@ with tabs[1]:
     mes1 = [k for k, v in meses_dict.items() if v == mes1_nombre][0]
     mes2 = [k for k, v in meses_dict.items() if v == mes2_nombre][0]
 
-    # ---------- Preprocesamiento ----------
+    # --- Preprocesamiento ---
     df2['orden_compra_timestamp'] = pd.to_datetime(df2['orden_compra_timestamp'])
     df2['año'] = df2['orden_compra_timestamp'].dt.year
     df2['mes'] = df2['orden_compra_timestamp'].dt.month
@@ -172,28 +172,27 @@ with tabs[1]:
     df_mes1 = df2[(df2['mes'] == mes1) & filtro].copy()
     df_mes2 = df2[(df2['mes'] == mes2) & filtro].copy()
 
-
-# ---------- Función de predicción ----------
-def predecir(df_input):
-    df_input = df_input.copy()
-    features = ['frecuencia_cliente', 'precio', 'colchon_dias']
-    if all(f in df_input.columns for f in features):
-        df_input['costo_estimado'] = modelo_flete.predict(df_input[features])
-        pred_labels = modelo_dias.predict(df_input[features])
-        try:
-            df_input['clase_entrega'] = label_encoder.inverse_transform(pred_labels)
-        except Exception as e:
+    # --- Función de predicción ---
+    def predecir(df_input):
+        df_input = df_input.copy()
+        features = ['frecuencia_cliente', 'precio', 'colchon_dias']
+        if all(f in df_input.columns for f in features):
+            df_input['costo_estimado'] = modelo_flete.predict(df_input[features])
+            pred_labels = modelo_dias.predict(df_input[features])
+            try:
+                df_input['clase_entrega'] = label_encoder.inverse_transform(pred_labels)
+            except Exception as e:
+                df_input['clase_entrega'] = 'N/A'
+                st.warning(f"⚠️ Error al decodificar etiquetas de entrega: {e}")
+        else:
+            df_input['costo_estimado'] = np.nan
             df_input['clase_entrega'] = 'N/A'
-            st.warning(f"⚠️ Error al decodificar etiquetas de entrega: {e}")
-    else:
-        df_input['costo_estimado'] = np.nan
-        df_input['clase_entrega'] = 'N/A'
-    return df_input
+        return df_input
 
     df_mes1 = predecir(df_mes1)
     df_mes2 = predecir(df_mes2)
 
-    # ---------- Función resumen ----------
+    # --- Función resumen por ciudad ---
     def resumen(df, nombre_mes):
         if 'ciudad_cliente' in df.columns:
             return df.groupby('ciudad_cliente').agg({
@@ -205,13 +204,13 @@ def predecir(df_input):
             })
         return pd.DataFrame()
 
-    # ---------- Comparación de resultados ----------
+    # --- Comparación de resultados ---
     res1 = resumen(df_mes1, mes1_nombre)
     res2 = resumen(df_mes2, mes2_nombre)
     comparacion = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
     comparacion['Diferencia Costo'] = comparacion[mes2_nombre] - comparacion[mes1_nombre]
 
-    # ---------- Mostrar y descargar ----------
+    # --- Visualización y descarga ---
     st.dataframe(comparacion)
     st.download_button(
         "⬇ Descargar comparación",
