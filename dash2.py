@@ -14,23 +14,7 @@ st.set_page_config(page_title="Cabrito Analytics", layout="wide", initial_sideba
 # Estilos
 st.markdown("""
     <style>
-        [data-testid="stSidebar"] {
-            background-color: #002244;
-            color: white;
-        }
-        .stFileUploader label, .stTextInput label, .stSelectbox label {
-            color: white !important;
-        }
-        .stTabs [data-baseweb="tab"] {
-            font-size: 18px;
-            padding: 10px;
-            border-bottom: 3px solid transparent;
-        }
-        .stTabs [aria-selected="true"] {
-            border-bottom: 3px solid #004b8d;
-            color: #004b8d;
-            font-weight: bold;
-        }
+      
     </style>
 """, unsafe_allow_html=True)
 
