@@ -136,6 +136,19 @@ with tabs[0]:
             fig = px.bar(promedio, x='estado_del_cliente', y=['dias_entrega', 'colchon_dias'], barmode='group')
             fig.update_layout(xaxis_tickangle=-45)
             st.plotly_chart(fig, use_container_width=True)
+            
+with st.sidebar.form("form_filtros"):
+    with st.expander("Categoría"):
+        cat_sel = st.multiselect("Selecciona categoría", sorted(df['Categoría'].dropna().unique()))
+    with st.expander("Estado"):
+        est_sel = st.multiselect("Selecciona estado", sorted(df['estado_del_cliente'].dropna().unique()))
+    with st.expander("Año"):
+        año_sel = st.multiselect("Selecciona año", sorted(df['año'].dropna().unique()))
+    with st.expander("Mes"):
+        mes_sel = st.multiselect("Selecciona mes", sorted(df['mes'].dropna().unique()))
+    
+    aplicar = st.form_submit_button("Aplicar filtros")
+
 
 # ---------------- PESTAÑA 2: CALCULADORA ----------------
 with tabs[1]:
