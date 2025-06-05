@@ -7,7 +7,7 @@ import tempfile
 import joblib
 import numpy as np
 from datetime import datetime
-
+#hola
 # ================== CONFIGURACIÓN ==================
 st.set_page_config(page_title="Cabrito Analytics", layout="wide", initial_sidebar_state="expanded")
 
