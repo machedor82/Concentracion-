@@ -50,7 +50,7 @@ st.title("📊 Panel BI")
 tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora"])
 
 # ========================== ARCHIVOS LOCALES ==========================
-local_path = "/mnt/data/dashboard_final"
+local_path = "C:\Users\macha\Downloads"
 zip_file_path = os.path.join(local_path, "DF.csv")
 csv_file_path = os.path.join(local_path, "DF2.csv")
 
