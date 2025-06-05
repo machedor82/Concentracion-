@@ -111,7 +111,23 @@ with tabs[0]:
         col1.metric("📦 Total pedidos", f"{len(df_filt):,}")
         pct_flete = (df_filt['costo_de_flete'] / df_filt['precio'] > 0.5).mean() * 100
         col2.metric("🚚 Flete > 50%", f"{pct_flete:.1f}%")
-        anticipadas = (df_filt['desviacion_vs_promesa'] < -7).mean() * 100
+        # Intentar calcular la columna desviacion_vs_promesa si no existe
+        if 'desviacion_vs_promesa' not in df.columns:
+            if 'fecha_entrega_al_cliente' in df.columns and 'fecha_de_entrega_estimada' in df.columns:
+                df['fecha_entrega_al_cliente'] = pd.to_datetime(df['fecha_entrega_al_cliente'], errors='coerce')
+                df['fecha_de_entrega_estimada'] = pd.to_datetime(df['fecha_de_entrega_estimada'], errors='coerce')
+                df['desviacion_vs_promesa'] = (df['fecha_entrega_al_cliente'] - df['fecha_de_entrega_estimada']).dt.days
+            else:
+                df['desviacion_vs_promesa'] = np.nan
+                st.warning("⚠️ No se puede calcular 'desviacion_vs_promesa' porque faltan columnas de fechas.")
+        
+        # Calcular KPI si la columna está disponible
+        if 'desviacion_vs_promesa' in df_filt.columns:
+            anticipadas = (df_filt['desviacion_vs_promesa'] < -7).mean() * 100
+        else:
+            anticipadas = 0
+            st.warning("⚠️ La columna 'desviacion_vs_promesa' no está disponible para este filtro.")
+
         col3.metric("⏱ Entregas ≥7 días antes", f"{anticipadas:.1f}%")
 
         # --- Visualizaciones ---
