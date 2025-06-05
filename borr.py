@@ -74,8 +74,15 @@ if not zip_file:
 
 # ---------------- CARGAR DATOS Y MODELOS ----------------
 df, df2 = cargar_datos(zip_file)
-modelo_flete, modelo_dias, label_encoder = cargar_modelos()
 
+@st.cache_resource
+def cargar_modelos():
+    modelo_flete = joblib.load("modelo_costoflete.sav")
+    modelo_dias = joblib.load("modelo_dias_pipeline.joblib")
+    label_encoder = joblib.load("label_encoder_dias.joblib")
+    return modelo_flete, modelo_dias, label_encoder
+
+modelo_flete, modelo_dias, label_encoder = cargar_modelos()
 
 # ---------------- PESTAÑA 1: DASHBOARD ----------------
 with tabs[0]:
@@ -141,6 +148,7 @@ with tabs[0]:
 with tabs[1]:
     st.header("📈 Calculadora con ML")
 
+    # --- Filtros de entrada ---
     estados_calc = sorted(df2['estado_del_cliente'].dropna().unique())
     categorias_calc = sorted(df2['Categoría'].dropna().unique())
 
@@ -158,7 +166,7 @@ with tabs[1]:
     mes1 = [k for k, v in meses_dict.items() if v == mes1_nombre][0]
     mes2 = [k for k, v in meses_dict.items() if v == mes2_nombre][0]
 
-    # Preprocesamiento
+    # --- Preprocesamiento ---
     df2['orden_compra_timestamp'] = pd.to_datetime(df2['orden_compra_timestamp'])
     df2['año'] = df2['orden_compra_timestamp'].dt.year
     df2['mes'] = df2['orden_compra_timestamp'].dt.month
@@ -167,16 +175,13 @@ with tabs[1]:
     df_mes1 = df2[(df2['mes'] == mes1) & filtro].copy()
     df_mes2 = df2[(df2['mes'] == mes2) & filtro].copy()
 
-    # Predicción
+    # --- Predicción ---
     def predecir(df_input):
         df_input = df_input.copy()
         features = ['frecuencia_cliente', 'precio', 'colchon_dias']
         if all(f in df_input.columns for f in features):
-            X_flete = df_input[features]
-            df_input['costo_estimado'] = modelo_flete.predict(X_flete)
-
-            X_dias = df_input[features]
-            pred_labels = modelo_dias.predict(X_dias)
+            df_input['costo_estimado'] = modelo_flete.predict(df_input[features])
+            pred_labels = modelo_dias.predict(df_input[features])
             df_input['clase_entrega'] = label_encoder.inverse_transform(pred_labels)
         else:
             df_input['costo_estimado'] = np.nan
@@ -186,6 +191,7 @@ with tabs[1]:
     df_mes1 = predecir(df_mes1)
     df_mes2 = predecir(df_mes2)
 
+    # --- Resumen comparativo ---
     def resumen(df, nombre_mes):
         if 'ciudad_cliente' in df.columns:
             return df.groupby('ciudad_cliente').agg({
@@ -202,5 +208,6 @@ with tabs[1]:
     comparacion = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
     comparacion['Diferencia Costo'] = comparacion[mes2_nombre] - comparacion[mes1_nombre]
 
+    # --- Resultados ---
     st.dataframe(comparacion)
     st.download_button("⬇ Descargar comparación", comparacion.to_csv(index=False), "comparacion.csv", "text/csv")
