@@ -172,18 +172,23 @@ with tabs[1]:
     df_mes1 = df2[(df2['mes'] == mes1) & filtro].copy()
     df_mes2 = df2[(df2['mes'] == mes2) & filtro].copy()
 
-    # ---------- Función de predicción ----------
-    def predecir(df_input):
-        df_input = df_input.copy()
-        features = ['frecuencia_cliente', 'precio', 'colchon_dias']
-        if all(f in df_input.columns for f in features):
-            df_input['costo_estimado'] = modelo_flete.predict(df_input[features])
-            pred_labels = modelo_dias.predict(df_input[features])
+
+# ---------- Función de predicción ----------
+def predecir(df_input):
+    df_input = df_input.copy()
+    features = ['frecuencia_cliente', 'precio', 'colchon_dias']
+    if all(f in df_input.columns for f in features):
+        df_input['costo_estimado'] = modelo_flete.predict(df_input[features])
+        pred_labels = modelo_dias.predict(df_input[features])
+        try:
             df_input['clase_entrega'] = label_encoder.inverse_transform(pred_labels)
-        else:
-            df_input['costo_estimado'] = np.nan
+        except Exception as e:
             df_input['clase_entrega'] = 'N/A'
-        return df_input
+            st.warning(f"⚠️ Error al decodificar etiquetas de entrega: {e}")
+    else:
+        df_input['costo_estimado'] = np.nan
+        df_input['clase_entrega'] = 'N/A'
+    return df_input
 
     df_mes1 = predecir(df_mes1)
     df_mes2 = predecir(df_mes2)
