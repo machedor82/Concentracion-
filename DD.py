@@ -54,7 +54,13 @@ st.markdown("""
         /* Texto en zona principal */
         .main > div {
             color: white;
-        }
+        } 
+        /* Aumentar tamaño del texto de los títulos de métricas */
+[data-testid="stMetricLabel"] {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
 
         /* Sidebar blanco con texto azul marino */
         [data-testid="stSidebar"] {
@@ -116,7 +122,7 @@ if archivo_zip:
 
     # ========================= DASHBOARD =========================
     with tabs[0]:
-        st.header("🏠 Dashboard Logístico")
+      
 
         with st.sidebar:
             st.subheader("🎛️ Filtros")
@@ -166,7 +172,7 @@ if archivo_zip:
         ]
 
         # ===================== MÉTRICAS =====================
-        st.markdown("### 📊 Indicadores")
+      
         col1, col2, col3 = st.columns(3)
         col1.metric("Pedidos", f"{len(df_filtrado):,}")
         col2.metric(
