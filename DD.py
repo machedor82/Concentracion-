@@ -35,6 +35,41 @@ class MiTransformadorEspecial(BaseEstimator, TransformerMixin):
 # ---------------------------------------------------------------------------------------
 
 st.set_page_config(page_title="Cabrito Analytics", layout="wide")
+# =================== ESTILO PERSONALIZADO ===================
+st.markdown("""
+    <style>
+        /* Fondo principal en azul marino */
+        .main {
+            background-color: #002244 !important;
+        }
+
+        /* Fondo y texto del sidebar ya personalizado (no se cambia) */
+        [data-testid="stSidebar"] {
+            background-color: #002244;
+        }
+        [data-testid="stSidebar"] label, .st-cb {
+            color: white;
+        }
+
+        /* Compactar multiselect visualmente */
+        .css-1wa3eu0 {
+            display: none !important;
+        }
+        .stMultiSelect .css-12w0qpk {
+            max-height: 0px !important;
+            overflow: hidden !important;
+        }
+        .stMultiSelect {
+            height: 35px !important;
+        }
+
+        /* Cambiar color del texto principal a blanco para contraste */
+        .main > div {
+            color: white;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 st.title("📦 Cabrito Analytics App")
 tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora"])
 
