@@ -89,13 +89,12 @@ st.markdown("""
         }
     </style>
 """, unsafe_allow_html=True)
-
 # ===================== ENCABEZADO Y CARGA DE ARCHIVO =====================
 st.title("📦 Cabrito Analytics App")
 tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora"])
 
 with st.sidebar:
-    st.image("danu_logo.png", use_container_width=True)
+    st.image("danu_logo.png", use_column_width=True)
     st.header("Sube tu archivo ZIP")
     archivo_zip = st.file_uploader("ZIP con DF.csv, DF2.csv y modelos", type="zip")
 
@@ -122,92 +121,88 @@ if archivo_zip:
         modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
         label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
-    
-# ========================= DASHBOARD =========================
-with tabs[0]:
+    # ========================= DASHBOARD =========================
+    with tabs[0]:
 
-    # --------- SIDEBAR FILTRO ---------
-    with st.sidebar:
-        st.image("danu_logo.png", use_column_width=True)
-        st.subheader("🎛️ Filtro de Estado")
+        # --------- SIDEBAR FILTRO ---------
+        with st.sidebar:
+            st.subheader("🎛️ Filtro de Estado")
+            estados = sorted(df['estado_del_cliente'].dropna().unique())
+            estado_sel = option_menu(
+                menu_title="Selecciona un estado",
+                options=estados,
+                icons=["geo"] * len(estados),  # mismo ícono para todos
+                default_index=0
+            )
 
-        estados = sorted(df['estado_del_cliente'].dropna().unique())
-        estado_sel = option_menu(
-            menu_title="Selecciona un estado",
-            options=estados,
-            icons=["geo"] * len(estados),  # mismo ícono para todos
-            default_index=0
+        # --------- FILTRADO DE DATOS ---------
+        df_filtrado = df[df['estado_del_cliente'] == estado_sel]
+
+        # --------- MÉTRICAS PRINCIPALES ---------
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Pedidos", f"{len(df_filtrado):,}")
+        col2.metric(
+            "Flete > 50%",
+            f"{(df_filtrado['costo_de_flete'] / df_filtrado['precio'] > 0.5).mean() * 100:.1f}%"
+        )
+        col3.metric(
+            "≥7 días antes",
+            f"{(df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100:.1f}%"
         )
 
-    # --------- FILTRADO DE DATOS ---------
-    df_filtrado = df[df['estado_del_cliente'] == estado_sel]
+        # --------- VISUALIZACIÓN: MAPA ---------
+        st.subheader("🗺️ Mapa de clientes")
+        mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
+        if not mapa.empty:
+            st.map(mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
+        else:
+            st.warning("Sin coordenadas válidas.")
 
-    # --------- MÉTRICAS PRINCIPALES ---------
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Pedidos", f"{len(df_filtrado):,}")
-    col2.metric(
-        "Flete > 50%",
-        f"{(df_filtrado['costo_de_flete'] / df_filtrado['precio'] > 0.5).mean() * 100:.1f}%"
-    )
-    col3.metric(
-        "≥7 días antes",
-        f"{(df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100:.1f}%"
-    )
+        # --------- GRÁFICA DE BARRAS HORIZONTAL ---------
+        st.subheader("📉 Entrega vs Colchón por Categoría")
 
-    # --------- VISUALIZACIÓN: MAPA ---------
-    st.subheader("🗺️ Mapa de clientes")
+        if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
+            import plotly.graph_objects as go
 
-    mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
-    if not mapa.empty:
-        st.map(mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
-    else:
-        st.warning("Sin coordenadas válidas.")
+            medios = df_filtrado.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
 
-    # --------- GRÁFICA DE BARRAS HORIZONTAL ---------
-    st.subheader("📉 Entrega vs Colchón por Categoría")
+            fig = go.Figure()
 
-    if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
-        import plotly.graph_objects as go
+            # Barras horizontales
+            fig.add_trace(go.Bar(
+                y=medios['Categoría'],
+                x=medios['dias_entrega'],
+                name='Días Entrega',
+                orientation='h'
+            ))
 
-        medios = df_filtrado.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
+            fig.add_trace(go.Bar(
+                y=medios['Categoría'],
+                x=medios['colchon_dias'],
+                name='Colchón Días',
+                orientation='h'
+            ))
 
-        fig = go.Figure()
+            # Línea de promedio (solo días entrega)
+            promedio_entrega = medios['dias_entrega'].mean()
+            fig.add_shape(
+                type="line",
+                x0=promedio_entrega,
+                x1=promedio_entrega,
+                y0=-0.5,
+                y1=len(medios) - 0.5,
+                line=dict(color="blue", dash="dash")
+            )
 
-        # Barras horizontales
-        fig.add_trace(go.Bar(
-            y=medios['Categoría'],
-            x=medios['dias_entrega'],
-            name='Días Entrega',
-            orientation='h'
-        ))
+            fig.update_layout(
+                barmode='group',
+                xaxis_title="Días",
+                yaxis_title="Categoría",
+                legend_title="Métrica",
+                height=500
+            )
 
-        fig.add_trace(go.Bar(
-            y=medios['Categoría'],
-            x=medios['colchon_dias'],
-            name='Colchón Días',
-            orientation='h'
-        ))
-
-        # Línea de promedio (solo días entrega)
-        promedio_entrega = medios['dias_entrega'].mean()
-        fig.add_shape(
-            type="line",
-            x0=promedio_entrega,
-            x1=promedio_entrega,
-            y0=-0.5,
-            y1=len(medios) - 0.5,
-            line=dict(color="blue", dash="dash")
-        )
-
-        fig.update_layout(
-            barmode='group',
-            xaxis_title="Días",
-            yaxis_title="Categoría",
-            legend_title="Métrica",
-            height=500
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
 
 
     # ========================= CALCULADORA =========================
