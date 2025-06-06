@@ -61,24 +61,32 @@ if archivo_zip:
             "Por ejemplo, se prometen 21 días cuando la entrega real es de 4 días en promedio."
         )
 
-        # Slider de desviación
-        st.sidebar.subheader("🎛️ Filtrar por desviación")
-        dev_min, dev_max = int(df['desviacion_vs_promesa'].min()), int(df['desviacion_vs_promesa'].max())
-        slider_min, slider_max = st.sidebar.slider(
-            "Desviación (Estimado - Real) días", dev_min, dev_max, (dev_min, dev_max)
+        # Filtros de Dashboard
+        st.sidebar.subheader("🎛️ Filtros de Dashboard")
+        estados = df['estado_del_cliente'].dropna().unique()
+        estados_sel = st.sidebar.multiselect(
+            "Estados", sorted(estados), default=list(estados)
         )
-        df_filtered = df[(df['desviacion_vs_promesa'] >= slider_min) & (df['desviacion_vs_promesa'] <= slider_max)].copy()
+        categorias = df['Categoría'].dropna().unique()
+        categorias_sel = st.sidebar.multiselect(
+            "Categorías", sorted(categorias), default=list(categorias)
+        )
 
-        # Métricas clave
+        # Filtrar datos
+        df_filtered = df[
+            (df['estado_del_cliente'].isin(estados_sel)) &
+            (df['Categoría'].isin(categorias_sel))
+        ].copy()
+
+        # Calcular prometido_dias y métricas clave
         df_filtered['prometido_dias'] = df_filtered['dias_entrega'] - df_filtered['desviacion_vs_promesa']
         avg_prom = df_filtered['prometido_dias'].mean()
         avg_act = df_filtered['dias_entrega'].mean()
         avg_diff = avg_prom - avg_act
-
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Estimado (días)", f"{avg_prom:.1f}")
-        col2.metric("Real (días)", f"{avg_act:.1f}")
-        col3.metric("Diferencia media", f"{avg_diff:.1f}")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Estimado (días)", f"{avg_prom:.1f}")
+        c2.metric("Real (días)", f"{avg_act:.1f}")
+        c3.metric("Diferencia media", f"{avg_diff:.1f}")
 
         # Comparativa estimado vs real por categoría con dos tonos de azul
         medios_cat = (
@@ -94,27 +102,46 @@ if archivo_zip:
             labels={'value': 'Días', 'variable': 'Tipo'},
             title='Tiempos estimados vs reales por Categoría',
             color_discrete_map={
-                'Estimado': '#003366',  # azul marino
-                'Real': '#6699cc'       # azul claro
+                'Estimado': '#003366',
+                'Real': '#6699cc'
             }
         )
-        # Añadir línea de mediana Real
+        # Línea de mediana Real
         med_real = medios_cat['Real'].median()
-        fig_cat.add_hline(y=med_real, line_dash='dash', line_color='#6699cc', annotation_text='Mediana Real', annotation_position='top right')
+        fig_cat.add_hline(
+            y=med_real,
+            line_dash='dash',
+            line_color='#6699cc',
+            annotation_text='Mediana Real',
+            annotation_position='top right'
+        )
         st.plotly_chart(fig_cat, use_container_width=True)
 
-        # Histograma de desviaciones para mostrar frecuencia
-        fig_hist = px.histogram(
-            df_filtered,
-            x='desviacion_vs_promesa',
-            nbins=30,
-            labels={'desviacion_vs_promesa': 'Estimado - Real (días)'},
-            title='Frecuencia de desviaciones de entrega',
-            color_discrete_sequence=['#6699cc']
+        # Gráfica de líneas: evolución promedio estimado vs real
+        df_ts = (
+            df_filtered.groupby(['año', 'mes'])
+              .agg(
+                  PromedioEstimado=('prometido_dias', 'mean'),
+                  PromedioReal=('dias_entrega', 'mean')
+              )
+              .reset_index()
+              .sort_values(['año', 'mes'])
         )
-        med_dev = df_filtered['desviacion_vs_promesa'].median()
-        fig_hist.add_vline(x=med_dev, line_dash='dash', line_color='#003366', annotation_text='Mediana Desviación', annotation_position='top right')
-        st.plotly_chart(fig_hist, use_container_width=True)
+        df_ts['Periodo'] = pd.to_datetime(
+            dict(year=df_ts['año'], month=df_ts['mes'], day=1)
+        )
+        fig_line = px.line(
+            df_ts,
+            x='Periodo',
+            y=['PromedioEstimado', 'PromedioReal'],
+            labels={'value': 'Días', 'variable': 'Tipo'},
+            title='Evolución promedio: estimado vs real',
+            color_discrete_map={
+                'PromedioEstimado': '#003366',
+                'PromedioReal': '#6699cc'
+            }
+        )
+        st.plotly_chart(fig_line, use_container_width=True)
 
         # Top 10 categorías con mayor desfase medio
         medios_cat['Desviación_media'] = medios_cat['Estimado'] - medios_cat['Real']
@@ -136,29 +163,34 @@ if archivo_zip:
         df2['año'] = df2['orden_compra_timestamp'].dt.year
         df2['mes'] = df2['orden_compra_timestamp'].dt.month
 
-        estados = df2['estado_del_cliente'].dropna().unique()
-        categorias = df2['Categoría'].dropna().unique()
-        c1, c2 = st.columns(2)
-        estado = c1.selectbox("Estado", sorted(estados))
-        categoria = c2.selectbox("Categoría", sorted(categorias))
+        estados2 = df2['estado_del_cliente'].dropna().unique()
+        categorias2 = df2['Categoría'].dropna().unique()
+        col1, col2 = st.columns(2)
+        estado2 = col1.selectbox("Estado", sorted(estados2))
+        categoria2 = col2.selectbox("Categoría", sorted(categorias2))
 
-        meses_dict = {1:"Enero",2:"Febrero",3:"Marzo",4:"Abril",5:"Mayo",6:"Junio",
-                      7:"Julio",8:"Agosto",9:"Septiembre",10:"Octubre",11:"Noviembre",12:"Diciembre"}
-        mes1_nombre = c1.selectbox("Mes 1", list(meses_dict.values()), index=0)
-        mes2_nombre = c2.selectbox("Mes 2", list(meses_dict.values()), index=1)
-        mes1 = [k for k,v in meses_dict.items() if v==mes1_nombre][0]
-        mes2 = [k for k,v in meses_dict.items() if v==mes2_nombre][0]
+        meses_dict = {
+            1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+            5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+            9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+        }
+        mes1_nombre = col1.selectbox("Mes 1", list(meses_dict.values()), index=0)
+        mes2_nombre = col2.selectbox("Mes 2", list(meses_dict.values()), index=1)
+        mes1 = [k for k, v in meses_dict.items() if v == mes1_nombre][0]
+        mes2 = [k for k, v in meses_dict.items() if v == mes2_nombre][0]
 
-        filtro = (df2['estado_del_cliente']==estado)&(df2['Categoría']==categoria)
-        df_mes1 = df2[(df2['mes']==mes1)&filtro].copy()
-        df_mes2 = df2[(df2['mes']==mes2)&filtro].copy()
+        filtro2 = (df2['estado_del_cliente'] == estado2) & (df2['Categoría'] == categoria2)
+        df_mes1 = df2[(df2['mes'] == mes1) & filtro2].copy()
+        df_mes2 = df2[(df2['mes'] == mes2) & filtro2].copy()
 
         def predecir(df_input):
             if df_input.empty:
                 return df_input
-            cols_flete = ['total_peso_g','precio','#_deproductos','duracion_estimada_min',
-                          'ciudad_cliente','nombre_dc','hora_compra','año','mes','datetime_origen',
-                          'region','dias_promedio_ciudad','Categoría','tipo_de_pago']
+            cols_flete = [
+                'total_peso_g','precio','#_deproductos','duracion_estimada_min',
+                'ciudad_cliente','nombre_dc','hora_compra','año','mes','datetime_origen',
+                'region','dias_promedio_ciudad','Categoría','tipo_de_pago'
+            ]
             df_f = df_input[cols_flete]
             df_enc = pd.get_dummies(df_f)
             feats = modelo_flete.get_booster().feature_names
@@ -166,11 +198,13 @@ if archivo_zip:
             df_input['costo_estimado'] = modelo_flete.predict(df_enc).round(2)
             df_input['costo_de_flete'] = df_input['costo_estimado']
 
-            cols_dias = ['Categoría','categoría_peso','#_deproductos','total_peso_g','precio',
-                         'costo_de_flete','distancia_km','velocidad_kmh','duracion_estimada_min',
-                         'region','dc_asignado','es_feriado','es_fin_de_semana','dias_promedio_ciudad',
-                         'hora_compra','nombre_dia','mes','año','temp_origen','precip_origen',
-                         'cloudcover_origen','conditions_origen','icon_origen','traffic','area']
+            cols_dias = [
+                'Categoría','categoría_peso','#_deproductos','total_peso_g','precio',
+                'costo_de_flete','distancia_km','velocidad_kmh','duracion_estimada_min',
+                'region','dc_asignado','es_feriado','es_fin_de_semana','dias_promedio_ciudad',
+                'hora_compra','nombre_dia','mes','año','temp_origen','precip_origen',
+                'cloudcover_origen','conditions_origen','icon_origen','traffic','area'
+            ]
             if not all(c in df_input.columns for c in cols_dias):
                 return df_input
             X = df_input[cols_dias]
