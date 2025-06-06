@@ -122,20 +122,17 @@ if archivo_zip:
         modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
         label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
-    
-
-
     # ========================= DASHBOARD =========================
     with tabs[0]:
-    
+
         # --------- SIDEBAR FILTROS ---------
         with st.sidebar:
             st.subheader("🎛️ Filtros")
-    
+
             estados = sorted(df['estado_del_cliente'].dropna().unique())
             años = sorted(df['año'].dropna().unique())
             meses = sorted(df['mes'].dropna().unique())
-    
+
             estado_sel = st_tags(
                 label="📍 Estados",
                 text="Escribe o selecciona",
@@ -144,7 +141,7 @@ if archivo_zip:
                 maxtags=len(estados),
                 key="tags_estado"
             )
-    
+
             año_sel = st_tags(
                 label="📅 Años",
                 text="Escribe o selecciona",
@@ -153,7 +150,7 @@ if archivo_zip:
                 maxtags=len(años),
                 key="tags_anio"
             )
-    
+
             mes_sel = st_tags(
                 label="🗓️ Meses",
                 text="Escribe o selecciona",
@@ -162,22 +159,13 @@ if archivo_zip:
                 maxtags=len(meses),
                 key="tags_mes"
             )
-    
+
         # --------- FILTRADO DE DATOS ---------
         df_filtrado = df[
             (df['estado_del_cliente'].isin(estado_sel)) &
             (df['año'].isin([int(a) for a in año_sel])) &
             (df['mes'].isin([int(m) for m in mes_sel]))
         ]
-    
-    
-            # --------- FILTRADO DE DATOS ---------
-            df_filtrado = df[
-                (df['Categoría'].isin(categoria_sel)) &
-                (df['estado_del_cliente'].isin(estado_sel)) &
-                (df['año'].isin(año_sel)) &
-                (df['mes'].isin(mes_sel))
-            ]
 
         # --------- MÉTRICAS PRINCIPALES ---------
         col1, col2, col3 = st.columns(3)
@@ -192,8 +180,8 @@ if archivo_zip:
         )
 
         # --------- VISUALIZACIONES ---------
-        col1, _ = st.columns([1, 0.01])  # Solo el mapa en una columna grande
-        
+        col1, _ = st.columns([1, 0.01])  # Mapa ancho
+
         with col1:
             st.subheader("🗺️ Mapa")
             mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
@@ -201,17 +189,17 @@ if archivo_zip:
                 st.map(mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
             else:
                 st.warning("Sin coordenadas válidas.")
-        
+
         # --------- GRÁFICA DE BARRAS HORIZONTAL ---------
         st.subheader("📉 Comparativo de Entrega vs Colchón por Categoría (barra horizontal)")
-        
+
         if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
             import plotly.graph_objects as go
-        
+
             medios = df_filtrado.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
-        
+
             fig = go.Figure()
-        
+
             # Barras horizontales
             fig.add_trace(go.Bar(
                 y=medios['Categoría'],
@@ -219,23 +207,25 @@ if archivo_zip:
                 name='Días Entrega',
                 orientation='h'
             ))
-        
+
             fig.add_trace(go.Bar(
                 y=medios['Categoría'],
                 x=medios['colchon_dias'],
                 name='Colchón Días',
                 orientation='h'
             ))
-        
-            # Líneas de promedio
+
+            # Línea de promedio (solo de días de entrega)
             promedio_entrega = medios['dias_entrega'].mean()
-            
-        
-            fig.add_shape(type="line", x0=promedio_entrega, x1=promedio_entrega, y0=-0.5, y1=len(medios)-0.5,
-                          line=dict(color="blue", dash="dash"), name='Prom. Entrega')
-        
-         
-        
+            fig.add_shape(
+                type="line",
+                x0=promedio_entrega,
+                x1=promedio_entrega,
+                y0=-0.5,
+                y1=len(medios) - 0.5,
+                line=dict(color="blue", dash="dash")
+            )
+
             fig.update_layout(
                 barmode='group',
                 xaxis_title="Días",
@@ -243,9 +233,9 @@ if archivo_zip:
                 legend_title="Métrica",
                 height=500
             )
-        
+
             st.plotly_chart(fig, use_container_width=True)
-        
+
         
 
     # ========================= CALCULADORA =========================
