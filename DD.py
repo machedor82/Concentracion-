@@ -8,7 +8,7 @@ import joblib
 import plotly.express as px
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
-from streamlit_tags import st_tags  # Asegúrate de importar esto arriba
+from streamlit_option_menu import option_menu # Asegúrate de importar esto arriba
 
 # ------------------ Definiciones de clases/funciones personalizadas ------------------
 # Copia aquí las clases o funciones custom que usaste al entrenar 'modelo_dias_pipeline.joblib'.
@@ -122,50 +122,27 @@ if archivo_zip:
         modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
         label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
-    # ========================= DASHBOARD =========================
-    with tabs[0]:
+    
 
-        # --------- SIDEBAR FILTROS ---------
-        with st.sidebar:
-            st.subheader("🎛️ Filtros")
+# ========================= DASHBOARD =========================
+with tabs[0]:
 
-            estados = sorted(df['estado_del_cliente'].dropna().unique())
-            años = sorted(df['año'].dropna().unique())
-            meses = sorted(df['mes'].dropna().unique())
+    # --------- SIDEBAR FILTROS ---------
+    with st.sidebar:
+        st.image("danu_logo.png", use_column_width=True)
+        st.subheader("🎛️ Filtro de Estado")
 
-            estado_sel = st_tags(
-                label="📍 Estados",
-                text="Escribe o selecciona",
-                value=estados,
-                suggestions=estados,
-                maxtags=len(estados),
-                key="tags_estado"
-            )
+        estados = sorted(df['estado_del_cliente'].dropna().unique())
+        estado_sel = option_menu(
+            menu_title="Selecciona un estado",
+            options=estados,
+            icons=["geo"] * len(estados),  # mismo ícono para todos
+            default_index=0
+        )
 
-            año_sel = st_tags(
-                label="📅 Años",
-                text="Escribe o selecciona",
-                value=años,
-                suggestions=años,
-                maxtags=len(años),
-                key="tags_anio"
-            )
+    # --------- FILTRADO DE DATOS ---------
+    df_filtrado = df[df['estado_del_cliente'] == estado_sel]
 
-            mes_sel = st_tags(
-                label="🗓️ Meses",
-                text="Escribe o selecciona",
-                value=meses,
-                suggestions=meses,
-                maxtags=len(meses),
-                key="tags_mes"
-            )
-
-        # --------- FILTRADO DE DATOS ---------
-        df_filtrado = df[
-            (df['estado_del_cliente'].isin(estado_sel)) &
-            (df['año'].isin([int(a) for a in año_sel])) &
-            (df['mes'].isin([int(m) for m in mes_sel]))
-        ]
 
         # --------- MÉTRICAS PRINCIPALES ---------
         col1, col2, col3 = st.columns(3)
