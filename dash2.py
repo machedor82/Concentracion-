@@ -44,9 +44,11 @@ if archivo:
     with tabs[0]:
         st.header("🏠 Dashboard Logístico")
         st.markdown(
-            "**Desfase estimado vs real de entrega**  
-             Observa cómo varían los tiempos mes a mes y por categoría."
-        )
+    """
+**Desfase estimado vs real de entrega**  
+Observa cómo varían los tiempos mes a mes y por categoría.
+    """
+)
 
         # Filtros interactivos
         st.sidebar.subheader("Filtros")
