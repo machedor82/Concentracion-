@@ -159,7 +159,8 @@ if archivo_zip:
             df_precio = df_filtrado.copy()
             df_precio['porcentaje_flete'] = (df_precio['costo_de_flete'] / df_precio['precio']) * 100
             precio_cat = df_precio.groupby('Categoría')['porcentaje_flete'].mean().reset_index()
-        
+            precio_cat = precio_cat.sort_values(by='porcentaje_flete', ascending=False)
+
             fig_flete_precio = px.bar(
                 precio_cat,
                 x='Categoría',
@@ -187,8 +188,10 @@ if archivo_zip:
         
         if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
             import plotly.graph_objects as go
-        
+    
             medios = df_filtrado.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
+            medios = medios.sort_values(by='dias_entrega', ascending=False)
+
         
             fig = go.Figure()
             fig.add_trace(go.Bar(
@@ -228,6 +231,8 @@ if archivo_zip:
         st.subheader("🧾 Suma de Precio vs Costo de Flete por Categoría")
         
         totales = df_filtrado.groupby('Categoría')[['precio', 'costo_de_flete']].sum().reset_index()
+        totales = totales.sort_values(by='precio', ascending=False)
+
         
         fig_totales = px.bar(
             totales,
