@@ -23,9 +23,7 @@ class MiTransformadorEspecial(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
-        # Lógica de transformación
-        # Por ejemplo:
-        # X_trans = ...
+        # Lógica de transformación (ejemplo placeholder)
         return X
 
 # Si tu pipeline usaba más clases o funciones custom, defínelas aquí de la misma forma:
@@ -217,15 +215,26 @@ if archivo_zip:
         res1 = resumen(df_mes1, mes1_nombre)
         res2 = resumen(df_mes2, mes2_nombre)
 
+        # Antes de fusionar, asegurar que las columnas de costo estén en tipo numérico:
+        res1[mes1_nombre] = pd.to_numeric(res1[mes1_nombre], errors='coerce')
+        res2[mes2_nombre] = pd.to_numeric(res2[mes2_nombre], errors='coerce')
+
         comparacion = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
+
+        # Convertir también las columnas fusionadas a numérico (en caso de NAs u otros valores):
+        comparacion[mes1_nombre] = pd.to_numeric(comparacion[mes1_nombre], errors='coerce')
+        comparacion[mes2_nombre] = pd.to_numeric(comparacion[mes2_nombre], errors='coerce')
+
+        # Calcular la diferencia asegurándonos de trabajar con tipo numérico
         comparacion['Diferencia'] = (comparacion[mes2_nombre] - comparacion[mes1_nombre]).round(2)
+
         comparacion = comparacion[[
             'ciudad_cliente', mes1_nombre, mes2_nombre, 'Diferencia',
             f"Entrega {mes1_nombre}", f"Entrega {mes2_nombre}"
         ]].rename(columns={'ciudad_cliente': 'Ciudad'})
 
         def resaltar(val):
-            if isinstance(val, (int, float)):
+            if isinstance(val, (int, float, np.number)):
                 if val > 0:
                     return 'color: green; font-weight: bold'
                 elif val < 0:
