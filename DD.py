@@ -90,7 +90,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 # ===================== ENCABEZADO Y CARGA DE ARCHIVO =====================
-st.title("📦 Cabrito Analytics App")
 tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora"])
 
 with st.sidebar:
@@ -179,7 +178,7 @@ if archivo_zip:
         
         # 🗺️ Mapa de clientes
         with col2:
-            st.subheader("🗺️ Mapa de clientes")
+            st.subheader("Distribución de Entregas 🗺️")
             mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
             if not mapa.empty:
                 st.map(mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
@@ -187,7 +186,7 @@ if archivo_zip:
                 st.warning("Sin coordenadas válidas.")
         
         # --------- LAYOUT INFERIOR: GRÁFICA HORIZONTAL COMPLETA ---------
-        st.subheader("📉 Entrega vs Colchón por Categoría")
+        st.subheader("Entrega vs Colchón 📉")
         if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
             import plotly.graph_objects as go
         
