@@ -34,20 +34,29 @@ class MiTransformadorEspecial(BaseEstimator, TransformerMixin):
 
 # ---------------------------------------------------------------------------------------
 
+import streamlit as st
+import pandas as pd
+import zipfile
+import plotly.express as px
+import joblib
+
+# ===================== CONFIGURACIÓN DE PÁGINA =====================
 st.set_page_config(page_title="Cabrito Analytics", layout="wide")
+
+# ===================== ESTILOS PERSONALIZADOS =====================
 st.markdown("""
     <style>
-        /* Fondo azul marino en la zona principal */
+        /* Fondo azul marino en zona principal */
         .main {
             background-color: #002244 !important;
         }
 
-        /* Cambiar el color del texto en la zona principal */
+        /* Texto en zona principal */
         .main > div {
             color: white;
         }
 
-        /* Sidebar fondo blanco y texto azul marino */
+        /* Sidebar blanco con texto azul marino */
         [data-testid="stSidebar"] {
             background-color: white !important;
         }
@@ -56,12 +65,11 @@ st.markdown("""
             color: #002244 !important;
         }
 
-        /* Ajustar color del texto de los expanders del sidebar */
         .stExpander > summary {
             color: #002244 !important;
         }
 
-        /* Ocultar chips del multiselect (para que no ocupen espacio) */
+        /* Compactar multiselect */
         .css-1wa3eu0 {
             display: none !important;
         }
@@ -75,17 +83,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-
+# ===================== ENCABEZADO Y CARGA DE ARCHIVO =====================
 st.title("📦 Cabrito Analytics App")
 tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora"])
 
 with st.sidebar:
+    st.image("danu_logo.png", use_column_width=True)
     st.header("Sube tu archivo ZIP")
     archivo_zip = st.file_uploader("ZIP con DF.csv, DF2.csv y modelos", type="zip")
 
+# ===================== PROCESAMIENTO DEL ZIP =====================
 if archivo_zip:
     with zipfile.ZipFile(archivo_zip) as z:
-        # Validación de archivos necesarios
         requeridos = [
             'DF.csv',
             'DF2.csv',
@@ -99,125 +108,104 @@ if archivo_zip:
             st.error(f"❌ Faltan archivos en el ZIP: {faltantes}")
             st.stop()
 
-        # Cargar DataFrames
         df = pd.read_csv(z.open('DF.csv'))
         df2 = pd.read_csv(z.open('DF2.csv'))
-
-        # Cargar modelos desde el ZIP
         modelo_flete = joblib.load(z.open('modelo_costoflete.sav'))
         modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
         label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
- # ========================= DASHBOARD =========================
-# CSS para ocultar los elementos seleccionados en los multiselect
-st.markdown("""
-    <style>
-        .css-1wa3eu0 {
-            display: none !important;
-        }
-        .stMultiSelect .css-12w0qpk {
-            max-height: 0px !important;
-            overflow: hidden !important;
-        }
-        .stMultiSelect {
-            height: 35px !important;
-        }
-    </style>
-""", unsafe_allow_html=True)
+    # ========================= DASHBOARD =========================
+    with tabs[0]:
+        st.header("🏠 Dashboard Logístico")
 
-with tabs[0]:
-    st.header("🏠 Dashboard Logístico")
+        with st.sidebar:
+            st.subheader("🎛️ Filtros")
 
-    with st.sidebar:
-        st.subheader("🎛️ Filtros")
-        
-        st.image("danu_logo.png", use_column_width=True)
-        st.subheader("🎛️ Filtros")
+            with st.expander("📦 Categoría"):
+                categorias = sorted(df['Categoría'].dropna().unique())
+                categoria_sel = st.multiselect(
+                    "Selecciona una o varias categorías:",
+                    options=categorias,
+                    default=categorias,
+                    key="filtro_categoria"
+                )
 
-        with st.expander("📦 Categoría"):
-            categorias = sorted(df['Categoría'].dropna().unique())
-            categoria_sel = st.multiselect(
-                "Selecciona una o varias categorías:",
-                options=categorias,
-                default=categorias,
-                key="filtro_categoria"
-            )
+            with st.expander("📍 Estado"):
+                estados = sorted(df['estado_del_cliente'].dropna().unique())
+                estado_sel = st.multiselect(
+                    "Selecciona uno o varios estados:",
+                    options=estados,
+                    default=estados,
+                    key="filtro_estado"
+                )
 
-        with st.expander("📍 Estado"):
-            estados = sorted(df['estado_del_cliente'].dropna().unique())
-            estado_sel = st.multiselect(
-                "Selecciona uno o varios estados:",
-                options=estados,
-                default=estados,
-                key="filtro_estado"
-            )
+            with st.expander("📅 Año"):
+                años = sorted(df['año'].dropna().unique())
+                año_sel = st.multiselect(
+                    "Selecciona uno o varios años:",
+                    options=años,
+                    default=años,
+                    key="filtro_anio"
+                )
 
-        with st.expander("📅 Año"):
-            años = sorted(df['año'].dropna().unique())
-            año_sel = st.multiselect(
-                "Selecciona uno o varios años:",
-                options=años,
-                default=años,
-                key="filtro_anio"
-            )
+            with st.expander("🗓️ Mes"):
+                meses = sorted(df['mes'].dropna().unique())
+                mes_sel = st.multiselect(
+                    "Selecciona uno o varios meses:",
+                    options=meses,
+                    default=meses,
+                    key="filtro_mes"
+                )
 
-        with st.expander("🗓️ Mes"):
-            meses = sorted(df['mes'].dropna().unique())
-            mes_sel = st.multiselect(
-                "Selecciona uno o varios meses:",
-                options=meses,
-                default=meses,
-                key="filtro_mes"
-            )
+        # ===================== FILTRADO =====================
+        df_filtrado = df[
+            (df['Categoría'].isin(categoria_sel)) &
+            (df['estado_del_cliente'].isin(estado_sel)) &
+            (df['año'].isin(año_sel)) &
+            (df['mes'].isin(mes_sel))
+        ]
 
-    # Filtrar el dataframe con base en los filtros
-    df_filtrado = df[
-        (df['Categoría'].isin(categoria_sel)) &
-        (df['estado_del_cliente'].isin(estado_sel)) &
-        (df['año'].isin(año_sel)) &
-        (df['mes'].isin(mes_sel))
-    ]
+        # ===================== MÉTRICAS =====================
+        st.markdown("### 📊 Indicadores")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Pedidos", f"{len(df_filtrado):,}")
+        col2.metric(
+            "Flete > 50%",
+            f"{(df_filtrado['costo_de_flete'] / df_filtrado['precio'] > 0.5).mean() * 100:.1f}%"
+        )
+        col3.metric(
+            "≥7 días antes",
+            f"{(df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100:.1f}%"
+        )
 
-    # ================= Indicadores =================
-    st.markdown("### 📊 Indicadores")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Pedidos", f"{len(df_filtrado):,}")
-    col2.metric(
-        "Flete > 50%",
-        f"{(df_filtrado['costo_de_flete'] / df_filtrado['precio'] > 0.5).mean() * 100:.1f}%"
-    )
-    col3.metric(
-        "≥7 días antes",
-        f"{(df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100:.1f}%"
-    )
+        # ===================== VISUALIZACIONES =====================
+        col1, col2, col3 = st.columns(3)
 
-    # ================= Visualizaciones =================
-    col1, col2, col3 = st.columns(3)
+        with col1:
+            st.subheader("🌳 Treemap")
+            fig = px.treemap(df_filtrado, path=['Categoría'], values='precio')
+            st.plotly_chart(fig, use_container_width=True)
 
-    with col1:
-        st.subheader("🌳 Treemap")
-        fig = px.treemap(df_filtrado, path=['Categoría'], values='precio')
-        st.plotly_chart(fig, use_container_width=True)
+        with col2:
+            st.subheader("🗺️ Mapa")
+            mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
+            if not mapa.empty:
+                st.map(mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
+            else:
+                st.warning("Sin coordenadas válidas.")
 
-    with col2:
-        st.subheader("🗺️ Mapa")
-        mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
-        if not mapa.empty:
-            st.map(mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
-        else:
-            st.warning("Sin coordenadas válidas.")
+        with col3:
+            st.subheader("📈 Entrega vs Colchón")
+            if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
+                medios = df_filtrado.groupby('estado_del_cliente')[['dias_entrega', 'colchon_dias']].mean().reset_index()
+                fig2 = px.bar(
+                    medios,
+                    x='estado_del_cliente',
+                    y=['dias_entrega', 'colchon_dias'],
+                    barmode='group'
+                )
+                st.plotly_chart(fig2, use_container_width=True)
 
-    with col3:
-        st.subheader("📈 Entrega vs Colchón")
-        if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
-            medios = df_filtrado.groupby('estado_del_cliente')[['dias_entrega', 'colchon_dias']].mean().reset_index()
-            fig2 = px.bar(
-                medios,
-                x='estado_del_cliente',
-                y=['dias_entrega', 'colchon_dias'],
-                barmode='group'
-            )
-            st.plotly_chart(fig2, use_container_width=True)
 
 
     # ========================= CALCULADORA =========================
