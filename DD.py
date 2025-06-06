@@ -68,6 +68,22 @@ if archivo_zip:
         label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
  # ========================= DASHBOARD =========================
+# CSS para ocultar los elementos seleccionados en los multiselect
+st.markdown("""
+    <style>
+        .css-1wa3eu0 {
+            display: none !important;
+        }
+        .stMultiSelect .css-12w0qpk {
+            max-height: 0px !important;
+            overflow: hidden !important;
+        }
+        .stMultiSelect {
+            height: 35px !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 with tabs[0]:
     st.header("🏠 Dashboard Logístico")
 
