@@ -98,25 +98,23 @@ if archivo_zip:
                 'Real': '#6699cc'       # azul claro
             }
         )
-        # Añadir líneas de mediana
-        med_est = medios_cat['Estimado'].median()
+        # Añadir línea de mediana Real
         med_real = medios_cat['Real'].median()
-        fig_cat.add_hline(y=med_est, line_dash='dash', line_color='#003366', annotation_text='Mediana Estimado', annotation_position='bottom right')
         fig_cat.add_hline(y=med_real, line_dash='dash', line_color='#6699cc', annotation_text='Mediana Real', annotation_position='top right')
         st.plotly_chart(fig_cat, use_container_width=True)
 
-        # Violín de desviaciones por categoría en azul claro
-        fig_violin = px.violin(
+        # Histograma de desviaciones para mostrar frecuencia
+        fig_hist = px.histogram(
             df_filtered,
-            x='Categoría',
-            y='desviacion_vs_promesa',
-            box=True,
-            points='all',
+            x='desviacion_vs_promesa',
+            nbins=30,
             labels={'desviacion_vs_promesa': 'Estimado - Real (días)'},
-            title='Distribución de desviaciones por Categoría',
+            title='Frecuencia de desviaciones de entrega',
             color_discrete_sequence=['#6699cc']
         )
-        st.plotly_chart(fig_violin, use_container_width=True)
+        med_dev = df_filtered['desviacion_vs_promesa'].median()
+        fig_hist.add_vline(x=med_dev, line_dash='dash', line_color='#003366', annotation_text='Mediana Desviación', annotation_position='top right')
+        st.plotly_chart(fig_hist, use_container_width=True)
 
         # Top 10 categorías con mayor desfase medio
         medios_cat['Desviación_media'] = medios_cat['Estimado'] - medios_cat['Real']
