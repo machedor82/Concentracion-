@@ -37,23 +37,31 @@ class MiTransformadorEspecial(BaseEstimator, TransformerMixin):
 st.set_page_config(page_title="Cabrito Analytics", layout="wide")
 st.markdown("""
     <style>
-        /* Fondo principal en azul marino */
+        /* Fondo azul marino en la zona principal */
         .main {
             background-color: #002244 !important;
         }
 
-        /* Estilo del sidebar */
-        [data-testid="stSidebar"] {
-            background-color: #002244;
+        /* Cambiar el color del texto en la zona principal */
+        .main > div {
             color: white;
         }
 
-        /* Texto dentro del sidebar */
-        [data-testid="stSidebar"] * {
-            color: white !important;
+        /* Sidebar fondo blanco y texto azul marino */
+        [data-testid="stSidebar"] {
+            background-color: white !important;
         }
 
-        /* Ocultar etiquetas seleccionadas en multiselect */
+        [data-testid="stSidebar"] * {
+            color: #002244 !important;
+        }
+
+        /* Ajustar color del texto de los expanders del sidebar */
+        .stExpander > summary {
+            color: #002244 !important;
+        }
+
+        /* Ocultar chips del multiselect (para que no ocupen espacio) */
         .css-1wa3eu0 {
             display: none !important;
         }
@@ -63,11 +71,6 @@ st.markdown("""
         }
         .stMultiSelect {
             height: 35px !important;
-        }
-
-        /* Texto del contenido principal */
-        .main > div {
-            color: white;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -126,6 +129,9 @@ with tabs[0]:
     st.header("🏠 Dashboard Logístico")
 
     with st.sidebar:
+        st.subheader("🎛️ Filtros")
+        
+        st.image("danu_logo.png", use_column_width=True)
         st.subheader("🎛️ Filtros")
 
         with st.expander("📦 Categoría"):
