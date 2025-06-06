@@ -21,19 +21,19 @@ st.set_page_config(page_title="Cabrito Analytics Profesional", layout="wide")
 st.title("📦 Cabrito Analytics App")
 tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora"])
 
-# Sidebar: upload + filtros
+# Sidebar: carga de ZIP
 with st.sidebar:
     st.header("Sube tu archivo ZIP")
     archivo = st.file_uploader("ZIP con DF.csv, DF2.csv y modelos", type="zip")
 
 if archivo:
+    # Leer modelos y datos
     with zipfile.ZipFile(archivo) as z:
-        necesarios = ['DF.csv','DF2.csv','modelo_costoflete.sav','modelo_dias_pipeline.joblib','label_encoder_dias.joblib']
-        faltantes = [f for f in necesarios if f not in z.namelist()]
-        if faltantes:
-            st.error(f"❌ Faltan archivos: {faltantes}")
+        reqs = ['DF.csv','DF2.csv','modelo_costoflete.sav','modelo_dias_pipeline.joblib','label_encoder_dias.joblib']
+        falt = [f for f in reqs if f not in z.namelist()]
+        if falt:
+            st.error(f"❌ Faltan archivos: {falt}")
             st.stop()
-
         df = pd.read_csv(z.open('DF.csv'))
         df2 = pd.read_csv(z.open('DF2.csv'))
         modelo_flete = joblib.load(z.open('modelo_costoflete.sav'))
@@ -50,36 +50,38 @@ Observa cómo varían los tiempos mes a mes y por categoría.
             """
         )
 
-        # Filtros interactivos con botón "Seleccionar todos"
-        st.sidebar.subheader("Filtros")
+        # Inicializar y mostrar filtros con botones de "Seleccionar todos"
         estados = sorted(df['estado_del_cliente'].dropna().unique())
-        if 'sel_est' not in st.session_state:
-            st.session_state.sel_est = estados
-        if st.sidebar.button("Seleccionar todos los estados"):
-            st.session_state.sel_est = estados
-        sel_est = st.sidebar.multiselect("Estados", estados, default=st.session_state.sel_est)
-
         categorias = sorted(df['Categoría'].dropna().unique())
+        if 'sel_est' not in st.session_state:
+            st.session_state['sel_est'] = estados
         if 'sel_cat' not in st.session_state:
-            st.session_state.sel_cat = categorias
+            st.session_state['sel_cat'] = categorias
+        if st.sidebar.button("Seleccionar todos los estados"):
+            st.session_state['sel_est'] = estados
         if st.sidebar.button("Seleccionar todas las categorías"):
-            st.session_state.sel_cat = categorias
-        sel_cat = st.sidebar.multiselect("Categorías", categorias, default=st.session_state.sel_cat)
+            st.session_state['sel_cat'] = categorias
+        sel_est = st.sidebar.multiselect(
+            "Estados", estados, default=st.session_state['sel_est'], key='sel_est'
+        )
+        sel_cat = st.sidebar.multiselect(
+            "Categorías", categorias, default=st.session_state['sel_cat'], key='sel_cat'
+        )
 
         # Filtrar datos
         data = df[df['estado_del_cliente'].isin(sel_est) & df['Categoría'].isin(sel_cat)].copy()
         data['prometido_dias'] = data['dias_entrega'] - data['desviacion_vs_promesa']
 
-        # Métricas
+        # Métricas clave
         est_mean = data['prometido_dias'].mean()
         real_mean = data['dias_entrega'].mean()
         diff_mean = est_mean - real_mean
-        c1,c2,c3 = st.columns(3)
+        c1, c2, c3 = st.columns(3)
         c1.metric("Estimado promedio (d)", f"{est_mean:.1f}")
         c2.metric("Real promedio (d)", f"{real_mean:.1f}")
         c3.metric("Desfase promedio (d)", f"{diff_mean:.1f}")
 
-        # Bar chart por categoría
+        # Gráfica de barras por categoría
         cat_agg = data.groupby('Categoría').agg(
             Estimado=('prometido_dias','mean'),
             Real=('dias_entrega','mean')
@@ -90,16 +92,18 @@ Observa cómo varían los tiempos mes a mes y por categoría.
             labels={'value':'Días','variable':'Tipo'},
             title='Tiempos estimado vs real por Categoría'
         )
-        # Mediana Real
         med_real = cat_agg['Real'].median()
-        fig1.add_hline(y=med_real, line_dash='dash', line_color='#6699cc', annotation_text='Mediana Real', annotation_position='top right')
+        fig1.add_hline(
+            y=med_real, line_dash='dash', line_color='#6699cc',
+            annotation_text='Mediana Real', annotation_position='top right'
+        )
         st.plotly_chart(fig1, use_container_width=True)
 
-        # Line chart evolución mensual
+        # Gráfica de líneas: evolución mensual
         ts = data.groupby(['año','mes']).agg(
             Estimado=('prometido_dias','mean'), Real=('dias_entrega','mean')
         ).reset_index().sort_values(['año','mes'])
-        ts['Fecha'] = pd.to_datetime(dict(year=ts['año'],month=ts['mes'],day=1))
+        ts['Fecha'] = pd.to_datetime(dict(year=ts['año'], month=ts['mes'], day=1))
         fig2 = px.line(
             ts, x='Fecha', y=['Estimado','Real'],
             color_discrete_map={'Estimado':'#003366','Real':'#6699cc'},
@@ -122,4 +126,4 @@ Observa cómo varían los tiempos mes a mes y por categoría.
     # Calculadora
     with tabs[1]:
         st.header("🧮 Calculadora de Predicción")
-        st.info("Calculadora aquí...")
+        st.info("Aquí va tu sección de calculadora...")
