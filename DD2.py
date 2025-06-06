@@ -151,7 +151,7 @@ if archivo_zip:
         )
 
         # --------- TABLA HORIZONTAL: % Flete sobre Precio por Categoría ---------
-        st.subheader("💸 % del Flete sobre el Precio por Categoría (tabla)")
+        st.subheader("💸 % del Flete sobre el Precio")
         df_precio = df_filtrado.copy()
         df_precio['porcentaje_flete'] = (df_precio['costo_de_flete'] / df_precio['precio']) * 100
 
@@ -167,7 +167,7 @@ if archivo_zip:
         col1, col2 = st.columns([1, 1])
         
         with col1:
-            st.subheader("🧾 Suma de Precio vs Costo de Flete por Categoría")
+            
             totales = df_filtrado.groupby('Categoría')[['precio', 'costo_de_flete']].sum().reset_index()
             totales = totales.sort_values(by='precio', ascending=False)
         
@@ -189,7 +189,7 @@ if archivo_zip:
             st.plotly_chart(fig_totales, use_container_width=True)
         
         with col2:
-            st.subheader("🗺️ Mapa de clientes")
+            
             mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
             if not mapa.empty:
                 st.map(
@@ -200,7 +200,7 @@ if archivo_zip:
                 st.warning("Sin coordenadas válidas.")
         
         # --------- GRÁFICA HORIZONTAL COMPACTA ---------
-        st.subheader("📉 Entrega vs Colchón por Categoría")
+        
         
         if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
             import plotly.graph_objects as go
