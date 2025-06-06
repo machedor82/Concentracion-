@@ -222,13 +222,12 @@ if archivo_zip:
         
             # Líneas de promedio
             promedio_entrega = medios['dias_entrega'].mean()
-            promedio_colchon = medios['colchon_dias'].mean()
+            
         
             fig.add_shape(type="line", x0=promedio_entrega, x1=promedio_entrega, y0=-0.5, y1=len(medios)-0.5,
                           line=dict(color="blue", dash="dash"), name='Prom. Entrega')
         
-            fig.add_shape(type="line", x0=promedio_colchon, x1=promedio_colchon, y0=-0.5, y1=len(medios)-0.5,
-                          line=dict(color="orange", dash="dash"), name='Prom. Colchón')
+         
         
             fig.update_layout(
                 barmode='group',
