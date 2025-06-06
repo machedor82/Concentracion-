@@ -176,7 +176,7 @@ if archivo_zip:
                 'clase_entrega': lambda x: x.mode()[0] if not x.mode().empty else 'N/A'
             }).reset_index().rename(columns={
                 'costo_estimado': nombre_mes,
-                'clase_entrega': f"Entrega {nombre_mes}"`
+                'clase_entrega': f"Entrega {nombre_mes}"
             })
 
         df_mes1 = predecir(df_mes1)
@@ -184,7 +184,6 @@ if archivo_zip:
         res1 = resumen(df_mes1, mes1_nombre)
         res2 = resumen(df_mes2, mes2_nombre)
 
-        # Conversión y cálculo final igual al script anterior
         res1[mes1_nombre] = pd.to_numeric(res1[mes1_nombre], errors='coerce')
         res2[mes2_nombre] = pd.to_numeric(res2[mes2_nombre], errors='coerce')
         comparacion = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
