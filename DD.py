@@ -89,6 +89,7 @@ st.markdown("""
         }
     </style>
 """, unsafe_allow_html=True)
+
 # ===================== ENCABEZADO Y CARGA DE ARCHIVO =====================
 tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora"])
 
@@ -121,9 +122,8 @@ if archivo_zip:
         label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
     # ========================= DASHBOARD =========================
-    
     with tabs[0]:
-    
+
         # --------- SIDEBAR FILTRO ---------
         with st.sidebar:
             st.subheader("🎛️ Filtro de Estado")
@@ -134,10 +134,10 @@ if archivo_zip:
                 icons=["geo"] * len(estados),
                 default_index=0
             )
-    
+
         # --------- FILTRADO DE DATOS ---------
         df_filtrado = df[df['estado_del_cliente'] == estado_sel]
-    
+
         # --------- MÉTRICAS PRINCIPALES ---------
         col1, col2, col3 = st.columns(3)
         col1.metric("Pedidos", f"{len(df_filtrado):,}")
@@ -149,32 +149,43 @@ if archivo_zip:
             "≥7 días antes",
             f"{(df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100:.1f}%"
         )
-    
 
-        # --------- LAYOUT SUPERIOR: FLETE/PRECIO y MAPA ---------
+        # --------- TABLA HORIZONTAL: % Flete sobre Precio por Categoría ---------
+        st.subheader("💸 % del Flete sobre el Precio por Categoría (tabla)")
+        df_precio = df_filtrado.copy()
+        df_precio['porcentaje_flete'] = (df_precio['costo_de_flete'] / df_precio['precio']) * 100
+
+        tabla = df_precio.groupby('Categoría')['porcentaje_flete'].mean().reset_index()
+        tabla = tabla.sort_values(by='porcentaje_flete', ascending=False)
+        tabla['porcentaje_flete'] = tabla['porcentaje_flete'].round(1).astype(str) + '%'
+
+        tabla_h = tabla.set_index('Categoría').T
+        st.dataframe(tabla_h, use_container_width=True, height=100)
+
+        # --------- LAYOUT SUPERIOR: FLETE/PRECIO + MAPA ---------
         col1, col2 = st.columns([1, 1])
-        
-        with col1:
-            st.subheader("💸 % del Flete sobre el Precio por Categoría")
-            df_precio = df_filtrado.copy()
-            df_precio['porcentaje_flete'] = (df_precio['costo_de_flete'] / df_precio['precio']) * 100
-            precio_cat = df_precio.groupby('Categoría')['porcentaje_flete'].mean().reset_index()
-            precio_cat = precio_cat.sort_values(by='porcentaje_flete', ascending=False)
 
-            fig_flete_precio = px.bar(
-                precio_cat,
+        with col1:
+            st.subheader("🧾 Suma de Precio vs Costo de Flete por Categoría")
+            totales = df_filtrado.groupby('Categoría')[['precio', 'costo_de_flete']].sum().reset_index()
+            totales = totales.sort_values(by='precio', ascending=False)
+
+            fig_totales = px.bar(
+                totales,
                 x='Categoría',
-                y='porcentaje_flete',
-                text=precio_cat['porcentaje_flete'].round(1).astype(str) + '%'
+                y=['precio', 'costo_de_flete'],
+                barmode='group',
+                labels={'value': 'Monto ($)', 'variable': 'Concepto'}
             )
-            fig_flete_precio.update_traces(textposition='outside')
-            fig_flete_precio.update_layout(
-                height=400,
+            fig_totales.update_layout(
+                height=450,
                 xaxis_title=None,
-                yaxis_title=None
+                yaxis_title=None,
+                legend_title="",
+                legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5)
             )
-            st.plotly_chart(fig_flete_precio, use_container_width=True)
-        
+            st.plotly_chart(fig_totales, use_container_width=True)
+
         with col2:
             st.subheader("🗺️ Mapa de clientes")
             mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
@@ -182,17 +193,15 @@ if archivo_zip:
                 st.map(mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
             else:
                 st.warning("Sin coordenadas válidas.")
-     
+
         # --------- LAYOUT INFERIOR: GRÁFICA HORIZONTAL COMPLETA ---------
         st.subheader("📉 Entrega vs Colchón por Categoría")
-        
         if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
             import plotly.graph_objects as go
-    
+
             medios = df_filtrado.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
             medios = medios.sort_values(by='dias_entrega', ascending=False)
 
-        
             fig = go.Figure()
             fig.add_trace(go.Bar(
                 y=medios['Categoría'],
@@ -206,7 +215,7 @@ if archivo_zip:
                 name='Colchón Días',
                 orientation='h'
             ))
-        
+
             promedio_entrega = medios['dias_entrega'].mean()
             fig.add_shape(
                 type="line",
@@ -216,7 +225,7 @@ if archivo_zip:
                 y1=len(medios) - 0.5,
                 line=dict(color="blue", dash="dash")
             )
-        
+
             fig.update_layout(
                 barmode='group',
                 height=500,
@@ -224,33 +233,8 @@ if archivo_zip:
                 yaxis_title=None,
                 legend_title="Métrica"
             )
-        
-            st.plotly_chart(fig, use_container_width=True)
-        
-        # --------- GRÁFICO: Suma de Precio vs Suma de Costo de Flete por Categoría ---------
-        st.subheader("🧾 Suma de Precio vs Costo de Flete por Categoría")
-        
-        totales = df_filtrado.groupby('Categoría')[['precio', 'costo_de_flete']].sum().reset_index()
-        totales = totales.sort_values(by='precio', ascending=False)
 
-        
-        fig_totales = px.bar(
-            totales,
-            x='Categoría',
-            y=['precio', 'costo_de_flete'],
-            barmode='group',
-            labels={'value': 'Monto ($)', 'variable': 'Concepto'}
-        )
-        
-        fig_totales.update_layout(
-            height=450,
-            xaxis_title=None,
-            yaxis_title=None,
-            legend_title="",
-            legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5)
-        )
-        
-        st.plotly_chart(fig_totales, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
 
 
 
