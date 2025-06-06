@@ -122,55 +122,61 @@ if archivo_zip:
         label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
     # ========================= DASHBOARD =========================
-    with tabs[0]:
+  from streamlit_tags import st_tags  # Asegúrate de importar esto arriba
 
+    # ========================= DASHBOARD =========================
+    with tabs[0]:
+    
         # --------- SIDEBAR FILTROS ---------
         with st.sidebar:
             st.subheader("🎛️ Filtros")
-
-            with st.expander("📦 Categoría"):
-                categorias = sorted(df['Categoría'].dropna().unique())
-                categoria_sel = st.multiselect(
-                    "Selecciona una o varias categorías:",
-                    options=categorias,
-                    default=categorias,
-                    key="filtro_categoria"
-                )
-
-            with st.expander("📍 Estado"):
-                estados = sorted(df['estado_del_cliente'].dropna().unique())
-                estado_sel = st.multiselect(
-                    "Selecciona uno o varios estados:",
-                    options=estados,
-                    default=estados,
-                    key="filtro_estado"
-                )
-
-            with st.expander("📅 Año"):
-                años = sorted(df['año'].dropna().unique())
-                año_sel = st.multiselect(
-                    "Selecciona uno o varios años:",
-                    options=años,
-                    default=años,
-                    key="filtro_anio"
-                )
-
-            with st.expander("🗓️ Mes"):
-                meses = sorted(df['mes'].dropna().unique())
-                mes_sel = st.multiselect(
-                    "Selecciona uno o varios meses:",
-                    options=meses,
-                    default=meses,
-                    key="filtro_mes"
-                )
-
+    
+            estados = sorted(df['estado_del_cliente'].dropna().unique())
+            años = sorted(df['año'].dropna().unique())
+            meses = sorted(df['mes'].dropna().unique())
+    
+            estado_sel = st_tags(
+                label="📍 Estados",
+                text="Escribe o selecciona",
+                value=estados,
+                suggestions=estados,
+                maxtags=len(estados),
+                key="tags_estado"
+            )
+    
+            año_sel = st_tags(
+                label="📅 Años",
+                text="Escribe o selecciona",
+                value=años,
+                suggestions=años,
+                maxtags=len(años),
+                key="tags_anio"
+            )
+    
+            mes_sel = st_tags(
+                label="🗓️ Meses",
+                text="Escribe o selecciona",
+                value=meses,
+                suggestions=meses,
+                maxtags=len(meses),
+                key="tags_mes"
+            )
+    
         # --------- FILTRADO DE DATOS ---------
         df_filtrado = df[
-            (df['Categoría'].isin(categoria_sel)) &
             (df['estado_del_cliente'].isin(estado_sel)) &
-            (df['año'].isin(año_sel)) &
-            (df['mes'].isin(mes_sel))
+            (df['año'].isin([int(a) for a in año_sel])) &
+            (df['mes'].isin([int(m) for m in mes_sel]))
         ]
+    
+    
+            # --------- FILTRADO DE DATOS ---------
+            df_filtrado = df[
+                (df['Categoría'].isin(categoria_sel)) &
+                (df['estado_del_cliente'].isin(estado_sel)) &
+                (df['año'].isin(año_sel)) &
+                (df['mes'].isin(mes_sel))
+            ]
 
         # --------- MÉTRICAS PRINCIPALES ---------
         col1, col2, col3 = st.columns(3)
