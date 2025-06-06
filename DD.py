@@ -123,11 +123,10 @@ if archivo_zip:
         label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
     
-
 # ========================= DASHBOARD =========================
 with tabs[0]:
 
-    # --------- SIDEBAR FILTROS ---------
+    # --------- SIDEBAR FILTRO ---------
     with st.sidebar:
         st.image("danu_logo.png", use_column_width=True)
         st.subheader("🎛️ Filtro de Estado")
@@ -143,77 +142,73 @@ with tabs[0]:
     # --------- FILTRADO DE DATOS ---------
     df_filtrado = df[df['estado_del_cliente'] == estado_sel]
 
+    # --------- MÉTRICAS PRINCIPALES ---------
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Pedidos", f"{len(df_filtrado):,}")
+    col2.metric(
+        "Flete > 50%",
+        f"{(df_filtrado['costo_de_flete'] / df_filtrado['precio'] > 0.5).mean() * 100:.1f}%"
+    )
+    col3.metric(
+        "≥7 días antes",
+        f"{(df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100:.1f}%"
+    )
 
-        # --------- MÉTRICAS PRINCIPALES ---------
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Pedidos", f"{len(df_filtrado):,}")
-        col2.metric(
-            "Flete > 50%",
-            f"{(df_filtrado['costo_de_flete'] / df_filtrado['precio'] > 0.5).mean() * 100:.1f}%"
+    # --------- VISUALIZACIÓN: MAPA ---------
+    st.subheader("🗺️ Mapa de clientes")
+
+    mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
+    if not mapa.empty:
+        st.map(mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
+    else:
+        st.warning("Sin coordenadas válidas.")
+
+    # --------- GRÁFICA DE BARRAS HORIZONTAL ---------
+    st.subheader("📉 Entrega vs Colchón por Categoría")
+
+    if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
+        import plotly.graph_objects as go
+
+        medios = df_filtrado.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
+
+        fig = go.Figure()
+
+        # Barras horizontales
+        fig.add_trace(go.Bar(
+            y=medios['Categoría'],
+            x=medios['dias_entrega'],
+            name='Días Entrega',
+            orientation='h'
+        ))
+
+        fig.add_trace(go.Bar(
+            y=medios['Categoría'],
+            x=medios['colchon_dias'],
+            name='Colchón Días',
+            orientation='h'
+        ))
+
+        # Línea de promedio (solo días entrega)
+        promedio_entrega = medios['dias_entrega'].mean()
+        fig.add_shape(
+            type="line",
+            x0=promedio_entrega,
+            x1=promedio_entrega,
+            y0=-0.5,
+            y1=len(medios) - 0.5,
+            line=dict(color="blue", dash="dash")
         )
-        col3.metric(
-            "≥7 días antes",
-            f"{(df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100:.1f}%"
+
+        fig.update_layout(
+            barmode='group',
+            xaxis_title="Días",
+            yaxis_title="Categoría",
+            legend_title="Métrica",
+            height=500
         )
 
-        # --------- VISUALIZACIONES ---------
-        col1, _ = st.columns([1, 0.01])  # Mapa ancho
+        st.plotly_chart(fig, use_container_width=True)
 
-        with col1:
-            st.subheader("🗺️ Mapa")
-            mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
-            if not mapa.empty:
-                st.map(mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
-            else:
-                st.warning("Sin coordenadas válidas.")
-
-        # --------- GRÁFICA DE BARRAS HORIZONTAL ---------
-        st.subheader("📉 Comparativo de Entrega vs Colchón por Categoría (barra horizontal)")
-
-        if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
-            import plotly.graph_objects as go
-
-            medios = df_filtrado.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
-
-            fig = go.Figure()
-
-            # Barras horizontales
-            fig.add_trace(go.Bar(
-                y=medios['Categoría'],
-                x=medios['dias_entrega'],
-                name='Días Entrega',
-                orientation='h'
-            ))
-
-            fig.add_trace(go.Bar(
-                y=medios['Categoría'],
-                x=medios['colchon_dias'],
-                name='Colchón Días',
-                orientation='h'
-            ))
-
-            # Línea de promedio (solo de días de entrega)
-            promedio_entrega = medios['dias_entrega'].mean()
-            fig.add_shape(
-                type="line",
-                x0=promedio_entrega,
-                x1=promedio_entrega,
-                y0=-0.5,
-                y1=len(medios) - 0.5,
-                line=dict(color="blue", dash="dash")
-            )
-
-            fig.update_layout(
-                barmode='group',
-                xaxis_title="Días",
-                yaxis_title="Categoría",
-                legend_title="Métrica",
-                height=500
-            )
-
-            st.plotly_chart(fig, use_container_width=True)
-
-        
 
     # ========================= CALCULADORA =========================
     with tabs[1]:
