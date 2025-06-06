@@ -114,6 +114,7 @@ if archivo_zip:
             st.error(f"❌ Faltan archivos en el ZIP: {faltantes}")
             st.stop()
 
+        # Cargar datos y modelos
         df = pd.read_csv(z.open('DF.csv'))
         df2 = pd.read_csv(z.open('DF2.csv'))
         modelo_flete = joblib.load(z.open('modelo_costoflete.sav'))
@@ -122,8 +123,8 @@ if archivo_zip:
 
     # ========================= DASHBOARD =========================
     with tabs[0]:
-      
 
+        # --------- SIDEBAR FILTROS ---------
         with st.sidebar:
             st.subheader("🎛️ Filtros")
 
@@ -163,7 +164,7 @@ if archivo_zip:
                     key="filtro_mes"
                 )
 
-        # ===================== FILTRADO =====================
+        # --------- FILTRADO DE DATOS ---------
         df_filtrado = df[
             (df['Categoría'].isin(categoria_sel)) &
             (df['estado_del_cliente'].isin(estado_sel)) &
@@ -171,8 +172,7 @@ if archivo_zip:
             (df['mes'].isin(mes_sel))
         ]
 
-        # ===================== MÉTRICAS =====================
-      
+        # --------- MÉTRICAS PRINCIPALES ---------
         col1, col2, col3 = st.columns(3)
         col1.metric("Pedidos", f"{len(df_filtrado):,}")
         col2.metric(
@@ -184,11 +184,9 @@ if archivo_zip:
             f"{(df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100:.1f}%"
         )
 
-        # ===================== VISUALIZACIONES =====================
+        # --------- VISUALIZACIONES ---------
         col2, col3 = st.columns(2)
 
-
-        
         with col2:
             st.subheader("🗺️ Mapa")
             mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
@@ -198,12 +196,12 @@ if archivo_zip:
                 st.warning("Sin coordenadas válidas.")
 
         with col3:
-            st.subheader("📈 Entrega vs Colchón")
+            st.subheader("📈 Entrega vs Colchón por Categoría")
             if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
-                medios = df_filtrado.groupby('estado_del_cliente')[['dias_entrega', 'colchon_dias']].mean().reset_index()
+                medios = df_filtrado.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
                 fig2 = px.bar(
                     medios,
-                    x='estado_del_cliente',
+                    x='Categoría',
                     y=['dias_entrega', 'colchon_dias'],
                     barmode='group'
                 )
