@@ -181,17 +181,28 @@ if archivo_zip:
                 st.map(mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
             else:
                 st.warning("Sin coordenadas válidas.")
-        
+     
         # --------- LAYOUT INFERIOR: GRÁFICA HORIZONTAL COMPLETA ---------
         st.subheader("📉 Entrega vs Colchón por Categoría")
+        
         if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
             import plotly.graph_objects as go
         
             medios = df_filtrado.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
         
             fig = go.Figure()
-            fig.add_trace(go.Bar(y=medios['Categoría'], x=medios['dias_entrega'], name='Días Entrega', orientation='h'))
-            fig.add_trace(go.Bar(y=medios['Categoría'], x=medios['colchon_dias'], name='Colchón Días', orientation='h'))
+            fig.add_trace(go.Bar(
+                y=medios['Categoría'],
+                x=medios['dias_entrega'],
+                name='Días Entrega',
+                orientation='h'
+            ))
+            fig.add_trace(go.Bar(
+                y=medios['Categoría'],
+                x=medios['colchon_dias'],
+                name='Colchón Días',
+                orientation='h'
+            ))
         
             promedio_entrega = medios['dias_entrega'].mean()
             fig.add_shape(
@@ -210,27 +221,31 @@ if archivo_zip:
                 yaxis_title=None,
                 legend_title="Métrica"
             )
+        
             st.plotly_chart(fig, use_container_width=True)
-# --------- GRÁFICO: Suma de Precio vs Suma de Costo de Flete por Categoría ---------
-st.subheader("🧾 Suma de Precio vs Suma de Costo de Flete por Categoría")
-
-totales = df_filtrado.groupby('Categoría')[['precio', 'costo_de_flete']].sum().reset_index()
-
-fig_totales = px.bar(
-    totales,
-    x='Categoría',
-    y=['precio', 'costo_de_flete'],
-    barmode='group',
-    labels={'value': 'Monto ($)', 'variable': 'Concepto'}
-)
-fig_totales.update_layout(
-    height=450,
-    xaxis_title=None,
-    yaxis_title=None,
-    legend_title="",
-    legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5)
-)
-st.plotly_chart(fig_totales, use_container_width=True)
+        
+        # --------- GRÁFICO: Suma de Precio vs Suma de Costo de Flete por Categoría ---------
+        st.subheader("🧾 Suma de Precio vs Costo de Flete por Categoría")
+        
+        totales = df_filtrado.groupby('Categoría')[['precio', 'costo_de_flete']].sum().reset_index()
+        
+        fig_totales = px.bar(
+            totales,
+            x='Categoría',
+            y=['precio', 'costo_de_flete'],
+            barmode='group',
+            labels={'value': 'Monto ($)', 'variable': 'Concepto'}
+        )
+        
+        fig_totales.update_layout(
+            height=450,
+            xaxis_title=None,
+            yaxis_title=None,
+            legend_title="",
+            legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5)
+        )
+        
+        st.plotly_chart(fig_totales, use_container_width=True)
 
 
 
