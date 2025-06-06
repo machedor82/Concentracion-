@@ -215,18 +215,22 @@ if archivo_zip:
         res1 = resumen(df_mes1, mes1_nombre)
         res2 = resumen(df_mes2, mes2_nombre)
 
-        # Antes de fusionar, asegurar que las columnas de costo estén en tipo numérico:
+        # Asegurarse de que las columnas de costo sean numéricas
         res1[mes1_nombre] = pd.to_numeric(res1[mes1_nombre], errors='coerce')
         res2[mes2_nombre] = pd.to_numeric(res2[mes2_nombre], errors='coerce')
 
         comparacion = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
 
-        # Convertir también las columnas fusionadas a numérico (en caso de NAs u otros valores):
-        comparacion[mes1_nombre] = pd.to_numeric(comparacion[mes1_nombre], errors='coerce')
-        comparacion[mes2_nombre] = pd.to_numeric(comparacion[mes2_nombre], errors='coerce')
+        # Convertir las columnas fusionadas a numérico (por si quedaron object)
+        comparacion[mes1_nombre] = pd.to_numeric(comparacion.get(mes1_nombre), errors='coerce')
+        comparacion[mes2_nombre] = pd.to_numeric(comparacion.get(mes2_nombre), errors='coerce')
 
-        # Calcular la diferencia asegurándonos de trabajar con tipo numérico
-        comparacion['Diferencia'] = (comparacion[mes2_nombre] - comparacion[mes1_nombre]).round(2)
+        # Calcular la diferencia convirtiendo primero a numérico y luego redondeando
+        diff = (
+            pd.to_numeric(comparacion.get(mes2_nombre), errors='coerce')
+            - pd.to_numeric(comparacion.get(mes1_nombre), errors='coerce')
+        )
+        comparacion['Diferencia'] = diff.round(2)
 
         comparacion = comparacion[[
             'ciudad_cliente', mes1_nombre, mes2_nombre, 'Diferencia',
