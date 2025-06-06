@@ -44,23 +44,33 @@ if archivo:
     with tabs[0]:
         st.header("🏠 Dashboard Logístico")
         st.markdown(
-    """
+            """
 **Desfase estimado vs real de entrega**  
 Observa cómo varían los tiempos mes a mes y por categoría.
-    """
-)
+            """
+        )
 
-        # Filtros interactivos
+        # Filtros interactivos con botón "Seleccionar todos"
         st.sidebar.subheader("Filtros")
         estados = sorted(df['estado_del_cliente'].dropna().unique())
-        sel_est = st.sidebar.multiselect("Estados", estados, default=estados)
-        cats = sorted(df['Categoría'].dropna().unique())
-        sel_cat = st.sidebar.multiselect("Categorías", cats, default=cats)
+        if 'sel_est' not in st.session_state:
+            st.session_state.sel_est = estados
+        if st.sidebar.button("Seleccionar todos los estados"):
+            st.session_state.sel_est = estados
+        sel_est = st.sidebar.multiselect("Estados", estados, default=st.session_state.sel_est)
 
+        categorias = sorted(df['Categoría'].dropna().unique())
+        if 'sel_cat' not in st.session_state:
+            st.session_state.sel_cat = categorias
+        if st.sidebar.button("Seleccionar todas las categorías"):
+            st.session_state.sel_cat = categorias
+        sel_cat = st.sidebar.multiselect("Categorías", categorias, default=st.session_state.sel_cat)
+
+        # Filtrar datos
         data = df[df['estado_del_cliente'].isin(sel_est) & df['Categoría'].isin(sel_cat)].copy()
         data['prometido_dias'] = data['dias_entrega'] - data['desviacion_vs_promesa']
 
-        # Métricas resumidas
+        # Métricas
         est_mean = data['prometido_dias'].mean()
         real_mean = data['dias_entrega'].mean()
         diff_mean = est_mean - real_mean
@@ -80,8 +90,9 @@ Observa cómo varían los tiempos mes a mes y por categoría.
             labels={'value':'Días','variable':'Tipo'},
             title='Tiempos estimado vs real por Categoría'
         )
-        real_med = cat_agg['Real'].median()
-        fig1.add_hline(y=real_med, line_dash='dash', line_color='#6699cc', annotation_text='Mediana Real', annotation_position='top right')
+        # Mediana Real
+        med_real = cat_agg['Real'].median()
+        fig1.add_hline(y=med_real, line_dash='dash', line_color='#6699cc', annotation_text='Mediana Real', annotation_position='top right')
         st.plotly_chart(fig1, use_container_width=True)
 
         # Line chart evolución mensual
@@ -93,7 +104,7 @@ Observa cómo varían los tiempos mes a mes y por categoría.
             ts, x='Fecha', y=['Estimado','Real'],
             color_discrete_map={'Estimado':'#003366','Real':'#6699cc'},
             labels={'value':'Días','variable':'Tipo'},
-            title='Evolución: estimado vs real'
+            title='Evolución mensual: estimado vs real'
         )
         st.plotly_chart(fig2, use_container_width=True)
 
@@ -111,5 +122,4 @@ Observa cómo varían los tiempos mes a mes y por categoría.
     # Calculadora
     with tabs[1]:
         st.header("🧮 Calculadora de Predicción")
-        # ... misma lógica que antes ...
         st.info("Calculadora aquí...")
