@@ -88,7 +88,7 @@ st.title("📦 Cabrito Analytics App")
 tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora"])
 
 with st.sidebar:
-    st.image("danu_logo.png", use_column_width=True)
+    st.image("danu_logo.png", use_container_width=True)
     st.header("Sube tu archivo ZIP")
     archivo_zip = st.file_uploader("ZIP con DF.csv, DF2.csv y modelos", type="zip")
 
