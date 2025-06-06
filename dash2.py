@@ -28,6 +28,7 @@ st.set_page_config(page_title="Cabrito Analytics Profesional", layout="wide")
 st.title("📦 Cabrito Analytics App")
 tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora"])
 
+# Sidebar upload
 with st.sidebar:
     st.header("Sube tu archivo ZIP")
     archivo_zip = st.file_uploader("ZIP con DF.csv, DF2.csv y modelos", type="zip")
@@ -55,14 +56,26 @@ if archivo_zip:
     with tabs[0]:
         st.header("🏠 Dashboard Logístico")
         st.markdown(
-            "Nuestro análisis muestra que los tiempos de entrega estimados son significativamente mayores que los reales. "
+            "**Nuestro análisis muestra que los tiempos de entrega estimados son significativamente mayores que los reales.**\n"
             "Por ejemplo, se prometen 21 días cuando la entrega real es de 4 días en promedio."
         )
 
-        # Calcular días prometidos y métricas clave
-        df['prometido_dias'] = df['dias_entrega'] - df['desviacion_vs_promesa']
-        avg_prom = df['prometido_dias'].mean()
-        avg_act = df['dias_entrega'].mean()
+        # Filtro de desviación
+        st.sidebar.subheader("🎛️ Rango de desviación")
+        dev_min = int(df['desviacion_vs_promesa'].min())
+        dev_max = int(df['desviacion_vs_promesa'].max())
+        dev_range = st.sidebar.slider(
+            "Desviación (Estimado - Real) días", dev_min, dev_max, (dev_min, dev_max)
+        )
+        df_filtered = df[
+            (df['desviacion_vs_promesa'] >= dev_range[0]) &
+            (df['desviacion_vs_promesa'] <= dev_range[1])
+        ].copy()
+
+        # Métricas clave
+        df_filtered['prometido_dias'] = df_filtered['dias_entrega'] - df_filtered['desviacion_vs_promesa']
+        avg_prom = df_filtered['prometido_dias'].mean()
+        avg_act = df_filtered['dias_entrega'].mean()
         avg_diff = avg_prom - avg_act
 
         m1, m2, m3 = st.columns(3)
@@ -70,9 +83,9 @@ if archivo_zip:
         m2.metric("Real (días)", f"{avg_act:.1f}")
         m3.metric("Diferencia media", f"{avg_diff:.1f}")
 
-        # Comparativa por Categoría
+        # Comparativa estimado vs real por categoría
         medios_cat = (
-            df.groupby('Categoría')
+            df_filtered.groupby('Categoría')
               .agg(Estimado=('prometido_dias', 'mean'), Real=('dias_entrega', 'mean'))
               .reset_index()
         )
@@ -82,30 +95,35 @@ if archivo_zip:
             y=['Estimado', 'Real'],
             barmode='group',
             labels={'value': 'Días', 'variable': 'Tipo'},
-            title='Tiempos estimados vs reales por Categoría'
+            title='Tiempos estimados vs reales por Categoría',
+            color_discrete_sequence=['#003366']
         )
         st.plotly_chart(fig_cat, use_container_width=True)
 
-        # Distribución de desviaciones
-        fig_dev = px.histogram(
-            df,
-            x='desviacion_vs_promesa',
-            nbins=30,
+        # Boxplot de desviaciones por categoría
+        fig_box = px.box(
+            df_filtered,
+            x='Categoría',
+            y='desviacion_vs_promesa',
+            points='all',
             labels={'desviacion_vs_promesa': 'Estimado - Real (días)'},
-            title='Distribución de desviaciones entre estimado y real'
+            title='Distribución de desviaciones por Categoría',
+            color_discrete_sequence=['#003366']
         )
-        st.plotly_chart(fig_dev, use_container_width=True)
+        st.plotly_chart(fig_box, use_container_width=True)
 
-        # Relación estimado vs real
-        fig_sc = px.scatter(
-            df,
-            x='prometido_dias',
-            y='dias_entrega',
-            trendline='ols',
-            labels={'prometido_dias': 'Estimado (días)', 'dias_entrega': 'Real (días)'},
-            title='Relación entre tiempo estimado y real'
+        # Top 10 categorías con mayor desviación media
+        medios_cat['Desviación_media'] = medios_cat['Estimado'] - medios_cat['Real']
+        top_dev = medios_cat.sort_values('Desviación_media', ascending=False).head(10)
+        fig_top = px.bar(
+            top_dev,
+            x='Categoría',
+            y='Desviación_media',
+            labels={'Desviación_media': 'Diferencia media (días)'},
+            title='Top 10 categorías con mayor desfase',
+            color_discrete_sequence=['#003366']
         )
-        st.plotly_chart(fig_sc, use_container_width=True)
+        st.plotly_chart(fig_top, use_container_width=True)
 
     # ========================= CALCULADORA =========================
     with tabs[1]:
@@ -158,7 +176,7 @@ if archivo_zip:
                 'duracion_estimada_min','region','dc_asignado','es_feriado',
                 'es_fin_de_semana','dias_promedio_ciudad','hora_compra',
                 'nombre_dia','mes','año','temp_origen','precip_origen',
-                'cloudcover_origen','conditions_origen','icon_origen','traffic','area'
+                'cloudcomentarios_removed'
             ]
             if not all(c in df_input.columns for c in columnas_dias):
                 return df_input
