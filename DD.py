@@ -150,11 +150,10 @@ if archivo_zip:
             f"{(df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100:.1f}%"
         )
     
-        # --------- VISUALIZACIÓN: MAPA ---------
+
         # --------- LAYOUT SUPERIOR: FLETE/PRECIO y MAPA ---------
         col1, col2 = st.columns([1, 1])
         
-        # 💸 % del Flete sobre el Precio por Categoría
         with col1:
             st.subheader("💸 % del Flete sobre el Precio por Categoría")
             df_precio = df_filtrado.copy()
@@ -165,20 +164,18 @@ if archivo_zip:
                 precio_cat,
                 x='Categoría',
                 y='porcentaje_flete',
-                text=precio_cat['porcentaje_flete'].round(1).astype(str) + '%',
-                labels={'porcentaje_flete': '% Flete sobre Precio'}
+                text=precio_cat['porcentaje_flete'].round(1).astype(str) + '%'
             )
             fig_flete_precio.update_traces(textposition='outside')
             fig_flete_precio.update_layout(
-                yaxis_title='Porcentaje (%)',
-                xaxis_title='Categoría',
-                height=400
+                height=400,
+                xaxis_title=None,
+                yaxis_title=None
             )
             st.plotly_chart(fig_flete_precio, use_container_width=True)
         
-        # 🗺️ Mapa de clientes
         with col2:
-            st.subheader("Distribución de Entregas 🗺️")
+            st.subheader("🗺️ Mapa de clientes")
             mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
             if not mapa.empty:
                 st.map(mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
@@ -186,25 +183,15 @@ if archivo_zip:
                 st.warning("Sin coordenadas válidas.")
         
         # --------- LAYOUT INFERIOR: GRÁFICA HORIZONTAL COMPLETA ---------
-        st.subheader("Entrega vs Colchón 📉")
+        st.subheader("📉 Entrega vs Colchón por Categoría")
         if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
             import plotly.graph_objects as go
         
             medios = df_filtrado.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
         
             fig = go.Figure()
-            fig.add_trace(go.Bar(
-                y=medios['Categoría'],
-                x=medios['dias_entrega'],
-                name='Días Entrega',
-                orientation='h'
-            ))
-            fig.add_trace(go.Bar(
-                y=medios['Categoría'],
-                x=medios['colchon_dias'],
-                name='Colchón Días',
-                orientation='h'
-            ))
+            fig.add_trace(go.Bar(y=medios['Categoría'], x=medios['dias_entrega'], name='Días Entrega', orientation='h'))
+            fig.add_trace(go.Bar(y=medios['Categoría'], x=medios['colchon_dias'], name='Colchón Días', orientation='h'))
         
             promedio_entrega = medios['dias_entrega'].mean()
             fig.add_shape(
@@ -218,12 +205,11 @@ if archivo_zip:
         
             fig.update_layout(
                 barmode='group',
-                xaxis_title="Días",
-                yaxis_title="Categoría",
-                legend_title="Métrica",
-                height=500
+                height=500,
+                xaxis_title=None,
+                yaxis_title=None,
+                legend_title="Métrica"
             )
-        
             st.plotly_chart(fig, use_container_width=True)
 
 
