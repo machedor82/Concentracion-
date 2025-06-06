@@ -185,13 +185,10 @@ if archivo_zip:
         )
 
         # ===================== VISUALIZACIONES =====================
-        col1, col2, col3 = st.columns(3)
+        col2, col3 = st.columns(2)
 
-        with col1:
-            st.subheader("🌳 Treemap")
-            fig = px.treemap(df_filtrado, path=['Categoría'], values='precio')
-            st.plotly_chart(fig, use_container_width=True)
 
+        
         with col2:
             st.subheader("🗺️ Mapa")
             mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
