@@ -185,29 +185,62 @@ if archivo_zip:
         )
 
         # --------- VISUALIZACIONES ---------
-        col2, col3 = st.columns(2)
-
-        with col2:
+        col1, _ = st.columns([1, 0.01])  # Solo el mapa en una columna grande
+        
+        with col1:
             st.subheader("🗺️ Mapa")
             mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
             if not mapa.empty:
                 st.map(mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']])
             else:
                 st.warning("Sin coordenadas válidas.")
-
-        with col3:
-            st.subheader("📈 Entrega vs Colchón por Categoría")
-            if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
-                medios = df_filtrado.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
-                fig2 = px.bar(
-                    medios,
-                    x='Categoría',
-                    y=['dias_entrega', 'colchon_dias'],
-                    barmode='group'
-                )
-                st.plotly_chart(fig2, use_container_width=True)
-
-
+        
+        # --------- GRÁFICA DE BARRAS HORIZONTAL ---------
+        st.subheader("📉 Comparativo de Entrega vs Colchón por Categoría (barra horizontal)")
+        
+        if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
+            import plotly.graph_objects as go
+        
+            medios = df_filtrado.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
+        
+            fig = go.Figure()
+        
+            # Barras horizontales
+            fig.add_trace(go.Bar(
+                y=medios['Categoría'],
+                x=medios['dias_entrega'],
+                name='Días Entrega',
+                orientation='h'
+            ))
+        
+            fig.add_trace(go.Bar(
+                y=medios['Categoría'],
+                x=medios['colchon_dias'],
+                name='Colchón Días',
+                orientation='h'
+            ))
+        
+            # Líneas de promedio
+            promedio_entrega = medios['dias_entrega'].mean()
+            promedio_colchon = medios['colchon_dias'].mean()
+        
+            fig.add_shape(type="line", x0=promedio_entrega, x1=promedio_entrega, y0=-0.5, y1=len(medios)-0.5,
+                          line=dict(color="blue", dash="dash"), name='Prom. Entrega')
+        
+            fig.add_shape(type="line", x0=promedio_colchon, x1=promedio_colchon, y0=-0.5, y1=len(medios)-0.5,
+                          line=dict(color="orange", dash="dash"), name='Prom. Colchón')
+        
+            fig.update_layout(
+                barmode='group',
+                xaxis_title="Días",
+                yaxis_title="Categoría",
+                legend_title="Métrica",
+                height=500
+            )
+        
+            st.plotly_chart(fig, use_container_width=True)
+        
+        
 
     # ========================= CALCULADORA =========================
     with tabs[1]:
