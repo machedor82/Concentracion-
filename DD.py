@@ -211,6 +211,26 @@ if archivo_zip:
                 legend_title="Métrica"
             )
             st.plotly_chart(fig, use_container_width=True)
+# --------- GRÁFICO: Suma de Precio vs Suma de Costo de Flete por Categoría ---------
+st.subheader("🧾 Suma de Precio vs Suma de Costo de Flete por Categoría")
+
+totales = df_filtrado.groupby('Categoría')[['precio', 'costo_de_flete']].sum().reset_index()
+
+fig_totales = px.bar(
+    totales,
+    x='Categoría',
+    y=['precio', 'costo_de_flete'],
+    barmode='group',
+    labels={'value': 'Monto ($)', 'variable': 'Concepto'}
+)
+fig_totales.update_layout(
+    height=450,
+    xaxis_title=None,
+    yaxis_title=None,
+    legend_title="",
+    legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5)
+)
+st.plotly_chart(fig_totales, use_container_width=True)
 
 
 
