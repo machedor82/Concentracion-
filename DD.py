@@ -8,6 +8,7 @@ import joblib
 import plotly.express as px
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
+from streamlit_tags import st_tags  # Asegúrate de importar esto arriba
 
 # ------------------ Definiciones de clases/funciones personalizadas ------------------
 # Copia aquí las clases o funciones custom que usaste al entrenar 'modelo_dias_pipeline.joblib'.
@@ -121,8 +122,8 @@ if archivo_zip:
         modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
         label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
-    # ========================= DASHBOARD =========================
-  from streamlit_tags import st_tags  # Asegúrate de importar esto arriba
+    
+
 
     # ========================= DASHBOARD =========================
     with tabs[0]:
