@@ -114,49 +114,6 @@ with tabs[0]:
 
     if 'dias_entrega' in df.columns:
 
-        # --------- 1. COMPARATIVA DÍAS DE ENTREGA VS COLCHÓN (Barras Horizontales) ---------
-        st.subheader("📦 La ilusión del cumplimiento: entregas puntuales con días de sobra")
-
-        if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
-            import plotly.graph_objects as go
-
-            medios = df_filtrado.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
-            medios = medios.sort_values(by='dias_entrega', ascending=False)
-
-            fig = go.Figure()
-            fig.add_trace(go.Bar(
-                y=medios['Categoría'],
-                x=medios['dias_entrega'],
-                name='Días Entrega',
-                orientation='h'
-            ))
-            fig.add_trace(go.Bar(
-                y=medios['Categoría'],
-                x=medios['colchon_dias'],
-                name='Colchón Días',
-                orientation='h'
-            ))
-
-            promedio_entrega = medios['dias_entrega'].mean()
-            fig.add_shape(
-                type="line",
-                x0=promedio_entrega,
-                x1=promedio_entrega,
-                y0=-0.5,
-                y1=len(medios) - 0.5,
-                line=dict(color="blue", dash="dash")
-            )
-
-            fig.update_layout(
-                barmode='group',
-                height=350,
-                xaxis_title=None,
-                yaxis_title=None,
-                margin=dict(t=40, b=40, l=10, r=10),
-                legend_title="Métrica"
-            )
-
-            st.plotly_chart(fig, use_container_width=True)
 
         # --------- 2. PARTICIPACIÓN DE PEDIDOS POR ZONA (Gráfico Dona) ---------
         st.subheader("📍 Pedidos por Zona")
@@ -353,42 +310,7 @@ with tabs[1]:
 
     # --------- BARRAS 100%: % del Flete sobre Precio por Estado ---------
     with col2:
-        st.subheader("💰 Relación del Flete sobre el Precio por Estado")
-
-        df_flete = df[(df['precio'] > 0) & (df['costo_de_flete'].notna())].copy()
-        df_flete['grupo_flete'] = pd.cut(
-            df_flete['costo_de_flete'] / df_flete['precio'],
-            bins=[0, 0.25, 0.5, float('inf')],
-            labels=["<25%", "25-50%", ">50%"],
-            right=True
-        )
-
-        conteo = df_flete.groupby(['estado_del_cliente', 'grupo_flete']).size().reset_index(name='conteo')
-        conteo['porcentaje'] = conteo['conteo'] / conteo.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
-
-        fig_flete_precio = px.bar(
-            conteo,
-            x='estado_del_cliente',
-            y='porcentaje',
-            color='grupo_flete',
-            labels={
-                'estado_del_cliente': 'Estado',
-                'porcentaje': 'Porcentaje',
-                'grupo_flete': 'Flete como % del Precio'
-            },
-            text_auto='.1f',
-            category_orders={'grupo_flete': ["<25%", "25-50%", ">50%"]}
-        )
-
-        fig_flete_precio.update_layout(
-            barmode='stack',
-            xaxis_title=None,
-            yaxis_title='Porcentaje (%)',
-            legend_title='Flete/Precio',
-            height=500
-        )
-
-        st.plotly_chart(fig_flete_precio, use_container_width=True)
+     
 
 
     # ========================= CALCULADORA =========================
@@ -451,6 +373,7 @@ with tabs[1]:
                 'icon_origen', 'traffic', 'area'
             ]
 
+            
             if not all(c in df_input.columns for c in columnas_dias):
                 return df_input  # evita error si faltan columnas
 
