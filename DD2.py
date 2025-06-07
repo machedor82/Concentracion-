@@ -123,7 +123,28 @@ if archivo_zip:
     # ===================== PESTAÑA 0: RESUMEN NACIONAL =====================
     with tabs[0]:
         st.title("📊 Resumen Nacional")
-        st.info("Esta sección aún está en construcción. Pronto podrás ver un resumen agregado de la operación a nivel país.")
+
+    # --------- HISTOGRAMA: Distribución de Días de Entrega ---------
+        if 'dias_entrega' in df.columns:
+            st.subheader("⏱️ Distribución de Tiempos de Entrega")
+    
+            fig_hist = px.histogram(
+                df,
+                x='dias_entrega',
+                nbins=30,
+                title="Distribución de pedidos por días de entrega",
+                labels={'dias_entrega': 'Días entre orden y entrega'},
+            )
+            fig_hist.update_layout(
+                xaxis_title="Días de entrega",
+                yaxis_title="Número de pedidos",
+                bargap=0.1,
+                height=400
+            )
+            st.plotly_chart(fig_hist, use_container_width=True)
+        else:
+            st.warning("La columna 'dias_entrega' no está disponible en el dataset.")
+
 
     # ========================= PESTAÑA 1: DASHBOARD =========================
     with tabs[1]:
