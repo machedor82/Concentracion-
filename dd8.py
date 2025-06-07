@@ -102,21 +102,35 @@ if archivo_zip:
         modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
         label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
+        # --------- SIDEBAR FILTRO ---------
+    with st.sidebar:
+        st.subheader("🎛️ Filtro de Estado")
+
+        estados = ["Nacional"] + sorted(df['estado_del_cliente'].dropna().unique().tolist())
+        estado_sel = option_menu(
+            menu_title="Selecciona un estado",
+            options=estados,
+            icons=["globe"] + ["geo"] * (len(estados) - 1),
+            default_index=0
+        )
+
+    # --------- FILTRADO DE DATOS ---------
+    df_filtrado = df.copy() if estado_sel == "Nacional" else df[df['estado_del_cliente'] == estado_sel]
+
 # ===================== 📊 RESUMEN NACIONAL =====================
 with tabs[0]:
-    st.title("📊 ¿Entrega Rápida o Margen Inflado?")
+    zona_display = estado_sel if estado_sel != "Nacional" else "Resumen Nacional"
+    st.title(f"📊 ¿Entrega Rápida o Margen Inflado? – {zona_display}")
 
-       # --------- MÉTRICAS PRINCIPALES ---------
+    # --------- MÉTRICAS PRINCIPALES ---------
     col1, col2 = st.columns(2)
-    col1.metric("Pedidos", f"{len(df):,}")
-   
+    col1.metric("Pedidos", f"{len(df_filtrado):,}")
     col2.metric(
         "Llegadas muy adelantadas (≥1 semana)",
-        f"{(df['desviacion_vs_promesa'] < -10).mean() * 100:.1f}%"
+        f"{(df_filtrado['desviacion_vs_promesa'] < -10).mean() * 100:.1f}%"
     )
 
-
-    if 'dias_entrega' in df.columns:
+    if 'dias_entrega' in df_filtrado.columns:
 
         # ================== FILA 1 ==================
         col1, col2 = st.columns(2)
@@ -126,7 +140,7 @@ with tabs[0]:
             st.subheader("📍 Pedidos por Zona")
 
             principales = ['Ciudad de México', 'Nuevo León', 'Jalisco']
-            conteo_pedidos = df['estado_del_cliente'].value_counts().reset_index()
+            conteo_pedidos = df_filtrado['estado_del_cliente'].value_counts().reset_index()
             conteo_pedidos.columns = ['Estado', 'Pedidos']
             conteo_pedidos['Zona'] = conteo_pedidos['Estado'].apply(lambda x: x if x in principales else 'Provincia')
             conteo_zona = conteo_pedidos.groupby('Zona')['Pedidos'].sum().reset_index()
@@ -156,7 +170,7 @@ with tabs[0]:
         with col2:
             st.subheader("🚚 Si somos puntuales, ¿cuál es el problema?")
 
-            df_tmp = df.copy()
+            df_tmp = df_filtrado.copy()
             df_tmp['estatus_entrega'] = df_tmp['llego_tarde'].apply(lambda x: 'A tiempo' if x == 0 else 'Tardío')
             df_tmp['zona_entrega'] = df_tmp['estado_del_cliente'].apply(lambda x: x if x in principales else 'Provincia')
 
@@ -195,7 +209,7 @@ with tabs[0]:
         with col3:
             st.subheader("📦 ¿Éxito logístico o maquillaje de tiempos?")
 
-            df_tmp = df[df['dias_entrega'].notna()].copy()
+            df_tmp = df_filtrado[df_filtrado['dias_entrega'].notna()].copy()
             df_tmp['grupo_dias'] = pd.cut(
                 df_tmp['dias_entrega'],
                 bins=[0, 5, 10, float('inf')],
@@ -240,10 +254,10 @@ with tabs[0]:
         with col4:
             st.subheader("📦 La ilusión del cumplimiento: entregas puntuales con días de sobra")
 
-            if {'dias_entrega', 'colchon_dias'}.issubset(df.columns):
+            if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
                 import plotly.graph_objects as go
 
-                medios = df.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
+                medios = df_filtrado.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
                 medios = medios.sort_values(by='dias_entrega', ascending=False)
 
                 fig = go.Figure()
@@ -282,27 +296,13 @@ with tabs[0]:
                 )
                 st.plotly_chart(fig, use_container_width=True)
 
-        
 
 
 
   # ========================= PESTAÑA 1: DASHBOARD =========================
 with tabs[1]:
 
-    # --------- SIDEBAR FILTRO ---------
-    with st.sidebar:
-        st.subheader("🎛️ Filtro de Estado")
-
-        estados = ["Nacional"] + sorted(df['estado_del_cliente'].dropna().unique().tolist())
-        estado_sel = option_menu(
-            menu_title="Selecciona un estado",
-            options=estados,
-            icons=["globe"] + ["geo"] * (len(estados) - 1),
-            default_index=0
-        )
-
-    # --------- FILTRADO DE DATOS ---------
-    df_filtrado = df.copy() if estado_sel == "Nacional" else df[df['estado_del_cliente'] == estado_sel]
+    
 
     # --------- MÉTRICAS PRINCIPALES ---------
     col1, col2 = st.columns(2)
