@@ -115,33 +115,6 @@ if archivo_zip:
         st.title("📊 ¿Entrega Rápida o Margen Inflado? ")
 
         if 'dias_entrega' in df.columns:
-             # --------- TOP 3 CATEGORÍAS MÁS VENDIDAS POR ESTADO ---------
-            st.subheader("🏆 Top 3 Categorías más Vendidas por Estado")
-            
-            # Agrupar por estado y categoría, contar pedidos
-            top_categorias = (
-                df.groupby(['estado_del_cliente', 'Categoría'])['order_id']
-                .count()
-                .reset_index(name='total_pedidos')
-            )
-            
-            # Ordenar y seleccionar top 3 por estado
-            top3 = (
-                top_categorias
-                .sort_values(['estado_del_cliente', 'total_pedidos'], ascending=[True, False])
-                .groupby('estado_del_cliente')
-                .head(3)
-            )
-            
-            # Crear una columna con posición (1°, 2°, 3°)
-            top3['posición'] = top3.groupby('estado_del_cliente').cumcount() + 1
-            top3['posición'] = top3['posición'].astype(str) + '° Lugar'
-            
-            # Pivotear para poner en formato horizontal
-            tabla_top3 = top3.pivot(index='posición', columns='estado_del_cliente', values='Categoría')
-            
-            # Mostrar
-            st.dataframe(tabla_top3, use_container_width=True, height=90)
 
            
             # --------- GRÁFICO DE PASTEL AGRUPANDO EN "Provincia" ---------
@@ -174,6 +147,37 @@ if archivo_zip:
             st.plotly_chart(fig_pie, use_container_width=True)
 
 
+            # --------- PORCENTAJE DE ENTREGAS A TIEMPO POR ESTADO ---------
+            st.subheader("🚚 Porcentaje de Entregas a Tiempo por Estado")
+            
+            # Crear columna booleana: True si llegó a tiempo
+            df_tmp = df.copy()
+            df_tmp['a_tiempo'] = df_tmp['llego_tarde'] == 0  # Asumiendo que 0 = a tiempo
+            
+            # Calcular % de entregas a tiempo por estado
+            porcentaje_tiempo = df_tmp.groupby('estado_del_cliente')['a_tiempo'].mean().reset_index()
+            porcentaje_tiempo['a_tiempo'] = porcentaje_tiempo['a_tiempo'] * 100
+            porcentaje_tiempo = porcentaje_tiempo.sort_values(by='a_tiempo', ascending=False)
+            
+            # Crear gráfica
+            fig_tiempo = px.bar(
+                porcentaje_tiempo,
+                x='estado_del_cliente',
+                y='a_tiempo',
+                text=porcentaje_tiempo['a_tiempo'].round(1).astype(str) + '%',
+                labels={'estado_del_cliente': 'Estado', 'a_tiempo': 'Entregas a Tiempo (%)'},
+                title='📦 Porcentaje de Entregas a Tiempo por Estado'
+            )
+            
+            fig_tiempo.update_layout(
+                xaxis_title=None,
+                yaxis_title='Porcentaje (%)',
+                height=500
+            )
+            
+            fig_tiempo.update_traces(textposition='outside')
+            
+            st.plotly_chart(fig_tiempo, use_container_width=True)
 
          
             # --------- BARRAS APILADAS POR ESTADO Y GRUPOS DE DÍAS DE ENTREGA ---------
