@@ -134,30 +134,39 @@ if archivo_zip:
             st.plotly_chart(fig_hist, use_container_width=True)
 
             # --------- BARRAS APILADAS POR ESTADO ---------
-            st.subheader("📦 Proporción de Días de Entrega por Estado")
+            st.subheader("📦 Distribución de Entrega por Estado y Grupos de Días")
+            
+            # Crear columna con grupos de días
             df_tmp = df.copy()
-            df_tmp['rango_entrega'] = pd.cut(
+            df_tmp = df_tmp[df_tmp['dias_entrega'].notna()]
+            df_tmp['grupo_dias'] = pd.cut(
                 df_tmp['dias_entrega'],
                 bins=[0, 5, 10, float('inf')],
-                labels=["1-5 días", "6-10 días", "Más de 10 días"],
+                labels=["1-5", "6-10", "Más de 10"],
                 right=True
             )
-            conteo = df_tmp.groupby(['estado_del_cliente', 'rango_entrega']).size().reset_index(name='conteo')
+            
+            # Agrupar por estado y grupo de días
+            conteo = df_tmp.groupby(['estado_del_cliente', 'grupo_dias']).size().reset_index(name='conteo')
+            
+            # Calcular porcentaje por estado
             conteo['porcentaje'] = conteo['conteo'] / conteo.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
-
+            
+            # Crear gráfico
             fig_barras = px.bar(
                 conteo,
                 x='estado_del_cliente',
                 y='porcentaje',
-                color='rango_entrega',
+                color='grupo_dias',
                 labels={
                     'estado_del_cliente': 'Estado',
                     'porcentaje': 'Porcentaje',
-                    'rango_entrega': 'Días de Entrega'
+                    'grupo_dias': 'Días de Entrega'
                 },
-                title='⏱️ Días de Entrega por Estado (Distribución %)',
+                title='⏱️ Distribución % de Entregas por Estado (1-5, 6-10, Más de 10 días)',
                 text_auto='.1f'
             )
+            
             fig_barras.update_layout(
                 barmode='stack',
                 xaxis_title=None,
@@ -165,8 +174,8 @@ if archivo_zip:
                 legend_title='Días de Entrega',
                 height=500
             )
+            
             st.plotly_chart(fig_barras, use_container_width=True)
-
 
 
     # ========================= PESTAÑA 1: DASHBOARD =========================
