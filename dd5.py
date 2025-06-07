@@ -116,7 +116,52 @@ if archivo_zip:
 
         if 'dias_entrega' in df.columns:
 
-           
+            st.subheader("💰 Proporción del Flete sobre el Precio por Estado")
+
+            # Asegurar que no haya división por cero
+            df_flete = df[(df['precio'] > 0) & (df['costo_de_flete'].notna())].copy()
+            
+            # Crear categorías
+            df_flete['grupo_flete'] = pd.cut(
+                df_flete['costo_de_flete'] / df_flete['precio'],
+                bins=[0, 0.25, 0.5, float('inf')],
+                labels=["<25%", "25-50%", ">50%"],
+                right=True
+            )
+            
+            # Agrupar por estado y categoría
+            conteo = df_flete.groupby(['estado_del_cliente', 'grupo_flete']).size().reset_index(name='conteo')
+            
+            # Calcular porcentaje por estado
+            conteo['porcentaje'] = conteo['conteo'] / conteo.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
+            
+            fig_flete_precio = px.bar(
+                conteo,
+                x='estado_del_cliente',
+                y='porcentaje',
+                color='grupo_flete',
+                labels={
+                    'estado_del_cliente': 'Estado',
+                    'porcentaje': 'Porcentaje',
+                    'grupo_flete': 'Flete como % del Precio'
+                },
+                title='📦 Relación Flete/Precio por Estado (Distribución %)',
+                text_auto='.1f',
+                category_orders={'grupo_flete': ["<25%", "25-50%", ">50%"]}
+            )
+            
+            fig_flete_precio.update_layout(
+                barmode='stack',
+                xaxis_title=None,
+                yaxis_title='Porcentaje (%)',
+                legend_title='Flete/Precio',
+                height=500
+            )
+            
+            st.plotly_chart(fig_flete_precio, use_container_width=True)
+            
+            
+                       
             # --------- GRÁFICO DE PASTEL AGRUPANDO EN "Provincia" ---------
             st.subheader("📍 Participación de Pedidos por Zona")
             
