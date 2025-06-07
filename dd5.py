@@ -307,19 +307,26 @@ if archivo_zip:
     # ========================= PESTAÑA 1: DASHBOARD =========================
     with tabs[1]:
 
-        # --------- SIDEBAR FILTRO ---------
+                # --------- SIDEBAR FILTRO ---------
         with st.sidebar:
             st.subheader("🎛️ Filtro de Estado")
-            estados = sorted(df['estado_del_cliente'].dropna().unique())
+            
+            # Agregar opción "Nacional" al principio
+            estados = ["Nacional"] + sorted(df['estado_del_cliente'].dropna().unique().tolist())
+            
             estado_sel = option_menu(
                 menu_title="Selecciona un estado",
                 options=estados,
-                icons=["geo"] * len(estados),
+                icons=["globe"] + ["geo"] * (len(estados) - 1),
                 default_index=0
             )
-
+        
         # --------- FILTRADO DE DATOS ---------
-        df_filtrado = df[df['estado_del_cliente'] == estado_sel]
+        if estado_sel == "Nacional":
+            df_filtrado = df.copy()
+        else:
+            df_filtrado = df[df['estado_del_cliente'] == estado_sel]
+
 
         # --------- MÉTRICAS PRINCIPALES ---------
         col1, col2, col3 = st.columns(3)
