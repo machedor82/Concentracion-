@@ -309,7 +309,7 @@ with tabs[1]:
         st.plotly_chart(fig_totales, use_container_width=True)
 
     # --------- BARRAS 100%: % del Flete sobre Precio por Estado ---------
-    with col2:
+
      
 
 
