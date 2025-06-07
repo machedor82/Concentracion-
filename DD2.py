@@ -142,11 +142,11 @@ if archivo_zip:
         col1, col2, col3 = st.columns(3)
         col1.metric("Pedidos", f"{len(df_filtrado):,}")
         col2.metric(
-            "Flete > 50%",
+            "Transporte costoso para su valor",
             f"{(df_filtrado['costo_de_flete'] / df_filtrado['precio'] > 0.5).mean() * 100:.1f}%"
         )
         col3.metric(
-            "≥7 días antes",
+            "Llegadas muy adelantadas (1 semana antes o más)",
             f"{(df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100:.1f}%"
         )
 
