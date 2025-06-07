@@ -9,18 +9,19 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
 # ---------------------------------------------------------------------------------------
-# ¡IMPORTANTE! set_page_config debe ser la primera llamada de Streamlit
+# 1) Esta llamada DEBE IR PRIMERO
 st.set_page_config(page_title="Cabrito Analytics Profesional", layout="wide")
 
-# ------------------ Inyectar CSS para branding ------------------
+# 2) Sobrescribimos la variable de tema para que el subrayado activo ya no salga rojo, sino nuestro azul
 st.markdown(
     """
     <style>
     :root {
+      --theme-primary-color: #003366 !important;
       --primary-blue: #003366;
       --secondary-blue: #6699cc;
     }
-    /* Todos los botones */
+    /* Botones en general */
     .stButton > button {
       background-color: var(--primary-blue) !important;
       color: white !important;
@@ -29,12 +30,12 @@ st.markdown(
     .stButton > button:hover {
       background-color: var(--secondary-blue) !important;
     }
-    /* Tags de multiselect */
+    /* Etiquetas de multiselect */
     [data-baseweb="tag"] {
       background-color: var(--primary-blue) !important;
       color: white !important;
     }
-    /* Pestaña activa */
+    /* Pestaña activa (underline) */
     [data-baseweb="tab"][aria-selected="true"] {
       color: var(--primary-blue) !important;
       border-bottom: 3px solid var(--primary-blue) !important;
@@ -57,12 +58,8 @@ with st.sidebar:
 if archivo:
     # cargar datos y modelos
     with zipfile.ZipFile(archivo) as z:
-        necesarios = [
-            "DF.csv", "DF2.csv",
-            "modelo_costoflete.sav",
-            "modelo_dias_pipeline.joblib",
-            "label_encoder_dias.joblib"
-        ]
+        necesarios = ["DF.csv", "DF2.csv", "modelo_costoflete.sav",
+                      "modelo_dias_pipeline.joblib", "label_encoder_dias.joblib"]
         falt = [f for f in necesarios if f not in z.namelist()]
         if falt:
             st.error(f"❌ Faltan archivos: {falt}")
@@ -85,18 +82,14 @@ if archivo:
         st.subheader("Filtros de Dashboard")
         if st.button("Seleccionar todo (Estados)", key="btn_est"):
             st.session_state.sel_est = estados.copy()
-        sel_est = st.multiselect(
-            "Estados", estados,
-            default=st.session_state.sel_est,
-            key="sel_est"
-        )
+        sel_est = st.multiselect("Estados", estados,
+                                 default=st.session_state.sel_est,
+                                 key="sel_est")
         if st.button("Seleccionar todo (Categorías)", key="btn_cat"):
             st.session_state.sel_cat = categorias.copy()
-        sel_cat = st.multiselect(
-            "Categorías", categorias,
-            default=st.session_state.sel_cat,
-            key="sel_cat"
-        )
+        sel_cat = st.multiselect("Categorías", categorias,
+                                 default=st.session_state.sel_cat,
+                                 key="sel_cat")
 
     # ========================= DASHBOARD =========================
     with tabs[0]:
@@ -104,83 +97,74 @@ if archivo:
         st.markdown(
             """
 **Desfase estimado vs real de entrega**  
-Analiza las métricas clave y la evolución temporal de forma clara.
+Analiza las métricas clave y la evolución temporal sin desplazamientos.
             """
         )
-
-        df_sel = df[
-            df["estado_del_cliente"].isin(sel_est) &
-            df["Categoría"].isin(sel_cat)
-        ].copy()
-        df_sel["prometido_dias"] = (
-            df_sel["dias_entrega"] - df_sel["desviacion_vs_promesa"]
-        )
-
+        df_sel = df[df["estado_del_cliente"].isin(sel_est) &
+                    df["Categoría"].isin(sel_cat)].copy()
+        df_sel["prometido_dias"] = (df_sel["dias_entrega"] -
+                                    df_sel["desviacion_vs_promesa"])
         # KPI
         e_mean = df_sel["prometido_dias"].mean()
         r_mean = df_sel["dias_entrega"].mean()
         d_mean = e_mean - r_mean
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Estimado promedio (d)", f"{e_mean:.1f}")
-        c2.metric("Real promedio (d)",    f"{r_mean:.1f}")
-        c3.metric("Desfase promedio (d)", f"{d_mean:.1f}")
+        k1, k2, k3 = st.columns(3)
+        k1.metric("Estimado promedio (d)", f"{e_mean:.1f}")
+        k2.metric("Real promedio (d)",    f"{r_mean:.1f}")
+        k3.metric("Desfase promedio (d)", f"{d_mean:.1f}")
 
-        # Agregados
+        # Datos agregados
         agg_cat = df_sel.groupby("Categoría").agg(
             Estimado=("prometido_dias", "mean"),
             Real=("dias_entrega", "mean")
         ).reset_index()
         agg_cat["Desfase"] = agg_cat["Estimado"] - agg_cat["Real"]
-
-        agg_time = df_sel.groupby(["año", "mes"]).agg(
-            Estimado=("prometido_dias", "mean"),
-            Real=("dias_entrega", "mean")
-        ).reset_index().sort_values(["año", "mes"])
+        agg_time = (df_sel.groupby(["año", "mes"])
+                    .agg(Estimado=("prometido_dias", "mean"),
+                         Real=("dias_entrega", "mean"))
+                    .reset_index()
+                    .sort_values(["año", "mes"]))
         agg_time["Fecha"] = pd.to_datetime(
             dict(year=agg_time["año"], month=agg_time["mes"], day=1)
         )
 
-        # Mostrar 3 gráficas en fila
+        # Tres gráficas en fila
         colA, colB, colC = st.columns(3, gap="medium")
 
         # 1) Barras por categoría
-        fig1 = px.bar(
-            agg_cat, x="Categoría", y=["Estimado", "Real"], barmode="group",
-            color_discrete_map={"Estimado": "#003366", "Real": "#6699cc"},
-            labels={"value": "Días", "variable": "Tipo"},
-            title="Estimado vs Real por Categoría",
-            template="plotly_white"
-        )
-        fig1.add_hline(
-            y=agg_cat["Real"].median(),
-            line_dash="dash",
-            line_color="#6699cc",
-            annotation_text="Mediana Real",
-            annotation_position="top right"
-        )
+        fig1 = px.bar(agg_cat, x="Categoría", y=["Estimado", "Real"],
+                      barmode="group",
+                      color_discrete_map={
+                        "Estimado": "#003366",
+                        "Real":      "#6699cc"},
+                      labels={"value": "Días", "variable": "Tipo"},
+                      title="Estimado vs Real por Categoría",
+                      template="plotly_white")
+        fig1.add_hline(y=agg_cat["Real"].median(),
+                       line_dash="dash", line_color="#6699cc",
+                       annotation_text="Mediana Real",
+                       annotation_position="top right")
         fig1.update_layout(margin=dict(l=10, r=10, t=35, b=10), height=300)
         colA.plotly_chart(fig1, use_container_width=True)
 
         # 2) Línea evolución mensual
-        fig2 = px.line(
-            agg_time, x="Fecha", y=["Estimado", "Real"],
-            color_discrete_map={"Estimado": "#003366", "Real": "#6699cc"},
-            labels={"value": "Días", "variable": "Tipo"},
-            title="Evolución Mensual",
-            template="plotly_white"
-        )
+        fig2 = px.line(agg_time, x="Fecha", y=["Estimado", "Real"],
+                       color_discrete_map={
+                         "Estimado": "#003366",
+                         "Real":      "#6699cc"},
+                       labels={"value": "Días", "variable": "Tipo"},
+                       title="Evolución Mensual",
+                       template="plotly_white")
         fig2.update_layout(margin=dict(l=10, r=10, t=35, b=10), height=300)
         colB.plotly_chart(fig2, use_container_width=True)
 
         # 3) Top10 desfase
         top10 = agg_cat.nlargest(10, "Desfase")
-        fig3 = px.bar(
-            top10, x="Categoría", y="Desfase",
-            labels={"Desfase": "Días de desfase"},
-            title="Top 10 Categorías con Mayor Desfase",
-            color_discrete_sequence=["#003366"],
-            template="plotly_white"
-        )
+        fig3 = px.bar(top10, x="Categoría", y="Desfase",
+                      labels={"Desfase": "Días de desfase"},
+                      title="Top 10 Categorías con Mayor Desfase",
+                      color_discrete_sequence=["#003366"],
+                      template="plotly_white")
         fig3.update_layout(margin=dict(l=10, r=10, t=35, b=10), height=300)
         colC.plotly_chart(fig3, use_container_width=True)
 
@@ -188,12 +172,11 @@ Analiza las métricas clave y la evolución temporal de forma clara.
     with tabs[1]:
         st.header("🧮 Calculadora de Predicción")
 
-        # Preprocesar timestamps
-        df2["orden_compra_timestamp"] = pd.to_datetime(df2["orden_compra_timestamp"])
+        df2["orden_compra_timestamp"] = pd.to_datetime(
+            df2["orden_compra_timestamp"])
         df2["año"] = df2["orden_compra_timestamp"].dt.year
         df2["mes"] = df2["orden_compra_timestamp"].dt.month
 
-        # Inputs usuario
         estados2    = sorted(df2["estado_del_cliente"].dropna().unique())
         categorias2 = sorted(df2["Categoría"].dropna().unique())
         d1, d2 = st.columns(2)
@@ -211,14 +194,11 @@ Analiza las métricas clave y la evolución temporal de forma clara.
         m2 = [k for k,v in meses_map.items() if v==m2_name][0]
 
         def predecir(df_i):
-            if df_i.empty:
-                return df_i
-            cols_f = [
-                "total_peso_g","precio","#_deproductos","duracion_estimada_min",
-                "ciudad_cliente","nombre_dc","hora_compra","año","mes",
-                "datetime_origen","region","dias_promedio_ciudad",
-                "Categoría","tipo_de_pago"
-            ]
+            if df_i.empty: return df_i
+            cols_f = ["total_peso_g","precio","#_deproductos",
+                      "duracion_estimada_min","ciudad_cliente","nombre_dc",
+                      "hora_compra","año","mes","datetime_origen","region",
+                      "dias_promedio_ciudad","Categoría","tipo_de_pago"]
             Xi = pd.get_dummies(df_i[cols_f])
             feats = modelo_flete.get_booster().feature_names
             Xi = Xi.reindex(columns=feats, fill_value=0)
@@ -229,23 +209,22 @@ Analiza las métricas clave y la evolución temporal de forma clara.
         def resumen(df_p, name):
             if "costo_estimado" not in df_p.columns:
                 return pd.DataFrame(columns=["ciudad_cliente", name])
-            out = (
-                df_p.groupby("ciudad_cliente")["costo_estimado"]
-                .mean()
-                .reset_index()
-                .rename(columns={"costo_estimado": name})
-            )
-            return out
+            return (df_p.groupby("ciudad_cliente")["costo_estimado"]
+                        .mean().reset_index().rename(columns={"costo_estimado": name}))
 
-        r1 = resumen(predecir(df2[(df2["mes"]==m1)&(df2["estado_del_cliente"]==sel_e2)&(df2["Categoría"]==sel_c2)]), m1_name)
-        r2 = resumen(predecir(df2[(df2["mes"]==m2)&(df2["estado_del_cliente"]==sel_e2)&(df2["Categoría"]==sel_c2)]), m2_name)
+        r1 = resumen(predecir(df2[(df2["mes"]==m1)&
+                                  (df2["estado_del_cliente"]==sel_e2)&
+                                  (df2["Categoría"]==sel_c2)]), m1_name)
+        r2 = resumen(predecir(df2[(df2["mes"]==m2)&
+                                  (df2["estado_del_cliente"]==sel_e2)&
+                                  (df2["Categoría"]==sel_c2)]), m2_name)
 
-        # Merge sobre 'ciudad_cliente'
         comp = pd.merge(r1, r2, on="ciudad_cliente", how="outer")
         for col in [m1_name, m2_name]:
-            comp[col] = pd.to_numeric(comp[col], errors='coerce')
+            comp[col] = pd.to_numeric(comp[col], errors="coerce")
         comp["Diferencia"] = (comp[m2_name] - comp[m1_name]).round(2)
         comp.rename(columns={"ciudad_cliente":"Ciudad"}, inplace=True)
 
         st.dataframe(comp.style.format(precision=2))
-        st.download_button("⬇️ Descargar CSV", comp.to_csv(index=False), file_name="comparacion.csv")
+        st.download_button("⬇️ Descargar CSV", comp.to_csv(index=False),
+                           file_name="comparacion.csv")
