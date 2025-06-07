@@ -143,23 +143,36 @@ if archivo_zip:
             # Mostrar
             st.dataframe(tabla_top3, use_container_width=True, height=90)
 
-            # --------- GRÁFICO DE PASTEL: PROPORCIÓN DE PEDIDOS POR ESTADO ---------
-            st.subheader("📍 Proporción de Pedidos por Estado")
+           
+            # --------- GRÁFICO DE PASTEL AGRUPANDO EN "Provincia" ---------
+            st.subheader("📍 Participación de Pedidos por Zona")
             
+            # Calcular conteo por estado
             conteo_pedidos = df['estado_del_cliente'].value_counts().reset_index()
             conteo_pedidos.columns = ['Estado', 'Pedidos']
             
+            # Definir principales
+            principales = ['Ciudad de México', 'Nuevo León', 'Jalisco']
+            
+            # Reemplazar el resto por "Provincia"
+            conteo_pedidos['Zona'] = conteo_pedidos['Estado'].apply(lambda x: x if x in principales else 'Provincia')
+            
+            # Agrupar nuevamente
+            conteo_zona = conteo_pedidos.groupby('Zona')['Pedidos'].sum().reset_index()
+            
+            # Gráfico tipo dona
             fig_pie = px.pie(
-                conteo_pedidos,
-                names='Estado',
+                conteo_zona,
+                names='Zona',
                 values='Pedidos',
-                title='📦 Participación de cada Estado en el Total de Pedidos',
-                hole=0.4  # Para estilo tipo dona
+                title='📦 Participación de Pedidos por Zona (Principales vs Provincias)',
+                hole=0.4
             )
             
             fig_pie.update_traces(textinfo='percent+label')
             
             st.plotly_chart(fig_pie, use_container_width=True)
+
 
 
          
