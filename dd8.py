@@ -108,14 +108,21 @@ if archivo_zip:
         modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
         label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
-  # ===================== 📊 RESUMEN NACIONAL =====================
+ # ===================== 📊 RESUMEN NACIONAL =====================
 with tabs[0]:
     st.title("📊 ¿Entrega Rápida o Margen Inflado?")
 
     if 'dias_entrega' in df.columns:
 
+        # ---------- NARRATIVA DE CONTEXTO ----------
+        st.markdown("""
+        **🔍 Diagnóstico Nacional de Entregas**
+        <br>
+        Este tablero explora tres ángulos clave: volumen de pedidos por zona, puntualidad por estado, y tiempos reales de entrega.
+        Aunque muchos pedidos parecen llegar “a tiempo”, ¿es eficiencia real o estamos inflando nuestras promesas?
+        """, unsafe_allow_html=True)
 
-        # --------- 2. PARTICIPACIÓN DE PEDIDOS POR ZONA (Gráfico Dona) ---------
+        # ---------- 1. PARTICIPACIÓN DE PEDIDOS POR ZONA (Gráfico Dona) ----------
         st.subheader("📍 Pedidos por Zona")
 
         conteo_pedidos = df['estado_del_cliente'].value_counts().reset_index()
@@ -141,10 +148,14 @@ with tabs[0]:
             color='Zona',
             color_discrete_map=colores
         )
-        fig_pie.update_traces(textinfo='percent+label')
+
+        fig_pie.update_traces(
+            textinfo='percent+label+value',
+            hovertemplate="<b>%{label}</b><br>Pedidos: %{value}<br>Porcentaje: %{percent}"
+        )
         st.plotly_chart(fig_pie, use_container_width=True)
 
-        # --------- 3. ENTREGAS A TIEMPO VS TARDÍAS (Barras 100%) ---------
+        # ---------- 2. ENTREGAS A TIEMPO VS TARDÍAS (Barras 100%) ----------
         st.subheader("🚚 Si somos puntuales, ¿cuál es el problema?")
 
         df_tmp = df.copy()
@@ -162,7 +173,7 @@ with tabs[0]:
             y='porcentaje',
             color='estatus_entrega',
             category_orders={'estado_del_cliente': orden_estados},
-            color_discrete_map={'A tiempo': '#1f77b4', 'Tardío': '#B0B0B0'},
+            color_discrete_map={'A tiempo': '#A7D3F4', 'Tardío': '#B0B0B0'},
             labels={
                 'estado_del_cliente': 'Estado',
                 'porcentaje': 'Porcentaje',
@@ -170,6 +181,10 @@ with tabs[0]:
             },
             title='📦 Porcentaje de Entregas Puntuales vs Tardías por Estado (100%)',
             text_auto='.1f'
+        )
+
+        fig.update_traces(
+            hovertemplate="<b>%{x}</b><br>%{color}: %{y:.1f}%"
         )
 
         fig.update_layout(
@@ -182,7 +197,7 @@ with tabs[0]:
 
         st.plotly_chart(fig, use_container_width=True)
 
-        # --------- 4. DISTRIBUCIÓN DE DÍAS DE ENTREGA (1-5, 6-10, >10) ---------
+        # ---------- 3. DISTRIBUCIÓN DE DÍAS DE ENTREGA (1-5, 6-10, >10) ----------
         st.subheader("📦 ¿Éxito logístico o maquillaje de tiempos?")
 
         df_tmp = df[df['dias_entrega'].notna()].copy()
@@ -199,12 +214,19 @@ with tabs[0]:
         orden_estados = conteo[conteo['grupo_dias'] == 'Más de 10']\
             .sort_values(by='porcentaje', ascending=True)['estado_del_cliente']
 
+        colores_dias = {
+            "1-5": "#A7D3F4",
+            "6-10": "#4FA0D9",
+            "Más de 10": "#FF6B6B"
+        }
+
         fig_barras = px.bar(
             conteo,
             x='estado_del_cliente',
             y='porcentaje',
             color='grupo_dias',
             category_orders={'estado_del_cliente': orden_estados},
+            color_discrete_map=colores_dias,
             labels={
                 'estado_del_cliente': 'Estado',
                 'porcentaje': 'Porcentaje',
