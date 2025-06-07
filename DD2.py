@@ -152,34 +152,38 @@ if archivo_zip:
 
         # --------- TABLA HORIZONTAL: % Flete sobre Precio por Categoría ---------
         st.subheader("💸 % del Flete sobre el Precio")
-        
-        # Calcular el porcentaje de flete
+       
+        # Calcular el porcentaje
         df_precio = df_filtrado.copy()
         df_precio['porcentaje_flete'] = (df_precio['costo_de_flete'] / df_precio['precio']) * 100
         
-        # Agrupar por categoría y formatear
+        # Agrupar por categoría
         tabla = df_precio.groupby('Categoría')['porcentaje_flete'].mean().reset_index()
         tabla = tabla.sort_values(by='porcentaje_flete', ascending=False)
         
-        # Guardar el valor más alto para estilizar
+        # Detectar el valor máximo
         max_val = tabla['porcentaje_flete'].max()
         
-        # Formatear como porcentaje string
-        tabla['porcentaje_flete'] = tabla['porcentaje_flete'].round(1)
+        # Agregar el emoji solo al valor más alto
+        tabla['porcentaje_flete'] = tabla['porcentaje_flete'].apply(
+            lambda x: f"🔺 {x:.1f}%" if x == max_val else f"{x:.1f}%"
+        )
         
-        # Transponer tabla para horizontal
+        # Transponer la tabla para vista horizontal
         tabla_h = tabla.set_index('Categoría').T
         
-        # Estilo condicional: resaltar el valor más alto en rojo
-        def highlight_max(s):
-            return ['color: red; font-weight: bold' if v == max_val else '' for v in s]
+        # Función para aplicar color rojo solo al valor con el emoji
+        def highlight_emoji_red(s):
+            return ['color: red; font-weight: bold' if '🔺' in str(v) else '' for v in s]
         
+        # Mostrar con estilo
         st.dataframe(
-            tabla_h.style.apply(highlight_max, axis=1).format("{:.1f}%"),
+            tabla_h.style.apply(highlight_emoji_red, axis=1),
             use_container_width=True,
             height=100,
             hide_index=True
         )
+
 
         # --------- LAYOUT SUPERIOR: FLETE/PRECIO + MAPA ---------
         # --------- LAYOUT SUPERIOR COMPACTO ---------
