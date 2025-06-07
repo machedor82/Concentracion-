@@ -123,8 +123,8 @@ with tabs[0]:
 
             colores = {
                 'Ciudad de México': '#005BAC',
-                'Nuevo León': '#4FA0D9',
-                'Jalisco': '#A7D3F4',
+                'Nuevo León': '#A7D3F4',
+                'Jalisco': '#4FA0D9',
                 'Provincia': '#B0B0B0'
             }
 
