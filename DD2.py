@@ -189,15 +189,20 @@ if archivo_zip:
             st.plotly_chart(fig_totales, use_container_width=True)
         
         with col2:
-            
-            mapa = df_filtrado.dropna(subset=['lat_cliente', 'lon_cliente'])
-            if not mapa.empty:
-                st.map(
-                    mapa.rename(columns={'lat_cliente': 'lat', 'lon_cliente': 'lon'})[['lat', 'lon']],
-                    zoom=4
-                )
-            else:
-                st.warning("Sin coordenadas válidas.")
+            df_heat = df_filtrado.copy()
+            df_heat['dia_semana'] = pd.to_datetime(df_heat['orden_compra_timestamp']).dt.day_name()
+            heat_data = df_heat.groupby(['Categoría', 'dia_semana'])['costo_de_flete'].mean().reset_index()
+
+            fig = px.density_heatmap(
+                heat_data,
+                x="dia_semana",
+                y="Categoría",
+                z="costo_de_flete",
+                color_continuous_scale="Blues",
+                title="🔥 Costo Promedio de Flete por Día y Categoría"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
         
         # --------- GRÁFICA HORIZONTAL COMPACTA ---------
         
