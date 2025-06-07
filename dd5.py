@@ -91,8 +91,7 @@ with st.sidebar:
 if archivo_zip:
     with zipfile.ZipFile(archivo_zip) as z:
         requeridos = [
-            'DF.csv',
-            'DF2.csv',
+            'DF.csv', 'DF2.csv',
             'modelo_costoflete.sav',
             'modelo_dias_pipeline.joblib',
             'label_encoder_dias.joblib'
@@ -103,38 +102,32 @@ if archivo_zip:
             st.error(f"❌ Faltan archivos en el ZIP: {faltantes}")
             st.stop()
 
-        # ✅ Cargar los datos
         df = pd.read_csv(z.open('DF.csv'))
         df2 = pd.read_csv(z.open('DF2.csv'))
         modelo_flete = joblib.load(z.open('modelo_costoflete.sav'))
         modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
         label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
-    # ========== 📊 RESUMEN NACIONAL ==========
+    # ===================== 📊 RESUMEN NACIONAL =====================
     with tabs[0]:
-        st.title("📊 ¿Entrega Rápida o Margen Inflado? ")
+        st.title("📊 ¿Entrega Rápida o Margen Inflado?")
 
         if 'dias_entrega' in df.columns:
 
-            st.subheader("💰 Proporción del Flete sobre el Precio por Estado")
+            # --------- 1. FLETE VS PRECIO POR ESTADO ---------
+            st.subheader("💰 Relación del Flete sobre el Precio por Estado")
 
-            # Asegurar que no haya división por cero
             df_flete = df[(df['precio'] > 0) & (df['costo_de_flete'].notna())].copy()
-            
-            # Crear categorías
             df_flete['grupo_flete'] = pd.cut(
                 df_flete['costo_de_flete'] / df_flete['precio'],
                 bins=[0, 0.25, 0.5, float('inf')],
                 labels=["<25%", "25-50%", ">50%"],
                 right=True
             )
-            
-            # Agrupar por estado y categoría
+
             conteo = df_flete.groupby(['estado_del_cliente', 'grupo_flete']).size().reset_index(name='conteo')
-            
-            # Calcular porcentaje por estado
             conteo['porcentaje'] = conteo['conteo'] / conteo.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
-            
+
             fig_flete_precio = px.bar(
                 conteo,
                 x='estado_del_cliente',
@@ -149,7 +142,7 @@ if archivo_zip:
                 text_auto='.1f',
                 category_orders={'grupo_flete': ["<25%", "25-50%", ">50%"]}
             )
-            
+
             fig_flete_precio.update_layout(
                 barmode='stack',
                 xaxis_title=None,
@@ -157,36 +150,27 @@ if archivo_zip:
                 legend_title='Flete/Precio',
                 height=500
             )
-            
+
             st.plotly_chart(fig_flete_precio, use_container_width=True)
-            
-            
-                       
-            # --------- GRÁFICO DE PASTEL AGRUPANDO EN "Provincia" ---------
-            st.subheader("📍Pedidos por Zona")
-            
-            # Calcular conteo por estado
+
+            # --------- 2. PEDIDOS POR ZONA (DONA) ---------
+            st.subheader("📍 Pedidos por Zona")
+
             conteo_pedidos = df['estado_del_cliente'].value_counts().reset_index()
             conteo_pedidos.columns = ['Estado', 'Pedidos']
-            
-            # Definir principales
+
             principales = ['Ciudad de México', 'Nuevo León', 'Jalisco']
-            
-            # Reemplazar el resto por "Provincia"
             conteo_pedidos['Zona'] = conteo_pedidos['Estado'].apply(lambda x: x if x in principales else 'Provincia')
-            
-            # Agrupar nuevamente
+
             conteo_zona = conteo_pedidos.groupby('Zona')['Pedidos'].sum().reset_index()
-            
-            # Asignar colores
-            colores_personalizados = {
-                'Ciudad de México': '#005BAC',  # azul fuerte
-                'Nuevo León': '#4FA0D9',        # azul medio
-                'Jalisco': '#A7D3F4',           # azul claro
-                'Provincia': '#B0B0B0'          # gris
+
+            colores = {
+                'Ciudad de México': '#005BAC',
+                'Nuevo León': '#4FA0D9',
+                'Jalisco': '#A7D3F4',
+                'Provincia': '#B0B0B0'
             }
-            
-            # Gráfico tipo dona
+
             fig_pie = px.pie(
                 conteo_zona,
                 names='Zona',
@@ -194,52 +178,39 @@ if archivo_zip:
                 title='📦 Participación de Pedidos por Zona (Principales vs Provincia)',
                 hole=0.4,
                 color='Zona',
-                color_discrete_map=colores_personalizados
+                color_discrete_map=colores
             )
-            
             fig_pie.update_traces(textinfo='percent+label')
-            
             st.plotly_chart(fig_pie, use_container_width=True)
 
+            # --------- 3. ENTREGAS A TIEMPO VS TARDÍAS ---------
+            st.subheader("🚚 Si somos puntuales, ¿cuál es el problema?")
 
-
-            # --------- BARRAS 100% APILADAS: ENTREGAS A TIEMPO VS TARDÍAS ---------
-            st.subheader("🚚 Si somos puntuales, ¿Cuál es el problema?")
-            
-            # Crear columna de estatus
             df_tmp = df.copy()
             df_tmp['estatus_entrega'] = df_tmp['llego_tarde'].apply(lambda x: 'A tiempo' if x == 0 else 'Tardío')
-            
-            # Agrupar por estado y estatus
+
             conteo_estado = df_tmp.groupby(['estado_del_cliente', 'estatus_entrega']).size().reset_index(name='conteo')
-            
-            # Calcular % por estado
             conteo_estado['porcentaje'] = conteo_estado['conteo'] / conteo_estado.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
-            
-            # Ordenar por % de entregas a tiempo
+
             orden_estados = conteo_estado[conteo_estado['estatus_entrega'] == 'A tiempo']\
                 .sort_values('porcentaje', ascending=False)['estado_del_cliente']
-            
-            
+
             fig = px.bar(
                 conteo_estado,
                 x='estado_del_cliente',
                 y='porcentaje',
                 color='estatus_entrega',
                 category_orders={'estado_del_cliente': orden_estados},
-                color_discrete_map={
-                    'A tiempo': '#1f77b4',   # azul
-                    'Tardío': '#B0B0B0'      # gris
-                },
+                color_discrete_map={'A tiempo': '#1f77b4', 'Tardío': '#B0B0B0'},
                 labels={
                     'estado_del_cliente': 'Estado',
                     'porcentaje': 'Porcentaje',
                     'estatus_entrega': 'Tipo de Entrega'
                 },
-                title='📦 Porcentaje de Entregas Puntuales vs Tardías por Estado (100%)',
+                title='📦 Entregas Puntuales vs Tardías por Estado (100%)',
                 text_auto='.1f'
             )
-            
+
             fig.update_layout(
                 barmode='stack',
                 xaxis_title=None,
@@ -247,51 +218,41 @@ if archivo_zip:
                 legend_title='Tipo de Entrega',
                 height=500
             )
-            
+
             st.plotly_chart(fig, use_container_width=True)
 
-
-         
-            # --------- BARRAS APILADAS POR ESTADO Y GRUPOS DE DÍAS DE ENTREGA ---------
+            # --------- 4. GRUPOS DE DÍAS DE ENTREGA ---------
             st.subheader("📦 ¿Éxito logístico o maquillaje de tiempos?")
-            
-            # Clasificación de días
-            df_tmp = df.copy()
-            df_tmp = df_tmp[df_tmp['dias_entrega'].notna()]
+
+            df_tmp = df[df['dias_entrega'].notna()].copy()
             df_tmp['grupo_dias'] = pd.cut(
                 df_tmp['dias_entrega'],
                 bins=[0, 5, 10, float('inf')],
                 labels=["1-5", "6-10", "Más de 10"],
                 right=True
             )
-            
-            # Agrupar y calcular proporciones
+
             conteo = df_tmp.groupby(['estado_del_cliente', 'grupo_dias']).size().reset_index(name='conteo')
             conteo['porcentaje'] = conteo['conteo'] / conteo.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
-            
-            # Ordenar por proporción de "Más de 10"
-            orden_estados = (
-                conteo[conteo['grupo_dias'] == 'Más de 10']
+
+            orden_estados = conteo[conteo['grupo_dias'] == 'Más de 10']\
                 .sort_values(by='porcentaje', ascending=True)['estado_del_cliente']
-                .tolist()
-            )
-            
-            # Crear gráfico
+
             fig_barras = px.bar(
                 conteo,
                 x='estado_del_cliente',
                 y='porcentaje',
                 color='grupo_dias',
+                category_orders={'estado_del_cliente': orden_estados},
                 labels={
                     'estado_del_cliente': 'Estado',
                     'porcentaje': 'Porcentaje',
                     'grupo_dias': 'Días de Entrega'
                 },
-                title='⏱️ Distribución % de Entregas por Estado (1-5, 6-10, Más de 10 días)',
-                text_auto='.1f',
-                category_orders={'estado_del_cliente': orden_estados}
+                title='⏱️ Distribución de Entregas por Estado (1-5, 6-10, Más de 10 días)',
+                text_auto='.1f'
             )
-            
+
             fig_barras.update_layout(
                 barmode='stack',
                 xaxis_title=None,
@@ -299,8 +260,9 @@ if archivo_zip:
                 legend_title='Días de Entrega',
                 height=500
             )
-            
+
             st.plotly_chart(fig_barras, use_container_width=True)
+
 
 
 
