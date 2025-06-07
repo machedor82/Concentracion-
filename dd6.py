@@ -108,265 +108,15 @@ if archivo_zip:
         modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
         label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
-    # ===================== 📊 RESUMEN NACIONAL =====================
-    with tabs[0]:
-        st.title("📊 ¿Entrega Rápida o Margen Inflado?")
+  # ===================== 📊 RESUMEN NACIONAL =====================
+with tabs[0]:
+    st.title("📊 ¿Entrega Rápida o Margen Inflado?")
 
-        if 'dias_entrega' in df.columns:
+    if 'dias_entrega' in df.columns:
 
-            # --------- 1. FLETE VS PRECIO POR ESTADO ---------
-            st.subheader("💰 Relación del Flete sobre el Precio por Estado")
-
-            df_flete = df[(df['precio'] > 0) & (df['costo_de_flete'].notna())].copy()
-            df_flete['grupo_flete'] = pd.cut(
-                df_flete['costo_de_flete'] / df_flete['precio'],
-                bins=[0, 0.25, 0.5, float('inf')],
-                labels=["<25%", "25-50%", ">50%"],
-                right=True
-            )
-
-            conteo = df_flete.groupby(['estado_del_cliente', 'grupo_flete']).size().reset_index(name='conteo')
-            conteo['porcentaje'] = conteo['conteo'] / conteo.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
-
-            fig_flete_precio = px.bar(
-                conteo,
-                x='estado_del_cliente',
-                y='porcentaje',
-                color='grupo_flete',
-                labels={
-                    'estado_del_cliente': 'Estado',
-                    'porcentaje': 'Porcentaje',
-                    'grupo_flete': 'Flete como % del Precio'
-                },
-                title='📦 Relación Flete/Precio por Estado (Distribución %)',
-                text_auto='.1f',
-                category_orders={'grupo_flete': ["<25%", "25-50%", ">50%"]}
-            )
-
-            fig_flete_precio.update_layout(
-                barmode='stack',
-                xaxis_title=None,
-                yaxis_title='Porcentaje (%)',
-                legend_title='Flete/Precio',
-                height=500
-            )
-
-            st.plotly_chart(fig_flete_precio, use_container_width=True)
-
-            # --------- 2. PEDIDOS POR ZONA (DONA) ---------
-            st.subheader("📍 Pedidos por Zona")
-
-            conteo_pedidos = df['estado_del_cliente'].value_counts().reset_index()
-            conteo_pedidos.columns = ['Estado', 'Pedidos']
-
-            principales = ['Ciudad de México', 'Nuevo León', 'Jalisco']
-            conteo_pedidos['Zona'] = conteo_pedidos['Estado'].apply(lambda x: x if x in principales else 'Provincia')
-
-            conteo_zona = conteo_pedidos.groupby('Zona')['Pedidos'].sum().reset_index()
-
-            colores = {
-                'Ciudad de México': '#005BAC',
-                'Nuevo León': '#4FA0D9',
-                'Jalisco': '#A7D3F4',
-                'Provincia': '#B0B0B0'
-            }
-
-            fig_pie = px.pie(
-                conteo_zona,
-                names='Zona',
-                values='Pedidos',
-                title='📦 Participación de Pedidos por Zona (Principales vs Provincia)',
-                hole=0.4,
-                color='Zona',
-                color_discrete_map=colores
-            )
-            fig_pie.update_traces(textinfo='percent+label')
-            st.plotly_chart(fig_pie, use_container_width=True)
-
-            # --------- 3. ENTREGAS A TIEMPO VS TARDÍAS ---------
-            st.subheader("🚚 Si somos puntuales, ¿cuál es el problema?")
-
-            df_tmp = df.copy()
-            df_tmp['estatus_entrega'] = df_tmp['llego_tarde'].apply(lambda x: 'A tiempo' if x == 0 else 'Tardío')
-
-            conteo_estado = df_tmp.groupby(['estado_del_cliente', 'estatus_entrega']).size().reset_index(name='conteo')
-            conteo_estado['porcentaje'] = conteo_estado['conteo'] / conteo_estado.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
-
-            orden_estados = conteo_estado[conteo_estado['estatus_entrega'] == 'A tiempo']\
-                .sort_values('porcentaje', ascending=False)['estado_del_cliente']
-
-            fig = px.bar(
-                conteo_estado,
-                x='estado_del_cliente',
-                y='porcentaje',
-                color='estatus_entrega',
-                category_orders={'estado_del_cliente': orden_estados},
-                color_discrete_map={'A tiempo': '#1f77b4', 'Tardío': '#B0B0B0'},
-                labels={
-                    'estado_del_cliente': 'Estado',
-                    'porcentaje': 'Porcentaje',
-                    'estatus_entrega': 'Tipo de Entrega'
-                },
-                title='📦 Entregas Puntuales vs Tardías por Estado (100%)',
-                text_auto='.1f'
-            )
-
-            fig.update_layout(
-                barmode='stack',
-                xaxis_title=None,
-                yaxis_title='Porcentaje (%)',
-                legend_title='Tipo de Entrega',
-                height=500
-            )
-
-            st.plotly_chart(fig, use_container_width=True)
-
-            # --------- 4. GRUPOS DE DÍAS DE ENTREGA ---------
-            st.subheader("📦 ¿Éxito logístico o maquillaje de tiempos?")
-
-            df_tmp = df[df['dias_entrega'].notna()].copy()
-            df_tmp['grupo_dias'] = pd.cut(
-                df_tmp['dias_entrega'],
-                bins=[0, 5, 10, float('inf')],
-                labels=["1-5", "6-10", "Más de 10"],
-                right=True
-            )
-
-            conteo = df_tmp.groupby(['estado_del_cliente', 'grupo_dias']).size().reset_index(name='conteo')
-            conteo['porcentaje'] = conteo['conteo'] / conteo.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
-
-            orden_estados = conteo[conteo['grupo_dias'] == 'Más de 10']\
-                .sort_values(by='porcentaje', ascending=True)['estado_del_cliente']
-
-            fig_barras = px.bar(
-                conteo,
-                x='estado_del_cliente',
-                y='porcentaje',
-                color='grupo_dias',
-                category_orders={'estado_del_cliente': orden_estados},
-                labels={
-                    'estado_del_cliente': 'Estado',
-                    'porcentaje': 'Porcentaje',
-                    'grupo_dias': 'Días de Entrega'
-                },
-                title='⏱️ Distribución de Entregas por Estado (1-5, 6-10, Más de 10 días)',
-                text_auto='.1f'
-            )
-
-            fig_barras.update_layout(
-                barmode='stack',
-                xaxis_title=None,
-                yaxis_title='Porcentaje (%)',
-                legend_title='Días de Entrega',
-                height=500
-            )
-
-            st.plotly_chart(fig_barras, use_container_width=True)
-
-
-
-
-    # ========================= PESTAÑA 1: DASHBOARD =========================
-    with tabs[1]:
-
-                # --------- SIDEBAR FILTRO ---------
-        with st.sidebar:
-            st.subheader("🎛️ Filtro de Estado")
-            
-            # Agregar opción "Nacional" al principio
-            estados = ["Nacional"] + sorted(df['estado_del_cliente'].dropna().unique().tolist())
-            
-            estado_sel = option_menu(
-                menu_title="Selecciona un estado",
-                options=estados,
-                icons=["globe"] + ["geo"] * (len(estados) - 1),
-                default_index=0
-            )
-        
-        # --------- FILTRADO DE DATOS ---------
-        if estado_sel == "Nacional":
-            df_filtrado = df.copy()
-        else:
-            df_filtrado = df[df['estado_del_cliente'] == estado_sel]
-
-
-        # --------- MÉTRICAS PRINCIPALES ---------
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Pedidos", f"{len(df_filtrado):,}")
-        col2.metric(
-            "Transporte costoso para su valor",
-            f"{(df_filtrado['costo_de_flete'] / df_filtrado['precio'] > 0.5).mean() * 100:.1f}%"
-        )
-        col3.metric(
-            "Llegadas muy adelantadas (1 semana antes o más)",
-            f"{(df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100:.1f}%"
-        )
-
-        # --------- TABLA HORIZONTAL: % Flete sobre Precio por Categoría ---------
-        st.subheader("💸 Relación Envío–Precio: ¿Gasto Justificado?")
-
-        df_precio = df_filtrado.copy()
-        df_precio['porcentaje_flete'] = (df_precio['costo_de_flete'] / df_precio['precio']) * 100
-        tabla = df_precio.groupby('Categoría')['porcentaje_flete'].mean().reset_index()
-        tabla = tabla.sort_values(by='porcentaje_flete', ascending=False)
-        max_val = tabla['porcentaje_flete'].max()
-        tabla['porcentaje_flete'] = tabla['porcentaje_flete'].apply(
-            lambda x: f"🔺 {x:.1f}%" if x == max_val else f"{x:.1f}%"
-        )
-        tabla_h = tabla.set_index('Categoría').T
-
-        def highlight_emoji_red(s):
-            return ['color: red; font-weight: bold' if '🔺' in str(v) else '' for v in s]
-
-        st.dataframe(
-            tabla_h.style.apply(highlight_emoji_red, axis=1),
-            use_container_width=True,
-            height=100,
-            hide_index=True
-        )
-
-        # --------- LAYOUT SUPERIOR: BARRAS + HEATMAP ---------
-        col1, col2 = st.columns([1, 1])
-
-        with col1:
-            totales = df_filtrado.groupby('Categoría')[['precio', 'costo_de_flete']].sum().reset_index()
-            totales = totales.sort_values(by='precio', ascending=False)
-
-            fig_totales = px.bar(
-                totales,
-                x='Categoría',
-                y=['precio', 'costo_de_flete'],
-                barmode='group',
-                labels={'value': 'Monto ($)', 'variable': 'Concepto'}
-            )
-            fig_totales.update_layout(
-                height=320,
-                xaxis_title=None,
-                yaxis_title=None,
-                margin=dict(t=40, b=40, l=10, r=10),
-                legend_title="",
-                legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5)
-            )
-            st.plotly_chart(fig_totales, use_container_width=True)
-
-        with col2:
-            df_heat = df_filtrado.copy()
-            df_heat['dia_semana'] = pd.to_datetime(df_heat['orden_compra_timestamp']).dt.day_name()
-            heat_data = df_heat.groupby(['Categoría', 'dia_semana'])['costo_de_flete'].mean().reset_index()
-
-            fig = px.density_heatmap(
-                heat_data,
-                x="dia_semana",
-                y="Categoría",
-                z="costo_de_flete",
-                color_continuous_scale="Blues",
-                title="🔥 Costo Promedio de Flete por Día y Categoría"
-            )
-            st.plotly_chart(fig, use_container_width=True)
-
-        # --------- LAYOUT INFERIOR: BARRAS HORIZONTALES ---------
+        # --------- 1. COMPARATIVA DÍAS DE ENTREGA VS COLCHÓN (Barras Horizontales) ---------
         st.subheader("📦 La ilusión del cumplimiento: entregas puntuales con días de sobra")
-        
+
         if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
             import plotly.graph_objects as go
 
@@ -408,7 +158,237 @@ if archivo_zip:
 
             st.plotly_chart(fig, use_container_width=True)
 
-        
+        # --------- 2. PARTICIPACIÓN DE PEDIDOS POR ZONA (Gráfico Dona) ---------
+        st.subheader("📍 Pedidos por Zona")
+
+        conteo_pedidos = df['estado_del_cliente'].value_counts().reset_index()
+        conteo_pedidos.columns = ['Estado', 'Pedidos']
+
+        principales = ['Ciudad de México', 'Nuevo León', 'Jalisco']
+        conteo_pedidos['Zona'] = conteo_pedidos['Estado'].apply(lambda x: x if x in principales else 'Provincia')
+
+        conteo_zona = conteo_pedidos.groupby('Zona')['Pedidos'].sum().reset_index()
+
+        colores = {
+            'Ciudad de México': '#005BAC',
+            'Nuevo León': '#4FA0D9',
+            'Jalisco': '#A7D3F4',
+            'Provincia': '#B0B0B0'
+        }
+
+        fig_pie = px.pie(
+            conteo_zona,
+            names='Zona',
+            values='Pedidos',
+            hole=0.4,
+            color='Zona',
+            color_discrete_map=colores
+        )
+        fig_pie.update_traces(textinfo='percent+label')
+        st.plotly_chart(fig_pie, use_container_width=True)
+
+        # --------- 3. ENTREGAS A TIEMPO VS TARDÍAS (Barras 100%) ---------
+        st.subheader("🚚 Si somos puntuales, ¿cuál es el problema?")
+
+        df_tmp = df.copy()
+        df_tmp['estatus_entrega'] = df_tmp['llego_tarde'].apply(lambda x: 'A tiempo' if x == 0 else 'Tardío')
+
+        conteo_estado = df_tmp.groupby(['estado_del_cliente', 'estatus_entrega']).size().reset_index(name='conteo')
+        conteo_estado['porcentaje'] = conteo_estado['conteo'] / conteo_estado.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
+
+        orden_estados = conteo_estado[conteo_estado['estatus_entrega'] == 'A tiempo']\
+            .sort_values('porcentaje', ascending=False)['estado_del_cliente']
+
+        fig = px.bar(
+            conteo_estado,
+            x='estado_del_cliente',
+            y='porcentaje',
+            color='estatus_entrega',
+            category_orders={'estado_del_cliente': orden_estados},
+            color_discrete_map={'A tiempo': '#1f77b4', 'Tardío': '#B0B0B0'},
+            labels={
+                'estado_del_cliente': 'Estado',
+                'porcentaje': 'Porcentaje',
+                'estatus_entrega': 'Tipo de Entrega'
+            },
+            title='📦 Porcentaje de Entregas Puntuales vs Tardías por Estado (100%)',
+            text_auto='.1f'
+        )
+
+        fig.update_layout(
+            barmode='stack',
+            xaxis_title=None,
+            yaxis_title='Porcentaje (%)',
+            legend_title='Tipo de Entrega',
+            height=500
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        # --------- 4. DISTRIBUCIÓN DE DÍAS DE ENTREGA (1-5, 6-10, >10) ---------
+        st.subheader("📦 ¿Éxito logístico o maquillaje de tiempos?")
+
+        df_tmp = df[df['dias_entrega'].notna()].copy()
+        df_tmp['grupo_dias'] = pd.cut(
+            df_tmp['dias_entrega'],
+            bins=[0, 5, 10, float('inf')],
+            labels=["1-5", "6-10", "Más de 10"],
+            right=True
+        )
+
+        conteo = df_tmp.groupby(['estado_del_cliente', 'grupo_dias']).size().reset_index(name='conteo')
+        conteo['porcentaje'] = conteo['conteo'] / conteo.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
+
+        orden_estados = conteo[conteo['grupo_dias'] == 'Más de 10']\
+            .sort_values(by='porcentaje', ascending=True)['estado_del_cliente']
+
+        fig_barras = px.bar(
+            conteo,
+            x='estado_del_cliente',
+            y='porcentaje',
+            color='grupo_dias',
+            category_orders={'estado_del_cliente': orden_estados},
+            labels={
+                'estado_del_cliente': 'Estado',
+                'porcentaje': 'Porcentaje',
+                'grupo_dias': 'Días de Entrega'
+            },
+            title='⏱️ Distribución % de Entregas por Estado (1-5, 6-10, Más de 10 días)',
+            text_auto='.1f'
+        )
+
+        fig_barras.update_layout(
+            barmode='stack',
+            xaxis_title=None,
+            yaxis_title='Porcentaje (%)',
+            legend_title='Días de Entrega',
+            height=500
+        )
+
+        st.plotly_chart(fig_barras, use_container_width=True)
+
+
+
+
+
+  # ========================= PESTAÑA 1: DASHBOARD =========================
+with tabs[1]:
+
+    # --------- SIDEBAR FILTRO ---------
+    with st.sidebar:
+        st.subheader("🎛️ Filtro de Estado")
+
+        estados = ["Nacional"] + sorted(df['estado_del_cliente'].dropna().unique().tolist())
+        estado_sel = option_menu(
+            menu_title="Selecciona un estado",
+            options=estados,
+            icons=["globe"] + ["geo"] * (len(estados) - 1),
+            default_index=0
+        )
+
+    # --------- FILTRADO DE DATOS ---------
+    df_filtrado = df.copy() if estado_sel == "Nacional" else df[df['estado_del_cliente'] == estado_sel]
+
+    # --------- MÉTRICAS PRINCIPALES ---------
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Pedidos", f"{len(df_filtrado):,}")
+    col2.metric(
+        "Transporte costoso para su valor",
+        f"{(df_filtrado['costo_de_flete'] / df_filtrado['precio'] > 0.5).mean() * 100:.1f}%"
+    )
+    col3.metric(
+        "Llegadas muy adelantadas (≥1 semana)",
+        f"{(df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100:.1f}%"
+    )
+
+    # --------- TABLA HORIZONTAL: % Flete sobre Precio por Categoría ---------
+    st.subheader("💸 Relación Envío–Precio: ¿Gasto Justificado?")
+
+    df_precio = df_filtrado.copy()
+    df_precio['porcentaje_flete'] = (df_precio['costo_de_flete'] / df_precio['precio']) * 100
+
+    tabla = df_precio.groupby('Categoría')['porcentaje_flete'].mean().reset_index()
+    tabla = tabla.sort_values(by='porcentaje_flete', ascending=False)
+    max_val = tabla['porcentaje_flete'].max()
+    tabla['porcentaje_flete'] = tabla['porcentaje_flete'].apply(
+        lambda x: f"🔺 {x:.1f}%" if x == max_val else f"{x:.1f}%"
+    )
+
+    tabla_h = tabla.set_index('Categoría').T
+
+    def highlight_emoji_red(s):
+        return ['color: red; font-weight: bold' if '🔺' in str(v) else '' for v in s]
+
+    st.dataframe(
+        tabla_h.style.apply(highlight_emoji_red, axis=1),
+        use_container_width=True,
+        height=100,
+        hide_index=True
+    )
+
+    # --------- GRÁFICAS SUPERIORES ---------
+    col1, col2 = st.columns([1, 1])
+
+    # --------- BARRAS: Precio vs Flete por Categoría ---------
+    with col1:
+        totales = df_filtrado.groupby('Categoría')[['precio', 'costo_de_flete']].sum().reset_index()
+        totales = totales.sort_values(by='precio', ascending=False)
+
+        fig_totales = px.bar(
+            totales,
+            x='Categoría',
+            y=['precio', 'costo_de_flete'],
+            barmode='group',
+            labels={'value': 'Monto ($)', 'variable': 'Concepto'}
+        )
+        fig_totales.update_layout(
+            height=320,
+            xaxis_title=None,
+            yaxis_title=None,
+            margin=dict(t=40, b=40, l=10, r=10),
+            legend_title="",
+            legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5)
+        )
+        st.plotly_chart(fig_totales, use_container_width=True)
+
+    # --------- BARRAS 100%: % del Flete sobre Precio por Estado ---------
+    with col2:
+        st.subheader("💰 Relación del Flete sobre el Precio por Estado")
+
+        df_flete = df[(df['precio'] > 0) & (df['costo_de_flete'].notna())].copy()
+        df_flete['grupo_flete'] = pd.cut(
+            df_flete['costo_de_flete'] / df_flete['precio'],
+            bins=[0, 0.25, 0.5, float('inf')],
+            labels=["<25%", "25-50%", ">50%"],
+            right=True
+        )
+
+        conteo = df_flete.groupby(['estado_del_cliente', 'grupo_flete']).size().reset_index(name='conteo')
+        conteo['porcentaje'] = conteo['conteo'] / conteo.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
+
+        fig_flete_precio = px.bar(
+            conteo,
+            x='estado_del_cliente',
+            y='porcentaje',
+            color='grupo_flete',
+            labels={
+                'estado_del_cliente': 'Estado',
+                'porcentaje': 'Porcentaje',
+                'grupo_flete': 'Flete como % del Precio'
+            },
+            text_auto='.1f',
+            category_orders={'grupo_flete': ["<25%", "25-50%", ">50%"]}
+        )
+
+        fig_flete_precio.update_layout(
+            barmode='stack',
+            xaxis_title=None,
+            yaxis_title='Porcentaje (%)',
+            legend_title='Flete/Precio',
+            height=500
+        )
+
+        st.plotly_chart(fig_flete_precio, use_container_width=True)
 
 
     # ========================= CALCULADORA =========================
