@@ -147,9 +147,9 @@ with tabs[0]:
         )
         st.plotly_chart(fig_hist, use_container_width=True)
 
-        # --------- GRÁFICO DE BARRAS APILADAS POR ESTADO ---------
-        st.subheader("📦 Proporción de Tiempos de Entrega por Estado")
-
+      # --------- GRÁFICO DE BARRAS APILADAS POR ESTADO ---------
+        st.subheader("📦 Proporción de Días de Entrega por Estado")
+        
         df_tmp = df.copy()
         df_tmp['rango_entrega'] = pd.cut(
             df_tmp['dias_entrega'],
@@ -157,11 +157,15 @@ with tabs[0]:
             labels=["1-5 días", "6-10 días", "Más de 10 días"],
             right=True
         )
-
+        
+        # Agrupar correctamente por estado y rango_entrega
         conteo = df_tmp.groupby(['estado_del_cliente', 'rango_entrega']).size().reset_index(name='conteo')
+        
+        # Calcular porcentaje por estado
         total_por_estado = conteo.groupby('estado_del_cliente')['conteo'].transform('sum')
         conteo['porcentaje'] = conteo['conteo'] / total_por_estado * 100
-
+        
+        # Crear gráfico
         fig = px.bar(
             conteo,
             x='estado_del_cliente',
@@ -170,21 +174,22 @@ with tabs[0]:
             labels={
                 'estado_del_cliente': 'Estado',
                 'porcentaje': 'Porcentaje',
-                'rango_entrega': 'Rango'
+                'rango_entrega': 'Días de Entrega'
             },
-            title='⏱️ Tiempo de Entrega por Estado (Distribución %)',
+            title='⏱️ Días de Entrega por Estado (Distribución %)',
             text_auto='.1f'
         )
-
+        
         fig.update_layout(
             barmode='stack',
             xaxis_title=None,
             yaxis_title='Porcentaje (%)',
-            legend_title='Rango de Entrega',
+            legend_title='Días de Entrega',
             height=500
         )
-
+        
         st.plotly_chart(fig, use_container_width=True)
+
 
 
 
