@@ -163,7 +163,7 @@ if archivo_zip:
             
                        
             # --------- GRÁFICO DE PASTEL AGRUPANDO EN "Provincia" ---------
-            st.subheader("📍 Participación de Pedidos por Zona")
+            st.subheader("📍Pedidos por Zona")
             
             # Calcular conteo por estado
             conteo_pedidos = df['estado_del_cliente'].value_counts().reset_index()
@@ -204,7 +204,7 @@ if archivo_zip:
 
 
             # --------- BARRAS 100% APILADAS: ENTREGAS A TIEMPO VS TARDÍAS ---------
-            st.subheader("🚚 Distribución de Entregas Puntuales y Tardías por Estado")
+            st.subheader("🚚 Si somos puntuales, ¿Cuál es el problema?")
             
             # Crear columna de estatus
             df_tmp = df.copy()
@@ -220,8 +220,6 @@ if archivo_zip:
             orden_estados = conteo_estado[conteo_estado['estatus_entrega'] == 'A tiempo']\
                 .sort_values('porcentaje', ascending=False)['estado_del_cliente']
             
-            # Graficar
-            import plotly.express as px
             
             fig = px.bar(
                 conteo_estado,
@@ -255,7 +253,7 @@ if archivo_zip:
 
          
             # --------- BARRAS APILADAS POR ESTADO Y GRUPOS DE DÍAS DE ENTREGA ---------
-            st.subheader("📦 Distribución de Entrega por Estado y Grupos de Días")
+            st.subheader("📦 ¿Éxito logístico o maquillaje de tiempos?")
             
             # Clasificación de días
             df_tmp = df.copy()
@@ -336,7 +334,7 @@ if archivo_zip:
         )
 
         # --------- TABLA HORIZONTAL: % Flete sobre Precio por Categoría ---------
-        st.subheader("💸 % del Flete sobre el Precio")
+        st.subheader("💸 Relación Envío–Precio: ¿Gasto Justificado?")
 
         df_precio = df_filtrado.copy()
         df_precio['porcentaje_flete'] = (df_precio['costo_de_flete'] / df_precio['precio']) * 100
@@ -398,6 +396,8 @@ if archivo_zip:
             st.plotly_chart(fig, use_container_width=True)
 
         # --------- LAYOUT INFERIOR: BARRAS HORIZONTALES ---------
+        st.subheader("📦 La ilusión del cumplimiento: entregas puntuales con días de sobra")
+        
         if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
             import plotly.graph_objects as go
 
