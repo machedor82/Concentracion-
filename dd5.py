@@ -133,13 +133,23 @@ if archivo_zip:
             # Agrupar nuevamente
             conteo_zona = conteo_pedidos.groupby('Zona')['Pedidos'].sum().reset_index()
             
+            # Asignar colores
+            colores_personalizados = {
+                'Ciudad de México': '#005BAC',  # azul fuerte
+                'Nuevo León': '#4FA0D9',        # azul medio
+                'Jalisco': '#A7D3F4',           # azul claro
+                'Provincia': '#B0B0B0'          # gris
+            }
+            
             # Gráfico tipo dona
             fig_pie = px.pie(
                 conteo_zona,
                 names='Zona',
                 values='Pedidos',
-                title='📦 Participación de Pedidos por Zona (Principales vs Provincias)',
-                hole=0.4
+                title='📦 Participación de Pedidos por Zona (Principales vs Provincia)',
+                hole=0.4,
+                color='Zona',
+                color_discrete_map=colores_personalizados
             )
             
             fig_pie.update_traces(textinfo='percent+label')
@@ -147,37 +157,56 @@ if archivo_zip:
             st.plotly_chart(fig_pie, use_container_width=True)
 
 
-            # --------- PORCENTAJE DE ENTREGAS A TIEMPO POR ESTADO ---------
-            st.subheader("🚚 Porcentaje de Entregas a Tiempo por Estado")
+
+            # --------- BARRAS 100% APILADAS: ENTREGAS A TIEMPO VS TARDÍAS ---------
+            st.subheader("🚚 Distribución de Entregas Puntuales y Tardías por Estado")
             
-            # Crear columna booleana: True si llegó a tiempo
+            # Crear columna de estatus
             df_tmp = df.copy()
-            df_tmp['a_tiempo'] = df_tmp['llego_tarde'] == 0  # Asumiendo que 0 = a tiempo
+            df_tmp['estatus_entrega'] = df_tmp['llego_tarde'].apply(lambda x: 'A tiempo' if x == 0 else 'Tardío')
             
-            # Calcular % de entregas a tiempo por estado
-            porcentaje_tiempo = df_tmp.groupby('estado_del_cliente')['a_tiempo'].mean().reset_index()
-            porcentaje_tiempo['a_tiempo'] = porcentaje_tiempo['a_tiempo'] * 100
-            porcentaje_tiempo = porcentaje_tiempo.sort_values(by='a_tiempo', ascending=False)
+            # Agrupar por estado y estatus
+            conteo_estado = df_tmp.groupby(['estado_del_cliente', 'estatus_entrega']).size().reset_index(name='conteo')
             
-            # Crear gráfica
-            fig_tiempo = px.bar(
-                porcentaje_tiempo,
+            # Calcular % por estado
+            conteo_estado['porcentaje'] = conteo_estado['conteo'] / conteo_estado.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
+            
+            # Ordenar por % de entregas a tiempo
+            orden_estados = conteo_estado[conteo_estado['estatus_entrega'] == 'A tiempo']\
+                .sort_values('porcentaje', ascending=False)['estado_del_cliente']
+            
+            # Graficar
+            import plotly.express as px
+            
+            fig = px.bar(
+                conteo_estado,
                 x='estado_del_cliente',
-                y='a_tiempo',
-                text=porcentaje_tiempo['a_tiempo'].round(1).astype(str) + '%',
-                labels={'estado_del_cliente': 'Estado', 'a_tiempo': 'Entregas a Tiempo (%)'},
-                title='📦 Porcentaje de Entregas a Tiempo por Estado'
+                y='porcentaje',
+                color='estatus_entrega',
+                category_orders={'estado_del_cliente': orden_estados},
+                color_discrete_map={
+                    'A tiempo': '#1f77b4',   # azul
+                    'Tardío': '#B0B0B0'      # gris
+                },
+                labels={
+                    'estado_del_cliente': 'Estado',
+                    'porcentaje': 'Porcentaje',
+                    'estatus_entrega': 'Tipo de Entrega'
+                },
+                title='📦 Porcentaje de Entregas Puntuales vs Tardías por Estado (100%)',
+                text_auto='.1f'
             )
             
-            fig_tiempo.update_layout(
+            fig.update_layout(
+                barmode='stack',
                 xaxis_title=None,
                 yaxis_title='Porcentaje (%)',
+                legend_title='Tipo de Entrega',
                 height=500
             )
             
-            fig_tiempo.update_traces(textposition='outside')
-            
-            st.plotly_chart(fig_tiempo, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
+
 
          
             # --------- BARRAS APILADAS POR ESTADO Y GRUPOS DE DÍAS DE ENTREGA ---------
