@@ -9,7 +9,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
 # ---------------------------------------------------------------------------------------
-# ¡IMPORTANTE! set_page_config debe ser la primera llamada a Streamlit
+# ¡IMPORTANTE! set_page_config debe ser la primera llamada de Streamlit
 st.set_page_config(page_title="Cabrito Analytics Profesional", layout="wide")
 
 # ------------------ Inyectar CSS para branding ------------------
@@ -146,10 +146,7 @@ Analiza las métricas clave y la evolución temporal de forma clara.
         # 1) Barras por categoría
         fig1 = px.bar(
             agg_cat, x="Categoría", y=["Estimado", "Real"], barmode="group",
-            color_discrete_map={
-                "Estimado": "#003366",
-                "Real":      "#6699cc"
-            },
+            color_discrete_map={"Estimado": "#003366", "Real": "#6699cc"},
             labels={"value": "Días", "variable": "Tipo"},
             title="Estimado vs Real por Categoría",
             template="plotly_white"
@@ -167,10 +164,7 @@ Analiza las métricas clave y la evolución temporal de forma clara.
         # 2) Línea evolución mensual
         fig2 = px.line(
             agg_time, x="Fecha", y=["Estimado", "Real"],
-            color_discrete_map={
-                "Estimado": "#003366",
-                "Real":      "#6699cc"
-            },
+            color_discrete_map={"Estimado": "#003366", "Real": "#6699cc"},
             labels={"value": "Días", "variable": "Tipo"},
             title="Evolución Mensual",
             template="plotly_white"
@@ -194,10 +188,12 @@ Analiza las métricas clave y la evolución temporal de forma clara.
     with tabs[1]:
         st.header("🧮 Calculadora de Predicción")
 
+        # Preprocesar timestamps
         df2["orden_compra_timestamp"] = pd.to_datetime(df2["orden_compra_timestamp"])
-        df2["año"]  = df2["orden_compra_timestamp"].dt.year
-        df2["mes"]  = df2["orden_compra_timestamp"].dt.month
+        df2["año"] = df2["orden_compra_timestamp"].dt.year
+        df2["mes"] = df2["orden_compra_timestamp"].dt.month
 
+        # Inputs usuario
         estados2    = sorted(df2["estado_del_cliente"].dropna().unique())
         categorias2 = sorted(df2["Categoría"].dropna().unique())
         d1, d2 = st.columns(2)
@@ -214,12 +210,9 @@ Analiza las métricas clave y la evolución temporal de forma clara.
         m1 = [k for k,v in meses_map.items() if v==m1_name][0]
         m2 = [k for k,v in meses_map.items() if v==m2_name][0]
 
-        filt = (df2["estado_del_cliente"]==sel_e2)&(df2["Categoría"]==sel_c2)
-        dfm1 = df2[(df2["mes"]==m1)&filt].copy()
-        dfm2 = df2[(df2["mes"]==m2)&filt].copy()
-
         def predecir(df_i):
-            if df_i.empty: return df_i
+            if df_i.empty:
+                return df_i
             cols_f = [
                 "total_peso_g","precio","#_deproductos","duracion_estimada_min",
                 "ciudad_cliente","nombre_dc","hora_compra","año","mes",
@@ -235,12 +228,22 @@ Analiza las métricas clave y la evolución temporal de forma clara.
 
         def resumen(df_p, name):
             if "costo_estimado" not in df_p.columns:
-                return pd.DataFrame()
-            return df_p.groupby("ciudad_cliente").agg(**{name:("costo_estimado","mean")}).reset_index()
+                return pd.DataFrame(columns=["ciudad_cliente", name])
+            out = (
+                df_p.groupby("ciudad_cliente")["costo_estimado"]
+                .mean()
+                .reset_index()
+                .rename(columns={"costo_estimado": name})
+            )
+            return out
 
-        r1 = resumen(predecir(dfm1), m1_name)
-        r2 = resumen(predecir(dfm2), m2_name)
-        comp = r1.merge(r2, on="ciudad_cliente", how="outer")
+        r1 = resumen(predecir(df2[(df2["mes"]==m1)&(df2["estado_del_cliente"]==sel_e2)&(df2["Categoría"]==sel_c2)]), m1_name)
+        r2 = resumen(predecir(df2[(df2["mes"]==m2)&(df2["estado_del_cliente"]==sel_e2)&(df2["Categoría"]==sel_c2)]), m2_name)
+
+        # Merge sobre 'ciudad_cliente'
+        comp = pd.merge(r1, r2, on="ciudad_cliente", how="outer")
+        for col in [m1_name, m2_name]:
+            comp[col] = pd.to_numeric(comp[col], errors='coerce')
         comp["Diferencia"] = (comp[m2_name] - comp[m1_name]).round(2)
         comp.rename(columns={"ciudad_cliente":"Ciudad"}, inplace=True)
 
