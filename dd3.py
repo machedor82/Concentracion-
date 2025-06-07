@@ -47,36 +47,25 @@ st.set_page_config(page_title="Cabrito Analytics", layout="wide")
 # ===================== ESTILOS PERSONALIZADOS =====================
 st.markdown("""
     <style>
-        /* Fondo azul marino en zona principal */
         .main {
             background-color: #002244 !important;
         }
-
-        /* Texto en zona principal */
         .main > div {
             color: white;
         } 
-        /* Aumentar tamaño del texto de los títulos de métricas */
-[data-testid="stMetricLabel"] {
-    font-size: 1.5rem;
-    font-weight: 600;
-}
-
-
-        /* Sidebar blanco con texto azul marino */
+        [data-testid="stMetricLabel"] {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
         [data-testid="stSidebar"] {
             background-color: white !important;
         }
-
         [data-testid="stSidebar"] * {
             color: #002244 !important;
         }
-
         .stExpander > summary {
             color: #002244 !important;
         }
-
-        /* Compactar multiselect */
         .css-1wa3eu0 {
             display: none !important;
         }
@@ -89,9 +78,11 @@ st.markdown("""
         }
     </style>
 """, unsafe_allow_html=True)
-# ===================== ENCABEZADO Y CARGA DE ARCHIVO =====================
+
+# ===================== TABS =====================
 tabs = st.tabs(["📊 Resumen Nacional", "🏠 Dashboard", "🧮 Calculadora"])
 
+# ===================== SIDEBAR =====================
 with st.sidebar:
     st.image("danu_logo.png", use_container_width=True)
     st.header("Sube tu archivo ZIP")
@@ -113,23 +104,21 @@ if archivo_zip:
             st.error(f"❌ Faltan archivos en el ZIP: {faltantes}")
             st.stop()
 
-        # Cargar datos y modelos
+        # Cargar archivos
         df = pd.read_csv(z.open('DF.csv'))
         df2 = pd.read_csv(z.open('DF2.csv'))
         modelo_flete = joblib.load(z.open('modelo_costoflete.sav'))
         modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
         label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
-
-# ========== 📊 RESUMEN NACIONAL ==========
+# ===================== 📊 RESUMEN NACIONAL =====================
 with tabs[0]:
     st.title("📊 Resumen Nacional")
     st.info("Esta sección aún está en construcción. Pronto podrás ver un resumen agregado de la operación a nivel país.")
 
-    # 👇 Usa df sin filtrar
-    if 'dias_entrega' in df.columns:
+    if 'dias_entrega' in locals() and 'dias_entrega' in df.columns:
 
-        # --------- HISTOGRAMA: DISTRIBUCIÓN DE ENTREGA ---------
+        # --------- HISTOGRAMA DE ENTREGA ---------
         st.subheader("⏱️ Distribución de Tiempos de Entrega")
         fig_hist = px.histogram(
             df,
@@ -181,7 +170,6 @@ with tabs[0]:
             height=500
         )
         st.plotly_chart(fig_barras, use_container_width=True)
-
 
 
 
