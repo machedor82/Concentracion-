@@ -120,14 +120,16 @@ if archivo_zip:
         modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
         label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
-    # ===================== PESTAÑA 0: RESUMEN NACIONAL =====================
+
+     # ========== 📊 RESUMEN NACIONAL ==========
     with tabs[0]:
         st.title("📊 Resumen Nacional")
+        
+        st.info("Esta sección aún está en construcción. Pronto podrás ver un resumen agregado de la operación a nivel país.")
 
-    # --------- HISTOGRAMA: Distribución de Días de Entrega ---------
+        # 👇 Usa df sin filtrar
         if 'dias_entrega' in df.columns:
             st.subheader("⏱️ Distribución de Tiempos de Entrega")
-    
             fig_hist = px.histogram(
                 df,
                 x='dias_entrega',
@@ -142,8 +144,6 @@ if archivo_zip:
                 height=400
             )
             st.plotly_chart(fig_hist, use_container_width=True)
-        else:
-            st.warning("La columna 'dias_entrega' no está disponible en el dataset.")
 
 
     # ========================= PESTAÑA 1: DASHBOARD =========================
