@@ -108,182 +108,195 @@ if archivo_zip:
         modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
         label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
- # ===================== 📊 RESUMEN NACIONAL =====================
+# ===================== 📊 RESUMEN NACIONAL =====================
 with tabs[0]:
     st.title("📊 ¿Entrega Rápida o Margen Inflado?")
 
     if 'dias_entrega' in df.columns:
 
-        # ---------- 1. PARTICIPACIÓN DE PEDIDOS POR ZONA (Gráfico Dona) ----------
-        st.subheader("📍 Pedidos por Zona")
+        # ---------- NARRATIVA DE CONTEXTO ----------
+        st.markdown("""
+        **🔍 Diagnóstico Nacional de Entregas**
+        <br>
+        Este tablero explora tres ángulos clave: volumen de pedidos por zona, puntualidad por estado, y tiempos reales de entrega.
+        Aunque muchos pedidos parecen llegar “a tiempo”, ¿es eficiencia real o estamos inflando nuestras promesas?
+        """, unsafe_allow_html=True)
 
-        conteo_pedidos = df['estado_del_cliente'].value_counts().reset_index()
-        conteo_pedidos.columns = ['Estado', 'Pedidos']
+        # ================== FILA 1 ==================
+        col1, col2 = st.columns(2)
 
-        principales = ['Ciudad de México', 'Nuevo León', 'Jalisco']
-        conteo_pedidos['Zona'] = conteo_pedidos['Estado'].apply(lambda x: x if x in principales else 'Provincia')
+        with col1:
+            st.subheader("📍 Pedidos por Zona")
 
-        conteo_zona = conteo_pedidos.groupby('Zona')['Pedidos'].sum().reset_index()
+            conteo_pedidos = df['estado_del_cliente'].value_counts().reset_index()
+            conteo_pedidos.columns = ['Estado', 'Pedidos']
 
-        colores = {
-            'Ciudad de México': '#005BAC',
-            'Nuevo León': '#4FA0D9',
-            'Jalisco': '#A7D3F4',
-            'Provincia': '#B0B0B0'
-        }
+            principales = ['Ciudad de México', 'Nuevo León', 'Jalisco']
+            conteo_pedidos['Zona'] = conteo_pedidos['Estado'].apply(lambda x: x if x in principales else 'Provincia')
 
-        fig_pie = px.pie(
-            conteo_zona,
-            names='Zona',
-            values='Pedidos',
-            hole=0.4,
-            color='Zona',
-            color_discrete_map=colores
-        )
+            conteo_zona = conteo_pedidos.groupby('Zona')['Pedidos'].sum().reset_index()
 
-        fig_pie.update_traces(
-            textinfo='percent+label+value',
-            hovertemplate="<b>%{label}</b><br>Pedidos: %{value}<br>Porcentaje: %{percent}"
-        )
-        st.plotly_chart(fig_pie, use_container_width=True)
+            colores = {
+                'Ciudad de México': '#005BAC',
+                'Nuevo León': '#4FA0D9',
+                'Jalisco': '#A7D3F4',
+                'Provincia': '#B0B0B0'
+            }
 
-        # ---------- 2. ENTREGAS A TIEMPO VS TARDÍAS (Barras 100%) ----------
-        st.subheader("🚚 Si somos puntuales, ¿cuál es el problema?")
-
-        df_tmp = df.copy()
-        df_tmp['estatus_entrega'] = df_tmp['llego_tarde'].apply(lambda x: 'A tiempo' if x == 0 else 'Tardío')
-
-        conteo_estado = df_tmp.groupby(['estado_del_cliente', 'estatus_entrega']).size().reset_index(name='conteo')
-        conteo_estado['porcentaje'] = conteo_estado['conteo'] / conteo_estado.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
-
-        orden_estados = conteo_estado[conteo_estado['estatus_entrega'] == 'A tiempo']\
-            .sort_values('porcentaje', ascending=False)['estado_del_cliente']
-
-        fig = px.bar(
-            conteo_estado,
-            x='estado_del_cliente',
-            y='porcentaje',
-            color='estatus_entrega',
-            category_orders={'estado_del_cliente': orden_estados},
-            color_discrete_map={'A tiempo': '#A7D3F4', 'Tardío': '#B0B0B0'},
-            labels={
-                'estado_del_cliente': 'Estado',
-                'porcentaje': 'Porcentaje',
-                'estatus_entrega': 'Tipo de Entrega'
-            },
-            title='📦 Porcentaje de Entregas Puntuales vs Tardías por Estado (100%)',
-            text_auto='.1f'
-        )
-
-        fig.update_traces(
-            hovertemplate="<b>%{x}</b><br>%{color}: %{y:.1f}%"
-        )
-
-        fig.update_layout(
-            barmode='stack',
-            xaxis_title=None,
-            yaxis_title='Porcentaje (%)',
-            legend_title='Tipo de Entrega',
-            height=500
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
-
-        # ---------- 3. DISTRIBUCIÓN DE DÍAS DE ENTREGA (1-5, 6-10, >10) ----------
-        st.subheader("📦 ¿Éxito logístico o maquillaje de tiempos?")
-
-        df_tmp = df[df['dias_entrega'].notna()].copy()
-        df_tmp['grupo_dias'] = pd.cut(
-            df_tmp['dias_entrega'],
-            bins=[0, 5, 10, float('inf')],
-            labels=["1-5", "6-10", "Más de 10"],
-            right=True
-        )
-
-        conteo = df_tmp.groupby(['estado_del_cliente', 'grupo_dias']).size().reset_index(name='conteo')
-        conteo['porcentaje'] = conteo['conteo'] / conteo.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
-
-        orden_estados = conteo[conteo['grupo_dias'] == 'Más de 10']\
-            .sort_values(by='porcentaje', ascending=True)['estado_del_cliente']
-
-        colores_dias = {
-            "1-5": "#A7D3F4",
-            "6-10": "#4FA0D9",
-            "Más de 10": "#FF6B6B"
-        }
-
-        fig_barras = px.bar(
-            conteo,
-            x='estado_del_cliente',
-            y='porcentaje',
-            color='grupo_dias',
-            category_orders={'estado_del_cliente': orden_estados},
-            color_discrete_map=colores_dias,
-            labels={
-                'estado_del_cliente': 'Estado',
-                'porcentaje': 'Porcentaje',
-                'grupo_dias': 'Días de Entrega'
-            },
-            title='⏱️ Distribución % de Entregas por Estado (1-5, 6-10, Más de 10 días)',
-            text_auto='.1f'
-        )
-
-        fig_barras.update_layout(
-            barmode='stack',
-            xaxis_title=None,
-            yaxis_title='Porcentaje (%)',
-            legend_title='Días de Entrega',
-            height=500
-        )
-
-        st.plotly_chart(fig_barras, use_container_width=True)
-
-        # --------- 1. COMPARATIVA DÍAS DE ENTREGA VS COLCHÓN (Barras Horizontales) ---------
-        st.subheader("📦 La ilusión del cumplimiento: entregas puntuales con días de sobra")
-        
-        if {'dias_entrega', 'colchon_dias'}.issubset(df.columns):
-            import plotly.graph_objects as go
-        
-            medios = df.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
-            medios = medios.sort_values(by='dias_entrega', ascending=False)
-        
-            fig = go.Figure()
-            fig.add_trace(go.Bar(
-                y=medios['Categoría'],
-                x=medios['dias_entrega'],
-                name='Días Entrega',
-                orientation='h',
-                marker_color='#4FA0D9'
-            ))
-            fig.add_trace(go.Bar(
-                y=medios['Categoría'],
-                x=medios['colchon_dias'],
-                name='Colchón Días',
-                orientation='h',
-                marker_color='#B0B0B0'
-            ))
-        
-            promedio_entrega = medios['dias_entrega'].mean()
-            fig.add_shape(
-                type="line",
-                x0=promedio_entrega,
-                x1=promedio_entrega,
-                y0=-0.5,
-                y1=len(medios) - 0.5,
-                line=dict(color="blue", dash="dash"),
-                name='Promedio Entrega'
+            fig_pie = px.pie(
+                conteo_zona,
+                names='Zona',
+                values='Pedidos',
+                hole=0.4,
+                color='Zona',
+                color_discrete_map=colores
             )
-        
+
+            fig_pie.update_traces(
+                textinfo='percent+label+value',
+                hovertemplate="<b>%{label}</b><br>Pedidos: %{value}<br>Porcentaje: %{percent}"
+            )
+            st.plotly_chart(fig_pie, use_container_width=True)
+
+        with col2:
+            st.subheader("🚚 Si somos puntuales, ¿cuál es el problema?")
+
+            df_tmp = df.copy()
+            df_tmp['estatus_entrega'] = df_tmp['llego_tarde'].apply(lambda x: 'A tiempo' if x == 0 else 'Tardío')
+
+            conteo_estado = df_tmp.groupby(['estado_del_cliente', 'estatus_entrega']).size().reset_index(name='conteo')
+            conteo_estado['porcentaje'] = conteo_estado['conteo'] / conteo_estado.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
+
+            orden_estados = conteo_estado[conteo_estado['estatus_entrega'] == 'A tiempo']\
+                .sort_values('porcentaje', ascending=False)['estado_del_cliente']
+
+            fig = px.bar(
+                conteo_estado,
+                x='estado_del_cliente',
+                y='porcentaje',
+                color='estatus_entrega',
+                category_orders={'estado_del_cliente': orden_estados},
+                color_discrete_map={'A tiempo': '#A7D3F4', 'Tardío': '#B0B0B0'},
+                labels={
+                    'estado_del_cliente': 'Estado',
+                    'porcentaje': 'Porcentaje',
+                    'estatus_entrega': 'Tipo de Entrega'
+                },
+                text_auto='.1f'
+            )
+
+            fig.update_traces(
+                hovertemplate="<b>%{x}</b><br>%{color}: %{y:.1f}%"
+            )
+
             fig.update_layout(
-                barmode='group',
-                height=400,
-                xaxis_title='Días Promedio',
-                yaxis_title='Categoría',
-                margin=dict(t=40, b=40, l=80, r=10),
-                legend_title="Métrica"
+                barmode='stack',
+                xaxis_title=None,
+                yaxis_title='Porcentaje (%)',
+                legend_title='Tipo de Entrega',
+                height=500
             )
-        
+
             st.plotly_chart(fig, use_container_width=True)
+
+        # ================== FILA 2 ==================
+        col3, col4 = st.columns(2)
+
+        with col3:
+            st.subheader("📦 ¿Éxito logístico o maquillaje de tiempos?")
+
+            df_tmp = df[df['dias_entrega'].notna()].copy()
+            df_tmp['grupo_dias'] = pd.cut(
+                df_tmp['dias_entrega'],
+                bins=[0, 5, 10, float('inf')],
+                labels=["1-5", "6-10", "Más de 10"],
+                right=True
+            )
+
+            conteo = df_tmp.groupby(['estado_del_cliente', 'grupo_dias']).size().reset_index(name='conteo')
+            conteo['porcentaje'] = conteo['conteo'] / conteo.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
+
+            orden_estados = conteo[conteo['grupo_dias'] == 'Más de 10']\
+                .sort_values(by='porcentaje', ascending=True)['estado_del_cliente']
+
+            colores_dias = {
+                "1-5": "#A7D3F4",
+                "6-10": "#4FA0D9",
+                "Más de 10": "#FF6B6B"
+            }
+
+            fig_barras = px.bar(
+                conteo,
+                x='estado_del_cliente',
+                y='porcentaje',
+                color='grupo_dias',
+                category_orders={'estado_del_cliente': orden_estados},
+                color_discrete_map=colores_dias,
+                labels={
+                    'estado_del_cliente': 'Estado',
+                    'porcentaje': 'Porcentaje',
+                    'grupo_dias': 'Días de Entrega'
+                },
+                text_auto='.1f'
+            )
+
+            fig_barras.update_layout(
+                barmode='stack',
+                xaxis_title=None,
+                yaxis_title='Porcentaje (%)',
+                legend_title='Días de Entrega',
+                height=500
+            )
+
+            st.plotly_chart(fig_barras, use_container_width=True)
+
+        with col4:
+            st.subheader("📦 La ilusión del cumplimiento: entregas puntuales con días de sobra")
+
+            if {'dias_entrega', 'colchon_dias'}.issubset(df.columns):
+                import plotly.graph_objects as go
+
+                medios = df.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
+                medios = medios.sort_values(by='dias_entrega', ascending=False)
+
+                fig = go.Figure()
+                fig.add_trace(go.Bar(
+                    y=medios['Categoría'],
+                    x=medios['dias_entrega'],
+                    name='Días Entrega',
+                    orientation='h',
+                    marker_color='#4FA0D9'
+                ))
+                fig.add_trace(go.Bar(
+                    y=medios['Categoría'],
+                    x=medios['colchon_dias'],
+                    name='Colchón Días',
+                    orientation='h',
+                    marker_color='#B0B0B0'
+                ))
+
+                promedio_entrega = medios['dias_entrega'].mean()
+                fig.add_shape(
+                    type="line",
+                    x0=promedio_entrega,
+                    x1=promedio_entrega,
+                    y0=-0.5,
+                    y1=len(medios) - 0.5,
+                    line=dict(color="blue", dash="dash"),
+                    name='Promedio Entrega'
+                )
+
+                fig.update_layout(
+                    barmode='group',
+                    height=500,
+                    xaxis_title='Días Promedio',
+                    yaxis_title='Categoría',
+                    margin=dict(t=40, b=40, l=80, r=10),
+                    legend_title="Métrica"
+                )
+
+                st.plotly_chart(fig, use_container_width=True)
+
         
 
 
