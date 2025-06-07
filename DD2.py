@@ -89,7 +89,6 @@ st.markdown("""
         }
     </style>
 """, unsafe_allow_html=True)
-
 # ===================== ENCABEZADO Y CARGA DE ARCHIVO =====================
 tabs = st.tabs(["📊 Resumen Nacional", "🏠 Dashboard", "🧮 Calculadora"])
 
@@ -121,12 +120,12 @@ if archivo_zip:
         modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
         label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
+    # ===================== PESTAÑA 0: RESUMEN NACIONAL =====================
     with tabs[0]:
-    st.title("📊 Resumen Nacional")
-    st.info("Esta sección aún está en construcción. Pronto podrás ver un resumen agregado de la operación a nivel país.")
+        st.title("📊 Resumen Nacional")
+        st.info("Esta sección aún está en construcción. Pronto podrás ver un resumen agregado de la operación a nivel país.")
 
-    
-    # ========================= DASHBOARD =========================
+    # ========================= PESTAÑA 1: DASHBOARD =========================
     with tabs[1]:
 
         # --------- SIDEBAR FILTRO ---------
@@ -157,31 +156,20 @@ if archivo_zip:
 
         # --------- TABLA HORIZONTAL: % Flete sobre Precio por Categoría ---------
         st.subheader("💸 % del Flete sobre el Precio")
-       
-        # Calcular el porcentaje
+
         df_precio = df_filtrado.copy()
         df_precio['porcentaje_flete'] = (df_precio['costo_de_flete'] / df_precio['precio']) * 100
-        
-        # Agrupar por categoría
         tabla = df_precio.groupby('Categoría')['porcentaje_flete'].mean().reset_index()
         tabla = tabla.sort_values(by='porcentaje_flete', ascending=False)
-        
-        # Detectar el valor máximo
         max_val = tabla['porcentaje_flete'].max()
-        
-        # Agregar el emoji solo al valor más alto
         tabla['porcentaje_flete'] = tabla['porcentaje_flete'].apply(
             lambda x: f"🔺 {x:.1f}%" if x == max_val else f"{x:.1f}%"
         )
-        
-        # Transponer la tabla para vista horizontal
         tabla_h = tabla.set_index('Categoría').T
-        
-        # Función para aplicar color rojo solo al valor con el emoji
+
         def highlight_emoji_red(s):
             return ['color: red; font-weight: bold' if '🔺' in str(v) else '' for v in s]
-        
-        # Mostrar con estilo
+
         st.dataframe(
             tabla_h.style.apply(highlight_emoji_red, axis=1),
             use_container_width=True,
@@ -189,16 +177,13 @@ if archivo_zip:
             hide_index=True
         )
 
-
-        # --------- LAYOUT SUPERIOR: FLETE/PRECIO + MAPA ---------
-        # --------- LAYOUT SUPERIOR COMPACTO ---------
+        # --------- LAYOUT SUPERIOR: BARRAS + HEATMAP ---------
         col1, col2 = st.columns([1, 1])
-        
+
         with col1:
-            
             totales = df_filtrado.groupby('Categoría')[['precio', 'costo_de_flete']].sum().reset_index()
             totales = totales.sort_values(by='precio', ascending=False)
-        
+
             fig_totales = px.bar(
                 totales,
                 x='Categoría',
@@ -215,7 +200,7 @@ if archivo_zip:
                 legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5)
             )
             st.plotly_chart(fig_totales, use_container_width=True)
-        
+
         with col2:
             df_heat = df_filtrado.copy()
             df_heat['dia_semana'] = pd.to_datetime(df_heat['orden_compra_timestamp']).dt.day_name()
@@ -231,16 +216,13 @@ if archivo_zip:
             )
             st.plotly_chart(fig, use_container_width=True)
 
-        
-        # --------- GRÁFICA HORIZONTAL COMPACTA ---------
-        
-        
+        # --------- LAYOUT INFERIOR: BARRAS HORIZONTALES ---------
         if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
             import plotly.graph_objects as go
-        
+
             medios = df_filtrado.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
             medios = medios.sort_values(by='dias_entrega', ascending=False)
-        
+
             fig = go.Figure()
             fig.add_trace(go.Bar(
                 y=medios['Categoría'],
@@ -254,7 +236,7 @@ if archivo_zip:
                 name='Colchón Días',
                 orientation='h'
             ))
-        
+
             promedio_entrega = medios['dias_entrega'].mean()
             fig.add_shape(
                 type="line",
@@ -264,7 +246,7 @@ if archivo_zip:
                 y1=len(medios) - 0.5,
                 line=dict(color="blue", dash="dash")
             )
-        
+
             fig.update_layout(
                 barmode='group',
                 height=350,
@@ -273,8 +255,9 @@ if archivo_zip:
                 margin=dict(t=40, b=40, l=10, r=10),
                 legend_title="Métrica"
             )
-        
+
             st.plotly_chart(fig, use_container_width=True)
+
         
 
 
