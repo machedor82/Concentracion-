@@ -91,7 +91,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ===================== ENCABEZADO Y CARGA DE ARCHIVO =====================
-tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora"])
+tabs = st.tabs(["📊 Resumen Nacional", "🏠 Dashboard", "🧮 Calculadora"])
 
 with st.sidebar:
     st.image("danu_logo.png", use_container_width=True)
@@ -121,8 +121,13 @@ if archivo_zip:
         modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
         label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
-    # ========================= DASHBOARD =========================
     with tabs[0]:
+    st.title("📊 Resumen Nacional")
+    st.info("Esta sección aún está en construcción. Pronto podrás ver un resumen agregado de la operación a nivel país.")
+
+    
+    # ========================= DASHBOARD =========================
+    with tabs[1]:
 
         # --------- SIDEBAR FILTRO ---------
         with st.sidebar:
@@ -274,7 +279,7 @@ if archivo_zip:
 
 
     # ========================= CALCULADORA =========================
-    with tabs[1]:
+    with tabs[2]:
         st.header("🧮 Calculadora de Predicción")
 
         # Convertir timestamp y extraer año/mes
