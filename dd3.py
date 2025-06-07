@@ -113,7 +113,6 @@ if archivo_zip:
     # ========== 📊 RESUMEN NACIONAL ==========
     with tabs[0]:
         st.title("📊 Resumen Nacional")
-        st.info("Esta sección aún está en construcción. Pronto podrás ver un resumen agregado de la operación a nivel país.")
 
         if 'dias_entrega' in df.columns:
             # --------- HISTOGRAMA ---------
@@ -176,6 +175,35 @@ if archivo_zip:
             )
             
             st.plotly_chart(fig_barras, use_container_width=True)
+
+                # --------- TOP 3 CATEGORÍAS MÁS VENDIDAS POR ESTADO ---------
+            st.subheader("🏆 Top 3 Categorías más Vendidas por Estado")
+            
+            # Agrupar por estado y categoría, contar pedidos
+            top_categorias = (
+                df.groupby(['estado_del_cliente', 'Categoría'])['order_id']
+                .count()
+                .reset_index(name='total_pedidos')
+            )
+            
+            # Ordenar y seleccionar top 3 por estado
+            top3 = (
+                top_categorias
+                .sort_values(['estado_del_cliente', 'total_pedidos'], ascending=[True, False])
+                .groupby('estado_del_cliente')
+                .head(3)
+            )
+            
+            # Crear una columna con posición (1°, 2°, 3°)
+            top3['posición'] = top3.groupby('estado_del_cliente').cumcount() + 1
+            top3['posición'] = top3['posición'].astype(str) + '° Lugar'
+            
+            # Pivotear para poner en formato horizontal
+            tabla_top3 = top3.pivot(index='posición', columns='estado_del_cliente', values='Categoría')
+            
+            # Mostrar
+            st.dataframe(tabla_top3, use_container_width=True, height=90)
+
 
 
     # ========================= PESTAÑA 1: DASHBOARD =========================
