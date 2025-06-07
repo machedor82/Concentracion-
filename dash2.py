@@ -9,7 +9,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
 # ---------------------------------------------------------------------------------------
-# ¡IMPORTANTE! set_page_config DEBE SER LA PRIMERA LLAMADA DE STREAMLIT
+# ¡IMPORTANTE! set_page_config debe ser la primera llamada a Streamlit
 st.set_page_config(page_title="Cabrito Analytics Profesional", layout="wide")
 
 # ------------------ Inyectar CSS para branding ------------------
@@ -147,8 +147,8 @@ Analiza las métricas clave y la evolución temporal de forma clara.
         fig1 = px.bar(
             agg_cat, x="Categoría", y=["Estimado", "Real"], barmode="group",
             color_discrete_map={
-                "Estimado": "var(--primary-blue)",
-                "Real":      "var(--secondary-blue)"
+                "Estimado": "#003366",
+                "Real":      "#6699cc"
             },
             labels={"value": "Días", "variable": "Tipo"},
             title="Estimado vs Real por Categoría",
@@ -157,7 +157,7 @@ Analiza las métricas clave y la evolución temporal de forma clara.
         fig1.add_hline(
             y=agg_cat["Real"].median(),
             line_dash="dash",
-            line_color="var(--secondary-blue)",
+            line_color="#6699cc",
             annotation_text="Mediana Real",
             annotation_position="top right"
         )
@@ -168,8 +168,8 @@ Analiza las métricas clave y la evolución temporal de forma clara.
         fig2 = px.line(
             agg_time, x="Fecha", y=["Estimado", "Real"],
             color_discrete_map={
-                "Estimado": "var(--primary-blue)",
-                "Real":      "var(--secondary-blue)"
+                "Estimado": "#003366",
+                "Real":      "#6699cc"
             },
             labels={"value": "Días", "variable": "Tipo"},
             title="Evolución Mensual",
@@ -184,7 +184,7 @@ Analiza las métricas clave y la evolución temporal de forma clara.
             top10, x="Categoría", y="Desfase",
             labels={"Desfase": "Días de desfase"},
             title="Top 10 Categorías con Mayor Desfase",
-            color_discrete_sequence=["var(--primary-blue)"],
+            color_discrete_sequence=["#003366"],
             template="plotly_white"
         )
         fig3.update_layout(margin=dict(l=10, r=10, t=35, b=10), height=300)
