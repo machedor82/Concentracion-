@@ -108,11 +108,11 @@ with tabs[0]:
 
        # --------- MÉTRICAS PRINCIPALES ---------
     col1, col2 = st.columns(2)
-    col1.metric("Pedidos", f"{len(df_filtrado):,}")
+    col1.metric("Pedidos", f"{len(df):,}")
    
     col2.metric(
         "Llegadas muy adelantadas (≥1 semana)",
-        f"{(df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100:.1f}%"
+        f"{(df['desviacion_vs_promesa'] < -7).mean() * 100:.1f}%"
     )
 
 
