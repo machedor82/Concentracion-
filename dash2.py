@@ -57,7 +57,7 @@ if archivo:
         st.subheader("Filtros de Dashboard")
 
         # Estados
-        if st.button("Seleccionar todo", key="btn_est"):
+        if st.button("Seleccionar todos los Estados", key="btn_est"):
             st.session_state.sel_est = estados.copy()
         sel_est = st.multiselect(
             "Estados", estados,
@@ -66,7 +66,7 @@ if archivo:
         )
 
         # Categorías
-        if st.button("Seleccionar todo", key="btn_cat"):
+        if st.button("Seleccionar todas las categorías", key="btn_cat"):
             st.session_state.sel_cat = categorias.copy()
         sel_cat = st.multiselect(
             "Categorías", categorias,
