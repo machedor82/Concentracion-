@@ -152,15 +152,34 @@ if archivo_zip:
 
         # --------- TABLA HORIZONTAL: % Flete sobre Precio por Categoría ---------
         st.subheader("💸 % del Flete sobre el Precio")
+        
+        # Calcular el porcentaje de flete
         df_precio = df_filtrado.copy()
         df_precio['porcentaje_flete'] = (df_precio['costo_de_flete'] / df_precio['precio']) * 100
-
+        
+        # Agrupar por categoría y formatear
         tabla = df_precio.groupby('Categoría')['porcentaje_flete'].mean().reset_index()
         tabla = tabla.sort_values(by='porcentaje_flete', ascending=False)
-        tabla['porcentaje_flete'] = tabla['porcentaje_flete'].round(1).astype(str) + '%'
-
+        
+        # Guardar el valor más alto para estilizar
+        max_val = tabla['porcentaje_flete'].max()
+        
+        # Formatear como porcentaje string
+        tabla['porcentaje_flete'] = tabla['porcentaje_flete'].round(1)
+        
+        # Transponer tabla para horizontal
         tabla_h = tabla.set_index('Categoría').T
-        st.dataframe(tabla_h, use_container_width=True, height=100)
+        
+        # Estilo condicional: resaltar el valor más alto en rojo
+        def highlight_max(s):
+            return ['color: red; font-weight: bold' if v == max_val else '' for v in s]
+        
+        st.dataframe(
+            tabla_h.style.apply(highlight_max, axis=1).format("{:.1f}%"),
+            use_container_width=True,
+            height=100,
+            hide_index=True
+        )
 
         # --------- LAYOUT SUPERIOR: FLETE/PRECIO + MAPA ---------
         # --------- LAYOUT SUPERIOR COMPACTO ---------
