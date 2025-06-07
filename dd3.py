@@ -112,7 +112,7 @@ if archivo_zip:
 
     # ========== 📊 RESUMEN NACIONAL ==========
     with tabs[0]:
-        st.title("📊 Resumen Nacional")
+        st.title("📊 ¿Entrega Rápida o Margen Inflado? ")
 
         if 'dias_entrega' in df.columns:
              # --------- TOP 3 CATEGORÍAS MÁS VENDIDAS POR ESTADO ---------
@@ -143,7 +143,26 @@ if archivo_zip:
             # Mostrar
             st.dataframe(tabla_top3, use_container_width=True, height=90)
 
-            # --------- BARRAS APILADAS POR ESTADO Y GRUPOS DE DÍAS DE ENTREGA ---------
+            # --------- GRÁFICO DE PASTEL: PROPORCIÓN DE PEDIDOS POR ESTADO ---------
+            st.subheader("📍 Proporción de Pedidos por Estado")
+            
+            conteo_pedidos = df['estado_del_cliente'].value_counts().reset_index()
+            conteo_pedidos.columns = ['Estado', 'Pedidos']
+            
+            fig_pie = px.pie(
+                conteo_pedidos,
+                names='Estado',
+                values='Pedidos',
+                title='📦 Participación de cada Estado en el Total de Pedidos',
+                hole=0.4  # Para estilo tipo dona
+            )
+            
+            fig_pie.update_traces(textinfo='percent+label')
+            
+            st.plotly_chart(fig_pie, use_container_width=True)
+
+
+         
             # --------- BARRAS APILADAS POR ESTADO Y GRUPOS DE DÍAS DE ENTREGA ---------
             st.subheader("📦 Distribución de Entrega por Estado y Grupos de Días")
             
