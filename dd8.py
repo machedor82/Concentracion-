@@ -74,7 +74,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ===================== INTERFAZ BÁSICA =====================
-tabs = st.tabs(["📊 Resumen Nacional", "🏠 Dashboard", "🧮 Calculadora"])
+tabs = st.tabs(["📊 Resumen Nacional", "🏠 Costo de Envío", "🧮 Calculadora","App Danu 📈"])
 
 with st.sidebar:
     st.image("danu_logo.png", use_container_width=True)
@@ -305,17 +305,13 @@ with tabs[1]:
     df_filtrado = df.copy() if estado_sel == "Nacional" else df[df['estado_del_cliente'] == estado_sel]
 
     # --------- MÉTRICAS PRINCIPALES ---------
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     col1.metric("Pedidos", f"{len(df_filtrado):,}")
     col2.metric(
         "Transporte costoso para su valor",
         f"{(df_filtrado['costo_de_flete'] / df_filtrado['precio'] > 0.5).mean() * 100:.1f}%"
     )
-    col3.metric(
-        "Llegadas muy adelantadas (≥1 semana)",
-        f"{(df_filtrado['desviacion_vs_promesa'] < -7).mean() * 100:.1f}%"
-    )
-
+   
     # --------- TABLA HORIZONTAL: % Flete sobre Precio por Categoría ---------
     st.subheader("💸 Relación Envío–Precio: ¿Gasto Justificado?")
 
@@ -341,35 +337,90 @@ with tabs[1]:
         hide_index=True
     )
 
-    # --------- GRÁFICAS SUPERIORES ---------
-    col1, col2 = st.columns([1, 1])
-
-    # --------- BARRAS: Precio vs Flete por Categoría ---------
+  
+    # --------- COMPARATIVA: Precio vs Flete  |  Peso vs Flete ---------
+    col1, col2 = st.columns(2)
+    
     with col1:
+        st.subheader("💸 Relación Envío–Precio: ¿Gasto Justificado?")
+    
         totales = df_filtrado.groupby('Categoría')[['precio', 'costo_de_flete']].sum().reset_index()
         totales = totales.sort_values(by='precio', ascending=False)
-
+    
         fig_totales = px.bar(
             totales,
             x='Categoría',
             y=['precio', 'costo_de_flete'],
             barmode='group',
-            labels={'value': 'Monto ($)', 'variable': 'Concepto'}
+            labels={'value': 'Monto ($)', 'variable': 'Concepto'},
+            color_discrete_map={
+                'precio': '#005BAC',
+                'costo_de_flete': '#4FA0D9'
+            }
         )
+    
         fig_totales.update_layout(
-            height=320,
+            height=360,
             xaxis_title=None,
             yaxis_title=None,
-            margin=dict(t=40, b=40, l=10, r=10),
+            margin=dict(t=40, b=60, l=10, r=10),
             legend_title="",
-            legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5)
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=-0.3,
+                xanchor="center",
+                x=0.5
+            )
         )
+    
+        fig_totales.update_traces(
+            hovertemplate="<b>%{x}</b><br>%{legendgroup}: %{y:,.0f} $<extra></extra>"
+        )
+    
+        fig_totales.update_xaxes(tickangle=-40)
         st.plotly_chart(fig_totales, use_container_width=True)
-
-    # --------- BARRAS 100%: % del Flete sobre Precio por Estado ---------
-
+    
+    with col2:
+        st.subheader("⚖️ Relación Peso–Costo de Envío")
+    
+        pesos = df_filtrado.groupby('Categoría')[['total_peso_g', 'costo_de_flete']].sum().reset_index()
+        pesos = pesos.sort_values(by='total_peso_g', ascending=False)
+    
+        fig_pesos = px.bar(
+            pesos,
+            x='Categoría',
+            y=['total_peso_g', 'costo_de_flete'],
+            barmode='group',
+            labels={'value': 'Total', 'variable': 'Concepto'},
+            color_discrete_map={
+                'total_peso_g': '#8888CC',
+                'costo_de_flete': '#4FA0D9'
+            }
+        )
+    
+        fig_pesos.update_layout(
+            height=360,
+            xaxis_title=None,
+            yaxis_title=None,
+            margin=dict(t=40, b=60, l=10, r=10),
+            legend_title="",
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=-0.3,
+                xanchor="center",
+                x=0.5
+            )
+        )
+    
+        fig_pesos.update_traces(
+            hovertemplate="<b>%{x}</b><br>%{legendgroup}: %{y:,.0f}<extra></extra>"
+        )
+    
+        fig_pesos.update_xaxes(tickangle=-40)
+        st.plotly_chart(fig_pesos, use_container_width=True)
      
-
 
     # ========================= CALCULADORA =========================
     with tabs[2]:
