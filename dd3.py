@@ -52,7 +52,7 @@ st.markdown("""
         }
         .main > div {
             color: white;
-        } 
+        }
         [data-testid="stMetricLabel"] {
             font-size: 1.5rem;
             font-weight: 600;
@@ -79,16 +79,15 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ===================== TABS =====================
+# ===================== INTERFAZ BÁSICA =====================
 tabs = st.tabs(["📊 Resumen Nacional", "🏠 Dashboard", "🧮 Calculadora"])
 
-# ===================== SIDEBAR =====================
 with st.sidebar:
     st.image("danu_logo.png", use_container_width=True)
     st.header("Sube tu archivo ZIP")
     archivo_zip = st.file_uploader("ZIP con DF.csv, DF2.csv y modelos", type="zip")
 
-# ===================== PROCESAMIENTO DEL ZIP =====================
+# ===================== CARGA Y PROCESAMIENTO DE DATOS =====================
 if archivo_zip:
     with zipfile.ZipFile(archivo_zip) as z:
         requeridos = [
@@ -104,72 +103,69 @@ if archivo_zip:
             st.error(f"❌ Faltan archivos en el ZIP: {faltantes}")
             st.stop()
 
-        # Cargar archivos
+        # ✅ Cargar los datos
         df = pd.read_csv(z.open('DF.csv'))
         df2 = pd.read_csv(z.open('DF2.csv'))
         modelo_flete = joblib.load(z.open('modelo_costoflete.sav'))
         modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
         label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
-# ===================== 📊 RESUMEN NACIONAL =====================
-with tabs[0]:
-    st.title("📊 Resumen Nacional")
-    st.info("Esta sección aún está en construcción. Pronto podrás ver un resumen agregado de la operación a nivel país.")
+    # ========== 📊 RESUMEN NACIONAL ==========
+    with tabs[0]:
+        st.title("📊 Resumen Nacional")
+        st.info("Esta sección aún está en construcción. Pronto podrás ver un resumen agregado de la operación a nivel país.")
 
-    if 'dias_entrega' in locals() and 'dias_entrega' in df.columns:
+        if 'dias_entrega' in df.columns:
+            # --------- HISTOGRAMA ---------
+            st.subheader("⏱️ Distribución de Tiempos de Entrega")
+            fig_hist = px.histogram(
+                df,
+                x='dias_entrega',
+                nbins=30,
+                labels={'dias_entrega': 'Días entre orden y entrega'},
+                title="Distribución de pedidos por días de entrega"
+            )
+            fig_hist.update_layout(
+                xaxis_title="Días de entrega",
+                yaxis_title="Número de pedidos",
+                bargap=0.1,
+                height=400
+            )
+            st.plotly_chart(fig_hist, use_container_width=True)
 
-        # --------- HISTOGRAMA DE ENTREGA ---------
-        st.subheader("⏱️ Distribución de Tiempos de Entrega")
-        fig_hist = px.histogram(
-            df,
-            x='dias_entrega',
-            nbins=30,
-            labels={'dias_entrega': 'Días entre orden y entrega'},
-            title="Distribución de pedidos por días de entrega"
-        )
-        fig_hist.update_layout(
-            xaxis_title="Días de entrega",
-            yaxis_title="Número de pedidos",
-            bargap=0.1,
-            height=400
-        )
-        st.plotly_chart(fig_hist, use_container_width=True)
+            # --------- BARRAS APILADAS POR ESTADO ---------
+            st.subheader("📦 Proporción de Días de Entrega por Estado")
+            df_tmp = df.copy()
+            df_tmp['rango_entrega'] = pd.cut(
+                df_tmp['dias_entrega'],
+                bins=[0, 5, 10, float('inf')],
+                labels=["1-5 días", "6-10 días", "Más de 10 días"],
+                right=True
+            )
+            conteo = df_tmp.groupby(['estado_del_cliente', 'rango_entrega']).size().reset_index(name='conteo')
+            conteo['porcentaje'] = conteo['conteo'] / conteo.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
 
-        # --------- BARRAS APILADAS: PROPORCIÓN POR ESTADO ---------
-        st.subheader("📦 Proporción de Días de Entrega por Estado")
-
-        df_tmp = df.copy()
-        df_tmp['rango_entrega'] = pd.cut(
-            df_tmp['dias_entrega'],
-            bins=[0, 5, 10, float('inf')],
-            labels=["1-5 días", "6-10 días", "Más de 10 días"],
-            right=True
-        )
-
-        conteo = df_tmp.groupby(['estado_del_cliente', 'rango_entrega']).size().reset_index(name='conteo')
-        conteo['porcentaje'] = conteo['conteo'] / conteo.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
-
-        fig_barras = px.bar(
-            conteo,
-            x='estado_del_cliente',
-            y='porcentaje',
-            color='rango_entrega',
-            labels={
-                'estado_del_cliente': 'Estado',
-                'porcentaje': 'Porcentaje',
-                'rango_entrega': 'Días de Entrega'
-            },
-            title='⏱️ Días de Entrega por Estado (Distribución %)',
-            text_auto='.1f'
-        )
-        fig_barras.update_layout(
-            barmode='stack',
-            xaxis_title=None,
-            yaxis_title='Porcentaje (%)',
-            legend_title='Días de Entrega',
-            height=500
-        )
-        st.plotly_chart(fig_barras, use_container_width=True)
+            fig_barras = px.bar(
+                conteo,
+                x='estado_del_cliente',
+                y='porcentaje',
+                color='rango_entrega',
+                labels={
+                    'estado_del_cliente': 'Estado',
+                    'porcentaje': 'Porcentaje',
+                    'rango_entrega': 'Días de Entrega'
+                },
+                title='⏱️ Días de Entrega por Estado (Distribución %)',
+                text_auto='.1f'
+            )
+            fig_barras.update_layout(
+                barmode='stack',
+                xaxis_title=None,
+                yaxis_title='Porcentaje (%)',
+                legend_title='Días de Entrega',
+                height=500
+            )
+            st.plotly_chart(fig_barras, use_container_width=True)
 
 
 
