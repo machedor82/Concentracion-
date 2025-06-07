@@ -9,7 +9,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
 # ---------------------------------------------------------------------------------------
-# ¡IMPORTANTE! set_page_config debe ser la primera llamada de Streamlit
+# ¡IMPORTANTE! set_page_config debe ser la primera llamada a Streamlit
 st.set_page_config(page_title="Cabrito Analytics Profesional", layout="wide")
 
 # ------------------ Inyectar CSS para branding ------------------
@@ -146,8 +146,11 @@ Analiza las métricas clave y la evolución temporal de forma clara.
         # 1) Barras por categoría
         fig1 = px.bar(
             agg_cat, x="Categoría", y=["Estimado", "Real"], barmode="group",
-            color_discrete_map={"Estimado":"#003366","Real":"#6699cc"},
-            labels={"value":"Días","variable":"Tipo"},
+            color_discrete_map={
+                "Estimado": "#003366",
+                "Real":      "#6699cc"
+            },
+            labels={"value": "Días", "variable": "Tipo"},
             title="Estimado vs Real por Categoría",
             template="plotly_white"
         )
@@ -164,8 +167,11 @@ Analiza las métricas clave y la evolución temporal de forma clara.
         # 2) Línea evolución mensual
         fig2 = px.line(
             agg_time, x="Fecha", y=["Estimado", "Real"],
-            color_discrete_map={"Estimado":"#003366","Real":"#6699cc"},
-            labels={"value":"Días","variable":"Tipo"},
+            color_discrete_map={
+                "Estimado": "#003366",
+                "Real":      "#6699cc"
+            },
+            labels={"value": "Días", "variable": "Tipo"},
             title="Evolución Mensual",
             template="plotly_white"
         )
@@ -176,7 +182,7 @@ Analiza las métricas clave y la evolución temporal de forma clara.
         top10 = agg_cat.nlargest(10, "Desfase")
         fig3 = px.bar(
             top10, x="Categoría", y="Desfase",
-            labels={"Desfase":"Días de desfase"},
+            labels={"Desfase": "Días de desfase"},
             title="Top 10 Categorías con Mayor Desfase",
             color_discrete_sequence=["#003366"],
             template="plotly_white"
@@ -208,6 +214,10 @@ Analiza las métricas clave y la evolución temporal de forma clara.
         m1 = [k for k,v in meses_map.items() if v==m1_name][0]
         m2 = [k for k,v in meses_map.items() if v==m2_name][0]
 
+        filt = (df2["estado_del_cliente"]==sel_e2)&(df2["Categoría"]==sel_c2)
+        dfm1 = df2[(df2["mes"]==m1)&filt].copy()
+        dfm2 = df2[(df2["mes"]==m2)&filt].copy()
+
         def predecir(df_i):
             if df_i.empty: return df_i
             cols_f = [
@@ -225,24 +235,14 @@ Analiza las métricas clave y la evolución temporal de forma clara.
 
         def resumen(df_p, name):
             if "costo_estimado" not in df_p.columns:
-                return pd.DataFrame(columns=["Ciudad", name])
-            out = (
-                df_p.groupby("ciudad_cliente")["costo_estimado"]
-                .mean()
-                .reset_index()
-                .rename(columns={"ciudad_cliente":"Ciudad", "costo_estimado":name})
-            )
-            return out
+                return pd.DataFrame()
+            return df_p.groupby("ciudad_cliente").agg(**{name:("costo_estimado","mean")}).reset_index()
 
-        r1 = resumen(predecir(df2[(df2["mes"]==m1)&(df2["estado_del_cliente"]==sel_e2)&(df2["Categoría"]==sel_c2)]), m1_name)
-        r2 = resumen(predecir(df2[(df2["mes"]==m2)&(df2["estado_del_cliente"]==sel_e2)&(df2["Categoría"]==sel_c2)]), m2_name)
-
-        comp = pd.merge(r1, r2, on="Ciudad", how="outer")
-        # Asegurar que existan ambas columnas
-        for col in [m1_name, m2_name]:
-            if col not in comp.columns:
-                comp[col] = np.nan
+        r1 = resumen(predecir(dfm1), m1_name)
+        r2 = resumen(predecir(dfm2), m2_name)
+        comp = r1.merge(r2, on="ciudad_cliente", how="outer")
         comp["Diferencia"] = (comp[m2_name] - comp[m1_name]).round(2)
+        comp.rename(columns={"ciudad_cliente":"Ciudad"}, inplace=True)
 
         st.dataframe(comp.style.format(precision=2))
         st.download_button("⬇️ Descargar CSV", comp.to_csv(index=False), file_name="comparacion.csv")
