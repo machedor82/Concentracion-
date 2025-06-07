@@ -89,6 +89,7 @@ with st.sidebar:
 
 # ===================== CARGA Y PROCESAMIENTO DE DATOS =====================
 if archivo_zip:
+    import io
     with zipfile.ZipFile(archivo_zip) as z:
         requeridos = [
             'DF.csv', 'DF2.csv',
@@ -102,25 +103,34 @@ if archivo_zip:
             st.error(f"❌ Faltan archivos en el ZIP: {faltantes}")
             st.stop()
 
+        # Leer los archivos
         df = pd.read_csv(z.open('DF.csv'))
         df2 = pd.read_csv(z.open('DF2.csv'))
-        modelo_flete = joblib.load(z.open('modelo_costoflete.sav'))
-        modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
-        label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
 
-  # ===================== 📊 RESUMEN NACIONAL =====================
+        # Leer modelos desde memoria con BytesIO
+        modelo_flete = joblib.load(io.BytesIO(z.read('modelo_costoflete.sav')))
+        modelo_dias = joblib.load(io.BytesIO(z.read('modelo_dias_pipeline.joblib')))
+        label_encoder = joblib.load(io.BytesIO(z.read('label_encoder_dias.joblib')))
+
+        # Guardar en session_state para uso en otras pestañas
+        st.session_state.df = df
+        st.session_state.df2 = df2
+        st.session_state.modelo_flete = modelo_flete
+        st.session_state.modelo_dias = modelo_dias
+        st.session_state.label_encoder = label_encoder
+
+# ===================== 📊 RESUMEN NACIONAL =====================
 with tabs[0]:
     st.title("📊 ¿Entrega Rápida o Margen Inflado?")
 
-    if 'dias_entrega' in df.columns:
+    if 'df' in st.session_state and 'dias_entrega' in st.session_state.df.columns:
+        df = st.session_state.df
 
-        # --------- 1. COMPARATIVA DÍAS DE ENTREGA VS COLCHÓN (Barras Horizontales) ---------
+        # --------- 1. COMPARATIVA DÍAS DE ENTREGA VS COLCHÓN ---------
         st.subheader("📦 La ilusión del cumplimiento: entregas puntuales con días de sobra")
 
-        if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
-            import plotly.graph_objects as go
-
-            medios = df_filtrado.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
+        if {'dias_entrega', 'colchon_dias', 'Categoría'}.issubset(df.columns):
+            medios = df.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
             medios = medios.sort_values(by='dias_entrega', ascending=False)
 
             fig = go.Figure()
@@ -158,7 +168,7 @@ with tabs[0]:
 
             st.plotly_chart(fig, use_container_width=True)
 
-        # --------- 2. PARTICIPACIÓN DE PEDIDOS POR ZONA (Gráfico Dona) ---------
+        # --------- 2. PARTICIPACIÓN DE PEDIDOS POR ZONA ---------
         st.subheader("📍 Pedidos por Zona")
 
         conteo_pedidos = df['estado_del_cliente'].value_counts().reset_index()
@@ -187,7 +197,7 @@ with tabs[0]:
         fig_pie.update_traces(textinfo='percent+label')
         st.plotly_chart(fig_pie, use_container_width=True)
 
-        # --------- 3. ENTREGAS A TIEMPO VS TARDÍAS (Barras 100%) ---------
+        # --------- 3. ENTREGAS A TIEMPO VS TARDÍAS ---------
         st.subheader("🚚 Si somos puntuales, ¿cuál es el problema?")
 
         df_tmp = df.copy()
@@ -225,7 +235,7 @@ with tabs[0]:
 
         st.plotly_chart(fig, use_container_width=True)
 
-        # --------- 4. DISTRIBUCIÓN DE DÍAS DE ENTREGA (1-5, 6-10, >10) ---------
+        # --------- 4. DISTRIBUCIÓN DE DÍAS DE ENTREGA ---------
         st.subheader("📦 ¿Éxito logístico o maquillaje de tiempos?")
 
         df_tmp = df[df['dias_entrega'].notna()].copy()
@@ -266,10 +276,6 @@ with tabs[0]:
         )
 
         st.plotly_chart(fig_barras, use_container_width=True)
-
-
-
-
 
   # ========================= PESTAÑA 1: DASHBOARD =========================
 with tabs[1]:
