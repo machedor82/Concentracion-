@@ -112,7 +112,7 @@ with tabs[0]:
    
     col2.metric(
         "Llegadas muy adelantadas (≥1 semana)",
-        f"{(df['desviacion_vs_promesa'] < -7).mean() * 100:.1f}%"
+        f"{(df['desviacion_vs_promesa'] < -10).mean() * 100:.1f}%"
     )
 
 
