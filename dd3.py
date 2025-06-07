@@ -115,68 +115,7 @@ if archivo_zip:
         st.title("📊 Resumen Nacional")
 
         if 'dias_entrega' in df.columns:
-            # --------- HISTOGRAMA ---------
-            st.subheader("⏱️ Distribución de Tiempos de Entrega")
-            fig_hist = px.histogram(
-                df,
-                x='dias_entrega',
-                nbins=30,
-                labels={'dias_entrega': 'Días entre orden y entrega'},
-                title="Distribución de pedidos por días de entrega"
-            )
-            fig_hist.update_layout(
-                xaxis_title="Días de entrega",
-                yaxis_title="Número de pedidos",
-                bargap=0.1,
-                height=400
-            )
-            st.plotly_chart(fig_hist, use_container_width=True)
-
-            # --------- BARRAS APILADAS POR ESTADO ---------
-            st.subheader("📦 Distribución de Entrega por Estado y Grupos de Días")
-            
-            # Crear columna con grupos de días
-            df_tmp = df.copy()
-            df_tmp = df_tmp[df_tmp['dias_entrega'].notna()]
-            df_tmp['grupo_dias'] = pd.cut(
-                df_tmp['dias_entrega'],
-                bins=[0, 5, 10, float('inf')],
-                labels=["1-5", "6-10", "Más de 10"],
-                right=True
-            )
-            
-            # Agrupar por estado y grupo de días
-            conteo = df_tmp.groupby(['estado_del_cliente', 'grupo_dias']).size().reset_index(name='conteo')
-            
-            # Calcular porcentaje por estado
-            conteo['porcentaje'] = conteo['conteo'] / conteo.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
-            
-            # Crear gráfico
-            fig_barras = px.bar(
-                conteo,
-                x='estado_del_cliente',
-                y='porcentaje',
-                color='grupo_dias',
-                labels={
-                    'estado_del_cliente': 'Estado',
-                    'porcentaje': 'Porcentaje',
-                    'grupo_dias': 'Días de Entrega'
-                },
-                title='⏱️ Distribución % de Entregas por Estado (1-5, 6-10, Más de 10 días)',
-                text_auto='.1f'
-            )
-            
-            fig_barras.update_layout(
-                barmode='stack',
-                xaxis_title=None,
-                yaxis_title='Porcentaje (%)',
-                legend_title='Días de Entrega',
-                height=500
-            )
-            
-            st.plotly_chart(fig_barras, use_container_width=True)
-
-                # --------- TOP 3 CATEGORÍAS MÁS VENDIDAS POR ESTADO ---------
+             # --------- TOP 3 CATEGORÍAS MÁS VENDIDAS POR ESTADO ---------
             st.subheader("🏆 Top 3 Categorías más Vendidas por Estado")
             
             # Agrupar por estado y categoría, contar pedidos
@@ -204,6 +143,60 @@ if archivo_zip:
             # Mostrar
             st.dataframe(tabla_top3, use_container_width=True, height=90)
 
+            # --------- BARRAS APILADAS POR ESTADO Y GRUPOS DE DÍAS DE ENTREGA ---------
+            st.subheader("📦 Distribución de Entrega por Estado y Grupos de Días")
+            
+            # Crear columna con grupos de días
+            df_tmp = df.copy()
+            df_tmp = df_tmp[df_tmp['dias_entrega'].notna()]
+            df_tmp['grupo_dias'] = pd.cut(
+                df_tmp['dias_entrega'],
+                bins=[0, 5, 10, float('inf')],
+                labels=["1-5", "6-10", "Más de 10"],
+                right=True
+            )
+            
+            # Agrupar por estado y grupo de días
+            conteo = df_tmp.groupby(['estado_del_cliente', 'grupo_dias']).size().reset_index(name='conteo')
+            
+            # Calcular porcentaje por estado
+            conteo['porcentaje'] = conteo['conteo'] / conteo.groupby('estado_del_cliente')['conteo'].transform('sum') * 100
+            
+            # Ordenar estados por porcentaje de entregas en "Más de 10"
+            orden_estados = (
+                conteo[conteo['grupo_dias'] == 'Más de 10']
+                .sort_values(by='porcentaje', ascending=True)['estado_del_cliente']
+            )
+            
+            # Convertir a tipo categórico para mantener orden en la gráfica
+            conteo['estado_del_cliente'] = pd.Categorical(conteo['estado_del_cliente'], categories=orden_estados, ordered=True)
+            
+            # Crear gráfico
+            fig_barras = px.bar(
+                conteo,
+                x='estado_del_cliente',
+                y='porcentaje',
+                color='grupo_dias',
+                labels={
+                    'estado_del_cliente': 'Estado',
+                    'porcentaje': 'Porcentaje',
+                    'grupo_dias': 'Días de Entrega'
+                },
+                title='⏱️ Distribución % de Entregas por Estado (1-5, 6-10, Más de 10 días)',
+                text_auto='.1f'
+            )
+            
+            fig_barras.update_layout(
+                barmode='stack',
+                xaxis_title=None,
+                yaxis_title='Porcentaje (%)',
+                legend_title='Días de Entrega',
+                height=500
+            )
+            
+            st.plotly_chart(fig_barras, use_container_width=True)
+
+             
 
 
     # ========================= PESTAÑA 1: DASHBOARD =========================
