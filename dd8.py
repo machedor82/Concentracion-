@@ -114,14 +114,6 @@ with tabs[0]:
 
     if 'dias_entrega' in df.columns:
 
-        # ---------- NARRATIVA DE CONTEXTO ----------
-        st.markdown("""
-        **🔍 Diagnóstico Nacional de Entregas**
-        <br>
-        Este tablero explora tres ángulos clave: volumen de pedidos por zona, puntualidad por estado, y tiempos reales de entrega.
-        Aunque muchos pedidos parecen llegar “a tiempo”, ¿es eficiencia real o estamos inflando nuestras promesas?
-        """, unsafe_allow_html=True)
-
         # ---------- 1. PARTICIPACIÓN DE PEDIDOS POR ZONA (Gráfico Dona) ----------
         st.subheader("📍 Pedidos por Zona")
 
@@ -246,7 +238,53 @@ with tabs[0]:
 
         st.plotly_chart(fig_barras, use_container_width=True)
 
-
+        # --------- 1. COMPARATIVA DÍAS DE ENTREGA VS COLCHÓN (Barras Horizontales) ---------
+        st.subheader("📦 La ilusión del cumplimiento: entregas puntuales con días de sobra")
+        
+        if {'dias_entrega', 'colchon_dias'}.issubset(df.columns):
+            import plotly.graph_objects as go
+        
+            medios = df.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
+            medios = medios.sort_values(by='dias_entrega', ascending=False)
+        
+            fig = go.Figure()
+            fig.add_trace(go.Bar(
+                y=medios['Categoría'],
+                x=medios['dias_entrega'],
+                name='Días Entrega',
+                orientation='h',
+                marker_color='#4FA0D9'
+            ))
+            fig.add_trace(go.Bar(
+                y=medios['Categoría'],
+                x=medios['colchon_dias'],
+                name='Colchón Días',
+                orientation='h',
+                marker_color='#B0B0B0'
+            ))
+        
+            promedio_entrega = medios['dias_entrega'].mean()
+            fig.add_shape(
+                type="line",
+                x0=promedio_entrega,
+                x1=promedio_entrega,
+                y0=-0.5,
+                y1=len(medios) - 0.5,
+                line=dict(color="blue", dash="dash"),
+                name='Promedio Entrega'
+            )
+        
+            fig.update_layout(
+                barmode='group',
+                height=400,
+                xaxis_title='Días Promedio',
+                yaxis_title='Categoría',
+                margin=dict(t=40, b=40, l=80, r=10),
+                legend_title="Métrica"
+            )
+        
+            st.plotly_chart(fig, use_container_width=True)
+        
 
 
 
