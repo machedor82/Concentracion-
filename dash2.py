@@ -8,6 +8,10 @@ import plotly.express as px
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
+# ---------------------------------------------------------------------------------------
+# ¡IMPORTANTE! set_page_config DEBE SER LA PRIMERA LLAMADA DE STREAMLIT
+st.set_page_config(page_title="Cabrito Analytics Profesional", layout="wide")
+
 # ------------------ Inyectar CSS para branding ------------------
 st.markdown(
     """
@@ -41,8 +45,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ------------------ Configuración ------------------
-st.set_page_config(page_title="Cabrito Analytics Profesional", layout="wide")
+# ---------------------------------------------------------------------------------------
 st.title("📦 Cabrito Analytics App")
 tabs = st.tabs(["🏠 Dashboard", "🧮 Calculadora"])
 
@@ -83,12 +86,16 @@ if archivo:
         if st.button("Seleccionar todo (Estados)", key="btn_est"):
             st.session_state.sel_est = estados.copy()
         sel_est = st.multiselect(
-            "Estados", estados, default=st.session_state.sel_est, key="sel_est"
+            "Estados", estados,
+            default=st.session_state.sel_est,
+            key="sel_est"
         )
         if st.button("Seleccionar todo (Categorías)", key="btn_cat"):
             st.session_state.sel_cat = categorias.copy()
         sel_cat = st.multiselect(
-            "Categorías", categorias, default=st.session_state.sel_cat, key="sel_cat"
+            "Categorías", categorias,
+            default=st.session_state.sel_cat,
+            key="sel_cat"
         )
 
     # ========================= DASHBOARD =========================
@@ -118,7 +125,7 @@ Analiza las métricas clave y la evolución temporal de forma clara.
         c2.metric("Real promedio (d)",    f"{r_mean:.1f}")
         c3.metric("Desfase promedio (d)", f"{d_mean:.1f}")
 
-        # agregados
+        # Agregados
         agg_cat = df_sel.groupby("Categoría").agg(
             Estimado=("prometido_dias", "mean"),
             Real=("dias_entrega", "mean")
@@ -133,10 +140,10 @@ Analiza las métricas clave y la evolución temporal de forma clara.
             dict(year=agg_time["año"], month=agg_time["mes"], day=1)
         )
 
-        # filas de 3 gráficas
+        # Mostrar 3 gráficas en fila
         colA, colB, colC = st.columns(3, gap="medium")
 
-        # barras por categoría
+        # 1) Barras por categoría
         fig1 = px.bar(
             agg_cat, x="Categoría", y=["Estimado", "Real"], barmode="group",
             color_discrete_map={
@@ -157,7 +164,7 @@ Analiza las métricas clave y la evolución temporal de forma clara.
         fig1.update_layout(margin=dict(l=10, r=10, t=35, b=10), height=300)
         colA.plotly_chart(fig1, use_container_width=True)
 
-        # línea evolución mensual
+        # 2) Línea evolución mensual
         fig2 = px.line(
             agg_time, x="Fecha", y=["Estimado", "Real"],
             color_discrete_map={
@@ -171,7 +178,7 @@ Analiza las métricas clave y la evolución temporal de forma clara.
         fig2.update_layout(margin=dict(l=10, r=10, t=35, b=10), height=300)
         colB.plotly_chart(fig2, use_container_width=True)
 
-        # top10 desfase
+        # 3) Top10 desfase
         top10 = agg_cat.nlargest(10, "Desfase")
         fig3 = px.bar(
             top10, x="Categoría", y="Desfase",
@@ -187,12 +194,10 @@ Analiza las métricas clave y la evolución temporal de forma clara.
     with tabs[1]:
         st.header("🧮 Calculadora de Predicción")
 
-        # Preprocesar
         df2["orden_compra_timestamp"] = pd.to_datetime(df2["orden_compra_timestamp"])
         df2["año"]  = df2["orden_compra_timestamp"].dt.year
         df2["mes"]  = df2["orden_compra_timestamp"].dt.month
 
-        # inputs
         estados2    = sorted(df2["estado_del_cliente"].dropna().unique())
         categorias2 = sorted(df2["Categoría"].dropna().unique())
         d1, d2 = st.columns(2)
@@ -209,10 +214,9 @@ Analiza las métricas clave y la evolución temporal de forma clara.
         m1 = [k for k,v in meses_map.items() if v==m1_name][0]
         m2 = [k for k,v in meses_map.items() if v==m2_name][0]
 
-        # filtrar y predecir
-        flt = (df2["estado_del_cliente"]==sel_e2)&(df2["Categoría"]==sel_c2)
-        dfm1 = df2[(df2["mes"]==m1)&flt].copy()
-        dfm2 = df2[(df2["mes"]==m2)&flt].copy()
+        filt = (df2["estado_del_cliente"]==sel_e2)&(df2["Categoría"]==sel_c2)
+        dfm1 = df2[(df2["mes"]==m1)&filt].copy()
+        dfm2 = df2[(df2["mes"]==m2)&filt].copy()
 
         def predecir(df_i):
             if df_i.empty: return df_i
