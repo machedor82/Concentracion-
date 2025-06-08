@@ -41,28 +41,47 @@ st.set_page_config(page_title="Cabrito Analytics", layout="wide")
 # ===================== ESTILOS PERSONALIZADOS =====================
 st.markdown("""
     <style>
+        /* Fondo principal claro */
         .main {
-            background-color: #002244 !important;
+            background-color: #f8f9fa !important;
         }
+
+        /* Texto general oscuro */
         .main > div {
-            color: white;
+            color: #1f2d3d !important;
         }
+
+        /* Métricas más visibles */
         [data-testid="stMetricLabel"] {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: 600;
+            color: #2c7be5 !important;
         }
+
+        [data-testid="stMetricDelta"] {
+            font-weight: bold;
+        }
+
+        /* Sidebar blanco, texto azul */
         [data-testid="stSidebar"] {
-            background-color: white !important;
+            background-color: #ffffff !important;
         }
         [data-testid="stSidebar"] * {
-            color: #002244 !important;
+            color: #2c7be5 !important;
         }
+
+        /* Expander título */
         .stExpander > summary {
-            color: #002244 !important;
+            color: #2c7be5 !important;
+            font-weight: bold;
         }
+
+        /* Esconder watermark de streamlit */
         .css-1wa3eu0 {
             display: none !important;
         }
+
+        /* Ajustes de MultiSelect */
         .stMultiSelect .css-12w0qpk {
             max-height: 0px !important;
             overflow: hidden !important;
@@ -70,8 +89,22 @@ st.markdown("""
         .stMultiSelect {
             height: 35px !important;
         }
+
+        /* Tabs */
+        .stTabs [data-baseweb="tab"] {
+            font-size: 16px;
+            padding: 10px;
+            border-bottom: 2px solid transparent;
+        }
+
+        .stTabs [aria-selected="true"] {
+            border-bottom: 3px solid #2c7be5;
+            font-weight: bold;
+            color: #2c7be5;
+        }
     </style>
 """, unsafe_allow_html=True)
+
 
 # ===================== INTERFAZ BÁSICA =====================
 
