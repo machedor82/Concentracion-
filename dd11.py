@@ -334,7 +334,8 @@ with tabs[0]:
                 medios = df_tmp.groupby('zona_entrega')[['dias_entrega', 'colchon_dias']].mean().reset_index()
                 medios = medios.sort_values(by='dias_entrega', ascending=False)
 
-                fig = go.Figu
+                fig = go.Figure()
+
 
 
 
