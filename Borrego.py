@@ -113,8 +113,15 @@ def clasificar_zonas(df, estado_sel):
         principales = ['Ciudad de México', 'Nuevo León', 'Jalisco']
         return df['estado_del_cliente'].apply(lambda x: x if x in principales else 'Provincia')
     else:
-        top_ciudades = df[df['estado_del_cliente'] == estado_sel]['Ciudad'].value_counts().nlargest(3).index.tolist()
-        return df['Ciudad'].apply(lambda x: x if x in top_ciudades else 'Otras')
+        top_ciudades = (
+            df[df['estado_del_cliente'] == estado_sel]['ciudad_cliente']
+            .value_counts()
+            .nlargest(3)
+            .index
+            .tolist()
+        )
+        return df['ciudad_cliente'].apply(lambda x: x if x in top_ciudades else 'Otras')
+
 
 tabs = st.tabs(["📊 Resumen Nacional", "🏠 Costo de Envío", "🧮 Calculadora","App Danu 📈"])
 
