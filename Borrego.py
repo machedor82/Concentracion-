@@ -359,7 +359,7 @@ with tabs[0]:
 
 
 
-  # ========================= PESTAÑA 1: DASHBOARD =========================
+  # ========================= PESTAÑA 1: Costo de Envio =========================
 with tabs[1]:
 
     
@@ -402,85 +402,33 @@ with tabs[1]:
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("💸 Relación Envío–Precio: ¿Gasto Justificado?")
-    
-        totales = df_filtrado.groupby('Categoría')[['precio', 'costo_de_flete']].sum().reset_index()
-        totales = totales.sort_values(by='precio', ascending=False)
-    
-        fig_totales = px.bar(
-            totales,
-            x='Categoría',
-            y=['precio', 'costo_de_flete'],
-            barmode='group',
-            labels={'value': 'Monto ($)', 'variable': 'Concepto'},
-            color_discrete_map={
-                'precio': '#005BAC',
-                'costo_de_flete': '#4FA0D9'
-            }
-        )
-    
-        fig_totales.update_layout(
-            height=360,
-            xaxis_title=None,
-            yaxis_title=None,
-            margin=dict(t=40, b=60, l=10, r=10),
-            legend_title="",
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=-0.3,
-                xanchor="center",
-                x=0.5
+         st.subheader("📊 Variabilidad del Costo de Envío Relativo")
+        
+            df_box = df_filtrado[df_filtrado['precio'] > 0].copy()
+            df_box['flete_pct'] = df_box['costo_de_flete'] / df_box['precio'] * 100
+        
+            fig_box = px.box(
+                df_box,
+                x='Categoría',
+                y='flete_pct',
+                points='all',
+                title="¿Cuál categoría tiene envíos desproporcionados?",
+                labels={'flete_pct': '% Flete / Precio'},
+                color='Categoría'
             )
-        )
-    
-        fig_totales.update_traces(
-            hovertemplate="<b>%{x}</b><br>%{legendgroup}: %{y:,.0f} $<extra></extra>"
-        )
-    
-        fig_totales.update_xaxes(tickangle=-40)
-        st.plotly_chart(fig_totales, use_container_width=True)
-    
-    with col2:
-        st.subheader("⚖️ Relación Peso–Costo de Envío")
-    
-        pesos = df_filtrado.groupby('Categoría')[['total_peso_g', 'costo_de_flete']].sum().reset_index()
-        pesos = pesos.sort_values(by='total_peso_g', ascending=False)
-    
-        fig_pesos = px.bar(
-            pesos,
-            x='Categoría',
-            y=['total_peso_g', 'costo_de_flete'],
-            barmode='group',
-            labels={'value': 'Total', 'variable': 'Concepto'},
-            color_discrete_map={
-                'total_peso_g': '#8888CC',
-                'costo_de_flete': '#4FA0D9'
-            }
-        )
-    
-        fig_pesos.update_layout(
-            height=360,
-            xaxis_title=None,
-            yaxis_title=None,
-            margin=dict(t=40, b=60, l=10, r=10),
-            legend_title="",
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=-0.3,
-                xanchor="center",
-                x=0.5
+        
+            fig_box.update_layout(
+                height=420,
+                margin=dict(t=50, b=50, l=20, r=20),
+                showlegend=False
             )
-        )
-    
-        fig_pesos.update_traces(
-            hovertemplate="<b>%{x}</b><br>%{legendgroup}: %{y:,.0f}<extra></extra>"
-        )
-    
-        fig_pesos.update_xaxes(tickangle=-40)
-        st.plotly_chart(fig_pesos, use_container_width=True)
-     
+        
+            fig_box.update_traces(
+                jitter=0.3,
+                marker_opacity=0.6
+            )
+        
+            st.plotly_chart(fig_box, use_container_width=True)
 
     # ========================= CALCULADORA =========================
     with tabs[2]:
