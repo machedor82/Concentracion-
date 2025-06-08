@@ -74,6 +74,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ===================== INTERFAZ BÁSICA =====================
+
+def clasificar_zonas(df, estado_sel):
+    if estado_sel == "Nacional":
+        principales = ['Ciudad de México', 'Nuevo León', 'Jalisco']
+        return df['estado_del_cliente'].apply(lambda x: x if x in principales else 'Provincia')
+    else:
+        top_ciudades = df[df['estado_del_cliente'] == estado_sel]['Ciudad'].value_counts().nlargest(3).index.tolist()
+        return df['Ciudad'].apply(lambda x: x if x in top_ciudades else 'Otras')
+
 tabs = st.tabs(["📊 Resumen Nacional", "🏠 Costo de Envío", "🧮 Calculadora","App Danu 📈"])
 
 with st.sidebar:
@@ -135,30 +144,21 @@ with tabs[0]:
         # ================== FILA 1 ==================
         col1, col2 = st.columns(2)
 
-        # --------- Gráfico de dona: Pedidos por zona ---------
+        # --------- Gráfico de dona: Pedidos por zona dinámica ---------
         with col1:
             st.subheader("📍 Pedidos por Zona")
 
-            principales = ['Ciudad de México', 'Nuevo León', 'Jalisco']
-            conteo_pedidos = df_filtrado['estado_del_cliente'].value_counts().reset_index()
-            conteo_pedidos.columns = ['Estado', 'Pedidos']
-            conteo_pedidos['Zona'] = conteo_pedidos['Estado'].apply(lambda x: x if x in principales else 'Provincia')
-            conteo_zona = conteo_pedidos.groupby('Zona')['Pedidos'].sum().reset_index()
-
-            colores = {
-                'Ciudad de México': '#005BAC',
-                'Nuevo León': '#A7D3F4',
-                'Jalisco': '#4FA0D9',
-                'Provincia': '#B0B0B0'
-            }
+            df_tmp = df_filtrado.copy()
+            df_tmp['zona_entrega'] = clasificar_zonas(df_tmp, estado_sel)
+            conteo_zona = df_tmp['zona_entrega'].value_counts().reset_index()
+            conteo_zona.columns = ['Zona', 'Pedidos']
 
             fig_pie = px.pie(
                 conteo_zona,
                 names='Zona',
                 values='Pedidos',
                 hole=0.4,
-                color='Zona',
-                color_discrete_map=colores
+                color='Zona'
             )
             fig_pie.update_traces(
                 textinfo='percent+label+value',
@@ -166,17 +166,17 @@ with tabs[0]:
             )
             st.plotly_chart(fig_pie, use_container_width=True)
 
-        # --------- Barras 100%: Entregas a tiempo vs tardías por zona ---------
+        # --------- Barras: Entregas a tiempo vs tardías ---------
         with col2:
             st.subheader("🚚 Si somos puntuales, ¿cuál es el problema?")
 
             df_tmp = df_filtrado.copy()
+            df_tmp['zona_entrega'] = clasificar_zonas(df_tmp, estado_sel)
             df_tmp['estatus_entrega'] = df_tmp['llego_tarde'].apply(lambda x: 'A tiempo' if x == 0 else 'Tardío')
-            df_tmp['zona_entrega'] = df_tmp['estado_del_cliente'].apply(lambda x: x if x in principales else 'Provincia')
 
             conteo_zona = df_tmp.groupby(['zona_entrega', 'estatus_entrega']).size().reset_index(name='conteo')
             conteo_zona['porcentaje'] = conteo_zona['conteo'] / conteo_zona.groupby('zona_entrega')['conteo'].transform('sum') * 100
-            orden_zonas = ['Ciudad de México', 'Nuevo León', 'Jalisco', 'Provincia']
+            orden_zonas = df_tmp['zona_entrega'].value_counts().index.tolist()
 
             fig = px.bar(
                 conteo_zona,
@@ -205,7 +205,7 @@ with tabs[0]:
         # ================== FILA 2 ==================
         col3, col4 = st.columns(2)
 
-        # --------- Barras 100%: Días de entrega por zona ---------
+        # --------- Barras: Días de entrega por zona dinámica ---------
         with col3:
             st.subheader("📦 ¿Éxito logístico o maquillaje de tiempos?")
 
@@ -216,10 +216,11 @@ with tabs[0]:
                 labels=["1-5", "6-10", "Más de 10"],
                 right=True
             )
-            df_tmp['zona_entrega'] = df_tmp['estado_del_cliente'].apply(lambda x: x if x in principales else 'Provincia')
+            df_tmp['zona_entrega'] = clasificar_zonas(df_tmp, estado_sel)
 
             conteo = df_tmp.groupby(['zona_entrega', 'grupo_dias']).size().reset_index(name='conteo')
             conteo['porcentaje'] = conteo['conteo'] / conteo.groupby('zona_entrega')['conteo'].transform('sum') * 100
+            orden_zonas = df_tmp['zona_entrega'].value_counts().index.tolist()
 
             colores_dias = {
                 "1-5": "#A7D3F4",
@@ -250,9 +251,9 @@ with tabs[0]:
             )
             st.plotly_chart(fig_barras, use_container_width=True)
 
-        # --------- Barras horizontales: Comparativa días vs colchón por categoría ---------
+        # --------- Barras horizontales: Días vs colchón por estado ---------
         with col4:
-            st.subheader("📦 La ilusión del cumplimiento: entregas puntuales con días de sobra")
+            st.subheader("📦 Estados con mayor colchón de entrega")
 
             if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
                 import plotly.graph_objects as go
@@ -290,6 +291,7 @@ with tabs[0]:
                     barmode='group',
                     height=500,
                     xaxis_title='Días Promedio',
+                    yaxis_title='Estado',
                     margin=dict(t=40, b=40, l=80, r=10),
                     legend_title="Métrica"
                 )
