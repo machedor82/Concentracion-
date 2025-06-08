@@ -196,26 +196,41 @@ with tabs[0]:
         # ================== FILA 1 ==================
         col1, col2 = st.columns(2)
 
+
         # --------- Gráfico de dona: Pedidos por zona dinámica ---------
         with col1:
             df_tmp = df_filtrado.copy()
             df_tmp['zona_entrega'] = clasificar_zonas(df_tmp, estado_sel)
+        
             conteo_zona = df_tmp['zona_entrega'].value_counts().reset_index()
             conteo_zona.columns = ['Zona', 'Pedidos']
-
+        
+            # Asignar colores: azul oscuro → azul claro + provincia en gris
+            zonas = conteo_zona['Zona'].tolist()
+            colores_discretos = {
+                zonas[0]: '#005BAC' if zonas[0] != 'Provincia' else '#B0B0B0',
+                zonas[1]: '#4FA0D9' if zonas[1] != 'Provincia' else '#B0B0B0',
+                zonas[2]: '#A7D3F4' if zonas[2] != 'Provincia' else '#B0B0B0',
+                'Provincia': '#B0B0B0'
+            }
+        
             fig_pie = px.pie(
                 conteo_zona,
                 names='Zona',
                 values='Pedidos',
                 hole=0.4,
                 title="📍 Pedidos por Zona",
-                color='Zona'
+                color='Zona',
+                color_discrete_map=colores_discretos
             )
+        
             fig_pie.update_traces(
                 textinfo='percent+label+value',
                 hovertemplate="<b>%{label}</b><br>Pedidos: %{value}<br>Porcentaje: %{percent}"
             )
+        
             st.plotly_chart(fig_pie, use_container_width=True)
+
 
         # --------- Barras: Entregas a tiempo vs tardías ---------
         with col2:
