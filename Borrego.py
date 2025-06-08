@@ -395,10 +395,51 @@ with tabs[1]:
         hide_index=True
     )
 
-    # --------- BOXPLOT: % Flete sobre Precio ---------
+    # --------- BARRAS Y BOX  ---------
     col1, col2 = st.columns(2)
-
     with col1:
+         st.subheader("💸 Relación Envío–Precio: ¿Gasto Justificado?")
+    
+        totales = df_filtrado.groupby('Categoría')[['precio', 'costo_de_flete']].sum().reset_index()
+        totales = totales.sort_values(by='precio', ascending=False)
+    
+        fig_totales = px.bar(
+            totales,
+            x='Categoría',
+            y=['precio', 'costo_de_flete'],
+            barmode='group',
+            labels={'value': 'Monto ($)', 'variable': 'Concepto'},
+            color_discrete_map={
+                'precio': '#005BAC',
+                'costo_de_flete': '#4FA0D9'
+            }
+        )
+    
+        fig_totales.update_layout(
+            height=360,
+            xaxis_title=None,
+            yaxis_title=None,
+            margin=dict(t=40, b=60, l=10, r=10),
+            legend_title="",
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=-0.3,
+                xanchor="center",
+                x=0.5
+            )
+        )
+    
+        fig_totales.update_traces(
+            hovertemplate="<b>%{x}</b><br>%{legendgroup}: %{y:,.0f} $<extra></extra>"
+        )
+    
+        fig_totales.update_xaxes(tickangle=-40)
+        st.plotly_chart(fig_totales, use_container_width=True)
+    
+    
+
+    with col2:
         st.subheader("📊 Variabilidad del Costo de Envío Relativo")
 
         df_box = df_filtrado[df_filtrado['precio'] > 0].copy()
