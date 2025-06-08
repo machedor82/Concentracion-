@@ -178,6 +178,7 @@ if archivo_zip:
     # --------- FILTRADO DE DATOS ---------
     df_filtrado = df.copy() if estado_sel == "Nacional" else df[df['estado_del_cliente'] == estado_sel]
 
+
 # ===================== 📊 RESUMEN NACIONAL =====================
 with tabs[0]:
     zona_display = estado_sel if estado_sel != "Nacional" else "Resumen Nacional"
@@ -196,24 +197,22 @@ with tabs[0]:
         # ================== FILA 1 ==================
         col1, col2 = st.columns(2)
 
-
         # --------- Gráfico de dona: Pedidos por zona dinámica ---------
         with col1:
             df_tmp = df_filtrado.copy()
             df_tmp['zona_entrega'] = clasificar_zonas(df_tmp, estado_sel)
-        
+
             conteo_zona = df_tmp['zona_entrega'].value_counts().reset_index()
             conteo_zona.columns = ['Zona', 'Pedidos']
-        
-            # Asignar colores: azul oscuro → azul claro + provincia en gris
             zonas = conteo_zona['Zona'].tolist()
-            colores_discretos = {
-                zonas[0]: '#005BAC' if zonas[0] != 'Provincia' else '#B0B0B0',
-                zonas[1]: '#4FA0D9' if zonas[1] != 'Provincia' else '#B0B0B0',
-                zonas[2]: '#A7D3F4' if zonas[2] != 'Provincia' else '#B0B0B0',
-                'Provincia': '#B0B0B0'
-            }
-        
+
+            # Definir colores personalizados: azul oscuro → claro, Provincia gris
+            colores_discretos = {}
+            tonos_azules = ['#005BAC', '#4FA0D9', '#A7D3F4']
+            for i, zona in enumerate(zonas):
+                colores_discretos[zona] = tonos_azules[i] if zona != 'Provincia' else '#B0B0B0'
+            colores_discretos['Provincia'] = '#B0B0B0'
+
             fig_pie = px.pie(
                 conteo_zona,
                 names='Zona',
@@ -223,18 +222,16 @@ with tabs[0]:
                 color='Zona',
                 color_discrete_map=colores_discretos
             )
-        
+
             fig_pie.update_traces(
                 textinfo='percent+label+value',
                 hovertemplate="<b>%{label}</b><br>Pedidos: %{value}<br>Porcentaje: %{percent}"
             )
-        
-            st.plotly_chart(fig_pie, use_container_width=True)
 
+            st.plotly_chart(fig_pie, use_container_width=True)
 
         # --------- Barras: Entregas a tiempo vs tardías ---------
         with col2:
-            
             df_tmp = df_filtrado.copy()
             df_tmp['zona_entrega'] = clasificar_zonas(df_tmp, estado_sel)
             df_tmp['estatus_entrega'] = df_tmp['llego_tarde'].apply(lambda x: 'A tiempo' if x == 0 else 'Tardío')
@@ -258,6 +255,7 @@ with tabs[0]:
                 },
                 text_auto='.1f'
             )
+
             fig.update_traces(hovertemplate="<b>%{x}</b><br>%{color}: %{y:.1f}%")
             fig.update_layout(
                 barmode='stack',
@@ -266,6 +264,7 @@ with tabs[0]:
                 legend_title='Tipo de Entrega',
                 height=500
             )
+
             st.plotly_chart(fig, use_container_width=True)
 
         # ================== FILA 2 ==================
@@ -273,7 +272,6 @@ with tabs[0]:
 
         # --------- Barras: Días de entrega por zona dinámica ---------
         with col3:
-
             df_tmp = df_filtrado[df_filtrado['dias_entrega'].notna()].copy()
             df_tmp['grupo_dias'] = pd.cut(
                 df_tmp['dias_entrega'],
@@ -308,6 +306,7 @@ with tabs[0]:
                 },
                 text_auto='.1f'
             )
+
             fig_barras.update_layout(
                 barmode='stack',
                 xaxis_title=None,
@@ -315,62 +314,24 @@ with tabs[0]:
                 legend_title='Días de Entrega',
                 height=500
             )
+
             st.plotly_chart(fig_barras, use_container_width=True)
 
-        
-           # --------- Barras horizontales: Días vs colchón por zona dinámica ---------
+        # --------- Barras horizontales: Días vs colchón por zona dinámica ---------
         with col4:
             label = "Ciudad" if estado_sel != "Nacional" else "Estado"
             st.subheader(f"📦 {label}s con mayor colchón de entrega")
-        
+
             if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
                 import plotly.graph_objects as go
-        
+
                 df_tmp = df_filtrado.copy()
                 df_tmp['zona_entrega'] = clasificar_zonas(df_tmp, estado_sel)
-        
+
                 medios = df_tmp.groupby('zona_entrega')[['dias_entrega', 'colchon_dias']].mean().reset_index()
                 medios = medios.sort_values(by='dias_entrega', ascending=False)
-        
-                fig = go.Figure()
-                fig.add_trace(go.Bar(
-                    y=medios['zona_entrega'],
-                    x=medios['dias_entrega'],
-                    name='Días Entrega',
-                    orientation='h',
-                    title="📊Colchon",
-                    marker_color='#4FA0D9'
-                ))
-                fig.add_trace(go.Bar(
-                    y=medios['zona_entrega'],
-                    x=medios['colchon_dias'],
-                    name='Colchón Días',
-                    orientation='h',
-                    marker_color='#B0B0B0'
-                ))
-        
-                promedio_entrega = medios['dias_entrega'].mean()
-                fig.add_shape(
-                    type="line",
-                    x0=promedio_entrega,
-                    x1=promedio_entrega,
-                    y0=-0.5,
-                    y1=len(medios) - 0.5,
-                    line=dict(color="blue", dash="dash")
-                )
-        
-                fig.update_layout(
-                    barmode='group',
-                    height=500,
-                    xaxis_title='Días Promedio',
-                    yaxis_title=label,
-                    margin=dict(t=40, b=40, l=80, r=10),
-                    legend_title="Métrica"
-                )
-        
-                st.plotly_chart(fig, use_container_width=True)
 
-
+                fig = go.Figu
 
 
 
