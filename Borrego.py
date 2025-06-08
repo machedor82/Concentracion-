@@ -362,15 +362,15 @@ with tabs[0]:
 # ========================= PESTAÑA 1: Costo de Envío =========================
 with tabs[1]:
 
-    # --------- MÉTRICAS PRINCIPALES ---------
+    # ==================== MÉTRICAS PRINCIPALES ====================
     col1, col2 = st.columns(2)
-    col1.metric("Pedidos", f"{len(df_filtrado):,}")
+    col1.metric("📦 Total de Pedidos", f"{len(df_filtrado):,}")
     col2.metric(
-        "Transporte costoso para su valor",
+        "💰 Flete Alto vs Precio",
         f"{(df_filtrado['costo_de_flete'] / df_filtrado['precio'] > 0.5).mean() * 100:.1f}%"
     )
 
-    # --------- TABLA HORIZONTAL: % Flete sobre Precio por Categoría ---------
+    # ==================== TABLA DE % FLETE SOBRE PRECIO ====================
     st.subheader("💸 Relación Envío–Precio: ¿Gasto Justificado?")
 
     df_precio = df_filtrado.copy()
@@ -395,14 +395,16 @@ with tabs[1]:
         hide_index=True
     )
 
-    # --------- BARRAS Y BOX  ---------
+    # ==================== GRÁFICAS COMPARATIVAS ====================
     col1, col2 = st.columns(2)
+
+    # --------- BARRA: Precio vs Flete por Categoría ---------
     with col1:
-         st.subheader("💸 Relación Envío–Precio: ¿Gasto Justificado?")
-    
+        st.subheader("📊 Total Precio vs Costo de Envío")
+
         totales = df_filtrado.groupby('Categoría')[['precio', 'costo_de_flete']].sum().reset_index()
         totales = totales.sort_values(by='precio', ascending=False)
-    
+
         fig_totales = px.bar(
             totales,
             x='Categoría',
@@ -414,11 +416,9 @@ with tabs[1]:
                 'costo_de_flete': '#4FA0D9'
             }
         )
-    
+
         fig_totales.update_layout(
             height=360,
-            xaxis_title=None,
-            yaxis_title=None,
             margin=dict(t=40, b=60, l=10, r=10),
             legend_title="",
             legend=dict(
@@ -429,28 +429,27 @@ with tabs[1]:
                 x=0.5
             )
         )
-    
+
         fig_totales.update_traces(
             hovertemplate="<b>%{x}</b><br>%{legendgroup}: %{y:,.0f} $<extra></extra>"
         )
-    
         fig_totales.update_xaxes(tickangle=-40)
-        st.plotly_chart(fig_totales, use_container_width=True)
-    
-    
 
+        st.plotly_chart(fig_totales, use_container_width=True)
+
+    # --------- BOXPLOT: Variabilidad % Flete / Precio ---------
     with col2:
-        st.subheader("📊 Variabilidad del Costo de Envío Relativo")
+        st.subheader("📈 Variabilidad Relativa del Costo de Envío")
 
         df_box = df_filtrado[df_filtrado['precio'] > 0].copy()
-        df_box['flete_pct'] = df_box['costo_de_flete'] / df_box['precio'] * 100
+        df_box['flete_pct'] = (df_box['costo_de_flete'] / df_box['precio']) * 100
 
         fig_box = px.box(
             df_box,
             x='Categoría',
             y='flete_pct',
             points='all',
-            title="¿Cuál categoría tiene envíos desproporcionados?",
+            title="¿Qué categoría tiene más variabilidad?",
             labels={'flete_pct': '% Flete / Precio'},
             color='Categoría'
         )
@@ -460,13 +459,13 @@ with tabs[1]:
             margin=dict(t=50, b=50, l=20, r=20),
             showlegend=False
         )
-
         fig_box.update_traces(
             jitter=0.3,
             marker_opacity=0.6
         )
 
         st.plotly_chart(fig_box, use_container_width=True)
+
 
     # ========================= CALCULADORA =========================
     with tabs[2]:
