@@ -257,19 +257,19 @@ with tabs[0]:
             if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
                 import plotly.graph_objects as go
 
-                medios = df_filtrado.groupby('Categoría')[['dias_entrega', 'colchon_dias']].mean().reset_index()
+                medios = df_filtrado.groupby('estado_del_cliente')[['dias_entrega', 'colchon_dias']].mean().reset_index()
                 medios = medios.sort_values(by='dias_entrega', ascending=False)
 
                 fig = go.Figure()
                 fig.add_trace(go.Bar(
-                    y=medios['Categoría'],
+                    y=medios['estado_del_cliente'],
                     x=medios['dias_entrega'],
                     name='Días Entrega',
                     orientation='h',
                     marker_color='#4FA0D9'
                 ))
                 fig.add_trace(go.Bar(
-                    y=medios['Categoría'],
+                    y=medios['estado_del_cliente'],
                     x=medios['colchon_dias'],
                     name='Colchón Días',
                     orientation='h',
@@ -290,7 +290,6 @@ with tabs[0]:
                     barmode='group',
                     height=500,
                     xaxis_title='Días Promedio',
-                    yaxis_title='Categoría',
                     margin=dict(t=40, b=40, l=80, r=10),
                     legend_title="Métrica"
                 )
