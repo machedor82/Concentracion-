@@ -63,7 +63,7 @@ with tabs[2]:
         nombre_csv = csv_files[0]
         df = pd.read_csv(z.open(nombre_csv), encoding='utf-8')
 
-    # Normalizar nombres de columnas: minúsculas, sin espacios, sin acentos
+    # Normalizar nombres de columnas
     import unicodedata
     def normalize(col):
         s = col.strip().lower().replace(' ', '_')
@@ -107,7 +107,6 @@ with tabs[2]:
             'datetime_origen', 'region', 'dias_promedio_ciudad',
             'categoria', 'tipo_de_pago'
         ]
-        # Ajusta nombres si difieren tras normalizar...
         df_flete = df_input.reindex(columns=cols_flete).copy()
         df_encoded = pd.get_dummies(df_flete)
         feat_names = modelo_flete.get_booster().feature_names
@@ -134,19 +133,16 @@ with tabs[2]:
         return df_input
 
     # Filtrado por mes, estado y categoría
-    filt = (
+    df_mes1 = predecir(df[
         (df['mes'] == mes1_num) &
         (df['estado_del_cliente'] == estado) &
         (df['categoria'] == categoria)
-    )
-    df_mes1 = predecir(df[filt].copy())
-
-    filt2 = (
+    ].copy())
+    df_mes2 = predecir(df[
         (df['mes'] == mes2_num) &
         (df['estado_del_cliente'] == estado) &
         (df['categoria'] == categoria)
-    )
-    df_mes2 = predecir(df[filt2].copy())
+    ].copy())
 
     # Agrupar resultados
     def agrupar(df_p, nombre):
@@ -163,6 +159,10 @@ with tabs[2]:
     res1 = agrupar(df_mes1, mes1_nombre)
     res2 = agrupar(df_mes2, mes2_nombre)
     comp = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
+
+    # Convertir a numérico antes de restar
+    comp[mes1_nombre] = pd.to_numeric(comp[mes1_nombre], errors='coerce')
+    comp[mes2_nombre] = pd.to_numeric(comp[mes2_nombre], errors='coerce')
     comp['Diferencia'] = (comp[mes2_nombre] - comp[mes1_nombre]).round(2)
 
     # KPIs
