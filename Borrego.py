@@ -291,32 +291,37 @@ with tabs[0]:
             )
             st.plotly_chart(fig_barras, use_container_width=True)
 
-        # --------- Barras horizontales: Días vs colchón por estado ---------
+        
+           # --------- Barras horizontales: Días vs colchón por zona dinámica ---------
         with col4:
-            st.subheader("📦 Estados con mayor colchón de entrega")
-
+            label = "Ciudad" if estado_sel != "Nacional" else "Estado"
+            st.subheader(f"📦 {label}s con mayor colchón de entrega")
+        
             if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
                 import plotly.graph_objects as go
-
-                medios = df_filtrado.groupby('estado_del_cliente')[['dias_entrega', 'colchon_dias']].mean().reset_index()
+        
+                df_tmp = df_filtrado.copy()
+                df_tmp['zona_entrega'] = clasificar_zonas(df_tmp, estado_sel)
+        
+                medios = df_tmp.groupby('zona_entrega')[['dias_entrega', 'colchon_dias']].mean().reset_index()
                 medios = medios.sort_values(by='dias_entrega', ascending=False)
-
+        
                 fig = go.Figure()
                 fig.add_trace(go.Bar(
-                    y=medios['estado_del_cliente'],
+                    y=medios['zona_entrega'],
                     x=medios['dias_entrega'],
                     name='Días Entrega',
                     orientation='h',
                     marker_color='#4FA0D9'
                 ))
                 fig.add_trace(go.Bar(
-                    y=medios['estado_del_cliente'],
+                    y=medios['zona_entrega'],
                     x=medios['colchon_dias'],
                     name='Colchón Días',
                     orientation='h',
                     marker_color='#B0B0B0'
                 ))
-
+        
                 promedio_entrega = medios['dias_entrega'].mean()
                 fig.add_shape(
                     type="line",
@@ -326,16 +331,18 @@ with tabs[0]:
                     y1=len(medios) - 0.5,
                     line=dict(color="blue", dash="dash")
                 )
-
+        
                 fig.update_layout(
                     barmode='group',
                     height=500,
                     xaxis_title='Días Promedio',
-                    yaxis_title='Estado',
+                    yaxis_title=label,
                     margin=dict(t=40, b=40, l=80, r=10),
                     legend_title="Métrica"
                 )
+        
                 st.plotly_chart(fig, use_container_width=True)
+
 
 
 
