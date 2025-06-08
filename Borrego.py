@@ -359,10 +359,8 @@ with tabs[0]:
 
 
 
-  # ========================= PESTAÑA 1: Costo de Envio =========================
+# ========================= PESTAÑA 1: Costo de Envío =========================
 with tabs[1]:
-
-    
 
     # --------- MÉTRICAS PRINCIPALES ---------
     col1, col2 = st.columns(2)
@@ -371,7 +369,7 @@ with tabs[1]:
         "Transporte costoso para su valor",
         f"{(df_filtrado['costo_de_flete'] / df_filtrado['precio'] > 0.5).mean() * 100:.1f}%"
     )
-   
+
     # --------- TABLA HORIZONTAL: % Flete sobre Precio por Categoría ---------
     st.subheader("💸 Relación Envío–Precio: ¿Gasto Justificado?")
 
@@ -397,38 +395,37 @@ with tabs[1]:
         hide_index=True
     )
 
-  
-    # --------- COMPARATIVA: Precio vs Flete  |  Peso vs Flete ---------
+    # --------- BOXPLOT: % Flete sobre Precio ---------
     col1, col2 = st.columns(2)
-    
+
     with col1:
-         st.subheader("📊 Variabilidad del Costo de Envío Relativo")
-        
-            df_box = df_filtrado[df_filtrado['precio'] > 0].copy()
-            df_box['flete_pct'] = df_box['costo_de_flete'] / df_box['precio'] * 100
-        
-            fig_box = px.box(
-                df_box,
-                x='Categoría',
-                y='flete_pct',
-                points='all',
-                title="¿Cuál categoría tiene envíos desproporcionados?",
-                labels={'flete_pct': '% Flete / Precio'},
-                color='Categoría'
-            )
-        
-            fig_box.update_layout(
-                height=420,
-                margin=dict(t=50, b=50, l=20, r=20),
-                showlegend=False
-            )
-        
-            fig_box.update_traces(
-                jitter=0.3,
-                marker_opacity=0.6
-            )
-        
-            st.plotly_chart(fig_box, use_container_width=True)
+        st.subheader("📊 Variabilidad del Costo de Envío Relativo")
+
+        df_box = df_filtrado[df_filtrado['precio'] > 0].copy()
+        df_box['flete_pct'] = df_box['costo_de_flete'] / df_box['precio'] * 100
+
+        fig_box = px.box(
+            df_box,
+            x='Categoría',
+            y='flete_pct',
+            points='all',
+            title="¿Cuál categoría tiene envíos desproporcionados?",
+            labels={'flete_pct': '% Flete / Precio'},
+            color='Categoría'
+        )
+
+        fig_box.update_layout(
+            height=420,
+            margin=dict(t=50, b=50, l=20, r=20),
+            showlegend=False
+        )
+
+        fig_box.update_traces(
+            jitter=0.3,
+            marker_opacity=0.6
+        )
+
+        st.plotly_chart(fig_box, use_container_width=True)
 
     # ========================= CALCULADORA =========================
     with tabs[2]:
