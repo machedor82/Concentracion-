@@ -38,72 +38,84 @@ import joblib
 # ===================== CONFIGURACIÓN DE PÁGINA =====================
 st.set_page_config(page_title="Cabrito Analytics", layout="wide")
 
-# ===================== ESTILOS PERSONALIZADOS =====================
 st.markdown("""
     <style>
-        /* Fondo principal claro */
+        /* Fondo general sobrio y elegante */
         .main {
-            background-color: #f8f9fa !important;
+            background-color: #f5f7fa !important;
+            font-family: 'Segoe UI', sans-serif;
         }
 
-        /* Texto general oscuro */
+        /* Texto principal en gris oscuro */
         .main > div {
-            color: #1f2d3d !important;
+            color: #1e2022 !important;
         }
 
-        /* Métricas más visibles */
+        /* Estilo de métricas */
         [data-testid="stMetricLabel"] {
-            font-size: 1.4rem;
+            font-size: 1.5rem;
             font-weight: 600;
-            color: #2c7be5 !important;
+            color: #1a73e8 !important;
+        }
+
+        [data-testid="stMetricValue"] {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #202124 !important;
         }
 
         [data-testid="stMetricDelta"] {
             font-weight: bold;
+            color: #34a853 !important;
         }
 
-        /* Sidebar blanco, texto azul */
+        /* Sidebar limpio con acento azul petróleo */
         [data-testid="stSidebar"] {
             background-color: #ffffff !important;
+            border-right: 1px solid #e0e0e0;
         }
+
         [data-testid="stSidebar"] * {
-            color: #2c7be5 !important;
+            color: #1a3c5a !important;
         }
 
-        /* Expander título */
+        /* Encabezados de expander elegantes */
         .stExpander > summary {
-            color: #2c7be5 !important;
-            font-weight: bold;
+            font-weight: 600;
+            color: #1a3c5a !important;
         }
 
-        /* Esconder watermark de streamlit */
-        .css-1wa3eu0 {
-            display: none !important;
+        /* Tabs refinadas */
+        .stTabs [data-baseweb="tab"] {
+            font-size: 15px;
+            padding: 12px;
+            border-bottom: 2px solid transparent;
+            color: #5f6368;
         }
 
-        /* Ajustes de MultiSelect */
+        .stTabs [aria-selected="true"] {
+            border-bottom: 3px solid #1a73e8;
+            color: #1a73e8;
+            font-weight: 600;
+        }
+
+        /* Selector multiple compacto */
         .stMultiSelect .css-12w0qpk {
             max-height: 0px !important;
             overflow: hidden !important;
         }
+
         .stMultiSelect {
-            height: 35px !important;
+            height: 38px !important;
         }
 
-        /* Tabs */
-        .stTabs [data-baseweb="tab"] {
-            font-size: 16px;
-            padding: 10px;
-            border-bottom: 2px solid transparent;
-        }
-
-        .stTabs [aria-selected="true"] {
-            border-bottom: 3px solid #2c7be5;
-            font-weight: bold;
-            color: #2c7be5;
+        /* Ocultar watermark de Streamlit */
+        .css-1wa3eu0 {
+            display: none !important;
         }
     </style>
 """, unsafe_allow_html=True)
+
 
 
 # ===================== INTERFAZ BÁSICA =====================
