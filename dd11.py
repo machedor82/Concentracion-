@@ -187,7 +187,7 @@ with tabs[0]:
     col1, col2 = st.columns(2)
     col1.metric("Pedidos", f"{len(df_filtrado):,}")
     col2.metric(
-        "Llegadas muy adelantadas (≥1 semana)",
+        "Llegadas muy adelantadas (≥10 días)",
         f"{(df_filtrado['desviacion_vs_promesa'] < -10).mean() * 100:.1f}%"
     )
 
@@ -198,8 +198,6 @@ with tabs[0]:
 
         # --------- Gráfico de dona: Pedidos por zona dinámica ---------
         with col1:
-            st.subheader("📍 Pedidos por Zona")
-
             df_tmp = df_filtrado.copy()
             df_tmp['zona_entrega'] = clasificar_zonas(df_tmp, estado_sel)
             conteo_zona = df_tmp['zona_entrega'].value_counts().reset_index()
@@ -210,6 +208,7 @@ with tabs[0]:
                 names='Zona',
                 values='Pedidos',
                 hole=0.4,
+                title="📍 Pedidos por Zona",
                 color='Zona'
             )
             fig_pie.update_traces(
@@ -220,8 +219,7 @@ with tabs[0]:
 
         # --------- Barras: Entregas a tiempo vs tardías ---------
         with col2:
-            st.subheader("🚚 Si somos puntuales, ¿cuál es el problema?")
-
+            
             df_tmp = df_filtrado.copy()
             df_tmp['zona_entrega'] = clasificar_zonas(df_tmp, estado_sel)
             df_tmp['estatus_entrega'] = df_tmp['llego_tarde'].apply(lambda x: 'A tiempo' if x == 0 else 'Tardío')
@@ -237,6 +235,7 @@ with tabs[0]:
                 color='estatus_entrega',
                 category_orders={'zona_entrega': orden_zonas},
                 color_discrete_map={'A tiempo': '#A7D3F4', 'Tardío': '#B0B0B0'},
+                title="🚚 Si somos puntuales, ¿cuál es el problema?",
                 labels={
                     'zona_entrega': 'Zona',
                     'porcentaje': 'Porcentaje',
@@ -259,7 +258,6 @@ with tabs[0]:
 
         # --------- Barras: Días de entrega por zona dinámica ---------
         with col3:
-            st.subheader("📦 ¿Éxito logístico o maquillaje de tiempos?")
 
             df_tmp = df_filtrado[df_filtrado['dias_entrega'].notna()].copy()
             df_tmp['grupo_dias'] = pd.cut(
@@ -287,6 +285,7 @@ with tabs[0]:
                 color='grupo_dias',
                 category_orders={'zona_entrega': orden_zonas},
                 color_discrete_map=colores_dias,
+                title="📦 ¿Éxito logístico o maquillaje de tiempos?",
                 labels={
                     'zona_entrega': 'Zona',
                     'porcentaje': 'Porcentaje',
@@ -324,6 +323,7 @@ with tabs[0]:
                     x=medios['dias_entrega'],
                     name='Días Entrega',
                     orientation='h',
+                    title="📊Colchon",
                     marker_color='#4FA0D9'
                 ))
                 fig.add_trace(go.Bar(
@@ -372,24 +372,30 @@ with tabs[1]:
 
     # ==================== TABLA DE % FLETE SOBRE PRECIO ====================
     st.subheader("💸 Relación Envío–Precio: ¿Gasto Justificado?")
-
+    
     df_precio = df_filtrado.copy()
     df_precio['porcentaje_flete'] = (df_precio['costo_de_flete'] / df_precio['precio']) * 100
-
+    
     tabla = df_precio.groupby('Categoría')['porcentaje_flete'].mean().reset_index()
     tabla = tabla.sort_values(by='porcentaje_flete', ascending=False)
-    max_val = tabla['porcentaje_flete'].max()
+    
+    # Aplicar el emoji y formatear
+    tabla['porcentaje_flete_raw'] = tabla['porcentaje_flete']  # guardamos valor real para condicional
     tabla['porcentaje_flete'] = tabla['porcentaje_flete'].apply(
-        lambda x: f"🔺 {x:.1f}%" if x == max_val else f"{x:.1f}%"
+        lambda x: f"🔺 {x:.1f}%" if x >= 40 else f"{x:.1f}%"
     )
-
-    tabla_h = tabla.set_index('Categoría').T
-
-    def highlight_emoji_red(s):
-        return ['color: red; font-weight: bold' if '🔺' in str(v) else '' for v in s]
-
+    
+    tabla_h = tabla.set_index('Categoría')[['porcentaje_flete']].T
+    
+    # Estilo condicional: rojo si ≥ 40%
+    def highlight_if_high(s):
+        return [
+            'color: red; font-weight: bold' if '🔺' in str(v) else ''
+            for v in s
+        ]
+    
     st.dataframe(
-        tabla_h.style.apply(highlight_emoji_red, axis=1),
+        tabla_h.style.apply(highlight_if_high, axis=1),
         use_container_width=True,
         height=100,
         hide_index=True
@@ -400,8 +406,6 @@ with tabs[1]:
 
     # --------- BARRA: Precio vs Flete por Categoría ---------
     with col1:
-        st.subheader("📊 Total Precio vs Costo de Envío")
-
         totales = df_filtrado.groupby('Categoría')[['precio', 'costo_de_flete']].sum().reset_index()
         totales = totales.sort_values(by='precio', ascending=False)
 
@@ -410,6 +414,7 @@ with tabs[1]:
             x='Categoría',
             y=['precio', 'costo_de_flete'],
             barmode='group',
+            title="📊 Total Precio vs Costo de Envío",
             labels={'value': 'Monto ($)', 'variable': 'Concepto'},
             color_discrete_map={
                 'precio': '#005BAC',
