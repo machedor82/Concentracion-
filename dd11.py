@@ -440,44 +440,39 @@ with tabs[1]:
     # --------- BOXPLOT: Variabilidad % Flete / Precio ---------
     with col2:
         st.subheader("📈 Variabilidad Relativa del Costo de Envío")
-        # 📈 Evolución mensual del costo de flete promedio (2016–2018)
-        df_linea = df_filtrado.groupby(['año', 'mes'])['costo_de_flete'].mean().reset_index()
+          # Agrupar por mes y calcular el promedio general (sin distinguir por año)
+        df_promedio_mensual = df_filtrado.groupby('mes')['costo_de_flete'].mean().reset_index()
         
-        # Etiquetas de meses
+        # Convertir número de mes a nombre
         meses_texto = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
                        'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-        df_linea['mes_nombre'] = df_linea['mes'].apply(lambda x: meses_texto[x - 1])
-        df_linea['año'] = df_linea['año'].astype(str)  # Asegurar que se plotee como categoría
+        df_promedio_mensual['mes_nombre'] = df_promedio_mensual['mes'].apply(lambda x: meses_texto[x - 1])
         
-        # Gráfico de líneas
-        fig_linea = px.line(
-            df_linea,
+        # Ordenar por calendario
+        df_promedio_mensual = df_promedio_mensual.sort_values('mes')
+        
+        # Crear gráfica de línea
+        fig = px.line(
+            df_promedio_mensual,
             x='mes_nombre',
             y='costo_de_flete',
-            color='año',
             markers=True,
-            labels={
-                'mes_nombre': 'Mes',
-                'costo_de_flete': 'Costo Promedio de Flete ($)',
-                'año': 'Año'
-            },
-            title="📈 Evolución Mensual del Costo de Flete (2016–2018)"
+            title="📈 Costo Promedio de Flete por Mes (Promedio General 2016–2018)",
+            labels={'mes_nombre': 'Mes', 'costo_de_flete': 'Costo Promedio de Flete ($)'}
         )
         
-        fig_linea.update_layout(
+        fig.update_layout(
             height=420,
             xaxis=dict(categoryorder='array', categoryarray=meses_texto),
             yaxis_title="Costo Promedio ($)",
             xaxis_title="Mes",
-            legend_title="Año",
             margin=dict(t=50, b=50, l=40, r=10)
         )
         
-        fig_linea.update_traces(line=dict(width=2), marker=dict(size=6))
+        fig.update_traces(line=dict(width=3, color='#2c7be5'), marker=dict(size=7, color='#2c7be5'))
         
-        st.plotly_chart(fig_linea, use_container_width=True)
-
-
+        st.plotly_chart(fig, use_container_width=True)
+        
 
     # ========================= CALCULADORA =========================
     with tabs[2]:
