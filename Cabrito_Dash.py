@@ -49,6 +49,7 @@ with st.sidebar:
     estado_sel = option_menu("Selecciona un estado", estados,
                             icons=["globe"] + ["geo"]*(len(estados)-1),
                             default_index=0)
+
 # Filtrar df
 if estado_sel == "Nacional":
     df_filtrado = df.copy()
@@ -82,21 +83,36 @@ with tabs[0]:
         tmp['zona'] = clasificar_zonas(tmp, estado_sel)
         cnt = tmp['zona'].value_counts().reset_index()
         cnt.columns = ['zona', 'pedidos']
-        fig1 = px.pie(cnt, names='zona', values='pedidos', hole=0.4, title="📍 Pedidos por Zona")
+        fig1 = px.pie(
+            cnt,
+            names='zona',
+            values='pedidos',
+            hole=0.4,
+            title="📍 Pedidos por Zona",
+            color_discrete_sequence=px.colors.sequential.Blues
+        )
         fig1.update_traces(textinfo='percent+label', hovertemplate="<b>%{label}</b><br>Pedidos: %{value}<br>Porcentaje: %{percent}")
         st.plotly_chart(fig1, use_container_width=True)
     with col2:
         if 'llego_tarde' in df_filtrado:
             tmp2 = df_filtrado.copy()
-            tmp2['zona'] = clasific_zonas = clasificar_zonas(tmp2, estado_sel)  # remap
+            tmp2['zona'] = clasificar_zonas(tmp2, estado_sel)
             tmp2['estatus'] = tmp2['llego_tarde'].map({0:'A tiempo',1:'Tardío'})
             grp = tmp2.groupby(['zona','estatus']).size().reset_index(name='count')
             grp['percent'] = grp['count']/grp.groupby('zona')['count'].transform('sum')*100
-            fig2 = px.bar(grp, x='zona', y='percent', color='estatus', barmode='stack', title="🚚 Entregas A Tiempo vs Tardías")
+            fig2 = px.bar(
+                grp,
+                x='zona',
+                y='percent',
+                color='estatus',
+                barmode='stack',
+                title="🚚 Entregas A Tiempo vs Tardías",
+                color_discrete_sequence=px.colors.sequential.Blues
+            )
             fig2.update_layout(xaxis_title='Zona', yaxis_title='Porcentaje (%)', legend_title='Estatus')
             st.plotly_chart(fig2, use_container_width=True)
 
-    # Fila 2: Distribución de días y colchón por zona
+    # Fila 2: Distribución de días y colchón (mantenido con escala original)
     if 'dias_entrega' in df_filtrado and 'colchon_dias' in df_filtrado:
         col3, col4 = st.columns(2)
         with col3:
@@ -105,7 +121,15 @@ with tabs[0]:
             tmp3['zona'] = clasificar_zonas(tmp3, estado_sel)
             grp2 = tmp3.groupby(['zona','grupo_dias']).size().reset_index(name='count')
             grp2['percent'] = grp2['count']/grp2.groupby('zona')['count'].transform('sum')*100
-            fig3 = px.bar(grp2, x='zona', y='percent', color='grupo_dias', barmode='stack', title="📦 Días de Entrega por Zona")
+            fig3 = px.bar(
+                grp2,
+                x='zona',
+                y='percent',
+                color='grupo_dias',
+                barmode='stack',
+                title="📦 Días de Entrega por Zona",
+                color_discrete_map={"1-5":"#A7D3F4","6-10":"#4FA0D9",">10":"#FF6B6B"}
+            )
             fig3.update_layout(xaxis_title='Zona', yaxis_title='Porcentaje (%)', legend_title='Rango Días')
             st.plotly_chart(fig3, use_container_width=True)
         with col4:
@@ -113,8 +137,8 @@ with tabs[0]:
             tmp4['zona'] = clasificar_zonas(tmp4, estado_sel)
             medios = tmp4.groupby('zona')[['dias_entrega','colchon_dias']].mean().reset_index()
             fig4 = go.Figure()
-            fig4.add_trace(go.Bar(y=medios['zona'], x=medios['dias_entrega'], name='Días Entrega', orientation='h'))
-            fig4.add_trace(go.Bar(y=medios['zona'], x=medios['colchon_dias'], name='Colchón Días', orientation='h'))
+            fig4.add_trace(go.Bar(y=medios['zona'], x=medios['dias_entrega'], name='Días Entrega', orientation='h', marker_color=px.colors.sequential.Blues[3]))
+            fig4.add_trace(go.Bar(y=medios['zona'], x=medios['colchon_dias'], name='Colchón Días', orientation='h', marker_color=px.colors.sequential.Blues[1]))
             fig4.update_layout(barmode='group', title='📦 Días vs Colchón por Zona', xaxis_title='Promedio Días', yaxis_title='Zona')
             st.plotly_chart(fig4, use_container_width=True)
 
@@ -131,6 +155,29 @@ with tabs[1]:
             tbl = tmp.groupby('categoria')['porcentaje_flete'].mean().reset_index().sort_values('porcentaje_flete', ascending=False)
             tbl['display'] = tbl['porcentaje_flete'].apply(lambda v: f"🔺 {v:.1f}%" if v>=40 else f"{v:.1f}%")
             st.table(tbl[['categoria','display']].rename(columns={'display':'% Flete'}))
+        # Gráfico de barras total precio vs flete en azul
+        tot = df_filtrado.groupby('categoria')[['precio','costo_de_flete']].sum().reset_index()
+        fig_tot = px.bar(
+            tot,
+            x='categoria', y=['precio','costo_de_flete'],
+            barmode='group',
+            title="📊 Total Precio vs Costo de Envío",
+            labels={'value':'Monto ($)','variable':'Concepto'},
+            color_discrete_sequence=px.colors.sequential.Blues
+        )
+        st.plotly_chart(fig_tot, use_container_width=True)
+        # Línea costo promedio por mes en azul
+        df_month = df_filtrado.groupby('mes')['costo_de_flete'].mean().reset_index()
+        meses_txt = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+        df_month['mes_nombre'] = df_month['mes'].apply(lambda x: meses_txt[x-1])
+        fig_line = px.line(
+            df_month,
+            x='mes_nombre', y='costo_de_flete', markers=True,
+            title="📈 Costo Promedio de Flete por Mes",
+            labels={'mes_nombre':'Mes','costo_de_flete':'Costo Promedio ($)'},
+            color_discrete_sequence=px.colors.sequential.Blues
+        )
+        st.plotly_chart(fig_line, use_container_width=True)
 
 # ================ PESTAÑA 2: Calculadora ================
 with tabs[2]:
@@ -147,32 +194,4 @@ with tabs[2]:
     m1_ = [k for k,v in meses.items() if v==m1n2][0]
     m2_ = [k for k,v in meses.items() if v==m2n2][0]
     df1 = df[(df['mes']==m1_) & (df['estado_del_cliente']==est2) & (df['categoria']==cat2)].copy()
-    df2b = df[(df['mes']==m2_) & (df['estado_del_cliente']==est2) & (df['categoria']==cat2)].copy()
-    def predecir(df_pred):
-        if df_pred.empty: return df_pred
-        cols = ['total_peso_g','precio','#_deproductos','duracion_estimada_min','ciudad_cliente','nombre_dc','hora_compra','año','mes','datetime_origen','region','dias_promedio_ciudad','categoria','tipo_de_pago']
-        dfp = df_pred.reindex(columns=cols).copy()
-        enc = pd.get_dummies(dfp)
-        feats = modelo_flete.get_booster().feature_names
-        enc = enc.reindex(columns=feats, fill_value=0)
-        df_pred['costo_estimado'] = modelo_flete.predict(enc).round(2)
-        return df_pred
-    def agr(df_pred, name):
-        if 'costo_estimado' not in df_pred:
-            return pd.DataFrame(columns=['ciudad_cliente', name])
-        agg = df_pred.groupby('ciudad_cliente')['costo_estimado'].mean().round(2).reset_index().rename(columns={'costo_estimado':name})
-        return agg
-    res1 = agr(predecir(df1), m1n2)
-    res2 = agr(predecir(df2b), m2n2)
-    comp2 = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
-    comp2[m1n2] = pd.to_numeric(comp2[m1n2], errors='coerce')
-    comp2[m2n2] = pd.to_numeric(comp2[m2n2], errors='coerce')
-    comp2['Diferencia'] = (comp2[m2n2] - comp2[m1n2]).round(2)
-    comp2 = comp2.rename(columns={'ciudad_cliente':'Ciudad'})
-    st.subheader(f"Comparación: {m1n2} vs {m2n2}")
-    st.dataframe(comp2, use_container_width=True)
-    st.download_button("⬇️ Descargar CSV", data=comp2.to_csv(index=False).encode('utf-8'),file_name='comparacion.csv',mime='text/csv')
-
-# Pestaña 3: App Danu
-with tabs[3]:
-    pass
+    df2b = df[(df['mes']==m2_) & (df['estado_del_cliente']==est2) & (df['categoria']==cat2)].``(sys truncated)
