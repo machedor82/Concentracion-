@@ -440,31 +440,43 @@ with tabs[1]:
     # --------- BOXPLOT: Variabilidad % Flete / Precio ---------
     with col2:
         st.subheader("📈 Variabilidad Relativa del Costo de Envío")
-
-        df_box = df_filtrado[df_filtrado['precio'] > 0].copy()
-        df_box['flete_pct'] = (df_box['costo_de_flete'] / df_box['precio']) * 100
-
-        fig_box = px.box(
-            df_box,
-            x='Categoría',
-            y='flete_pct',
-            points='all',
-            title="¿Qué categoría tiene más variabilidad?",
-            labels={'flete_pct': '% Flete / Precio'},
-            color='Categoría'
+        # 📈 Evolución mensual del costo de flete promedio (2016–2018)
+        df_linea = df_filtrado.groupby(['año', 'mes'])['costo_de_flete'].mean().reset_index()
+        
+        # Etiquetas de meses
+        meses_texto = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+                       'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+        df_linea['mes_nombre'] = df_linea['mes'].apply(lambda x: meses_texto[x - 1])
+        df_linea['año'] = df_linea['año'].astype(str)  # Asegurar que se plotee como categoría
+        
+        # Gráfico de líneas
+        fig_linea = px.line(
+            df_linea,
+            x='mes_nombre',
+            y='costo_de_flete',
+            color='año',
+            markers=True,
+            labels={
+                'mes_nombre': 'Mes',
+                'costo_de_flete': 'Costo Promedio de Flete ($)',
+                'año': 'Año'
+            },
+            title="📈 Evolución Mensual del Costo de Flete (2016–2018)"
         )
-
-        fig_box.update_layout(
+        
+        fig_linea.update_layout(
             height=420,
-            margin=dict(t=50, b=50, l=20, r=20),
-            showlegend=False
+            xaxis=dict(categoryorder='array', categoryarray=meses_texto),
+            yaxis_title="Costo Promedio ($)",
+            xaxis_title="Mes",
+            legend_title="Año",
+            margin=dict(t=50, b=50, l=40, r=10)
         )
-        fig_box.update_traces(
-            jitter=0.3,
-            marker_opacity=0.6
-        )
+        
+        fig_linea.update_traces(line=dict(width=2), marker=dict(size=6))
+        
+        st.plotly_chart(fig_linea, use_container_width=True)
 
-        st.plotly_chart(fig_box, use_container_width=True)
 
 
     # ========================= CALCULADORA =========================
