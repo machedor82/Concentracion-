@@ -458,7 +458,6 @@ with tabs[1]:
 
     # --------- BOXPLOT: Variabilidad % Flete / Precio ---------
     with col2:
-        st.subheader("📈 Variabilidad Relativa del Costo de Envío")
           # Agrupar por mes y calcular el promedio general (sin distinguir por año)
         df_promedio_mensual = df_filtrado.groupby('mes')['costo_de_flete'].mean().reset_index()
         
@@ -484,7 +483,6 @@ with tabs[1]:
             height=420,
             xaxis=dict(categoryorder='array', categoryarray=meses_texto),
             yaxis_title="Costo Promedio ($)",
-            xaxis_title="Mes",
             margin=dict(t=50, b=50, l=40, r=10)
         )
         
