@@ -176,11 +176,11 @@ if 'categoria' in tmp:
     st.table(tbl_horiz)
 
     tot = df_filtrado.groupby('categoria')[['precio','costo_de_flete']].sum().reset_index()
-        fig_tot = px.bar(
-            tot, x='categoria', y=['precio','costo_de_flete'], barmode='group',
-            title="📊 Total Precio vs Costo de Envío",
-            labels={'value':'Monto ($)','variable':'Concepto'},
-            color_discrete_sequence=blue_seq
+    fig_tot = px.bar(
+        tot, x='categoria', y=['precio','costo_de_flete'], barmode='group',
+        title="📊 Total Precio vs Costo de Envío",
+        labels={'value':'Monto ($)','variable':'Concepto'},
+        color_discrete_sequence=blue_seq
         )
         st.plotly_chart(fig_tot, use_container_width=True)
         df_month = df_filtrado.groupby('mes')['costo_de_flete'].mean().reset_index()
