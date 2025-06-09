@@ -153,16 +153,28 @@ with tabs[1]:
             "💰 Flete Alto vs Precio",
             f"{(df_filtrado['costo_de_flete']/df_filtrado['precio']>0.5).mean()*100:.1f}%"
         )
-        st.subheader("💸 Relación Envío–Precio")
-        tmp = df_filtrado.copy()
-        tmp['porcentaje_flete'] = tmp['costo_de_flete']/tmp['precio']*100
-        if 'categoria' in tmp:
-            tbl = tmp.groupby('categoria')['porcentaje_flete'] \
-                     .mean().reset_index() \
-                     .sort_values('porcentaje_flete', ascending=False)
-            tbl['display'] = tbl['porcentaje_flete'] \
-                             .apply(lambda v: f"🔺 {v:.1f}%" if v>=40 else f"{v:.1f}%")
-            st.table(tbl[['categoria','display']].rename(columns={'display':'% Flete'}))
+       # Después (orientación horizontal):
+st.subheader("💸 Relación Envío–Precio")
+tmp = df_filtrado.copy()
+tmp['porcentaje_flete'] = tmp['costo_de_flete']/tmp['precio']*100
+if 'categoria' in tmp:
+    tbl = (
+        tmp.groupby('categoria')['porcentaje_flete']
+           .mean()
+           .reset_index()
+           .sort_values('porcentaje_flete', ascending=False)
+    )
+    tbl['display'] = tbl['porcentaje_flete'] \
+                     .apply(lambda v: f"🔺 {v:.1f}%" if v>=40 else f"{v:.1f}%")
+    # Pivot para que las categorías queden como columnas
+    tbl_horiz = (
+        tbl[['categoria','display']]
+        .rename(columns={'display':'% Flete'})
+        .set_index('categoria')
+        .T
+    )
+    st.table(tbl_horiz)
+
         tot = df_filtrado.groupby('categoria')[['precio','costo_de_flete']].sum().reset_index()
         fig_tot = px.bar(
             tot, x='categoria', y=['precio','costo_de_flete'], barmode='group',
