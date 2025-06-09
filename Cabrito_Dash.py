@@ -175,7 +175,7 @@ if 'categoria' in tmp:
     )
     st.table(tbl_horiz)
 
-        tot = df_filtrado.groupby('categoria')[['precio','costo_de_flete']].sum().reset_index()
+    tot = df_filtrado.groupby('categoria')[['precio','costo_de_flete']].sum().reset_index()
         fig_tot = px.bar(
             tot, x='categoria', y=['precio','costo_de_flete'], barmode='group',
             title="📊 Total Precio vs Costo de Envío",
