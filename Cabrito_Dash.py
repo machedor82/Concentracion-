@@ -6,70 +6,63 @@ import numpy as np
 from streamlit_option_menu import option_menu
 from sklearn.base import BaseEstimator, TransformerMixin
 
-# ===================== CONFIGURACIÓN DE PÁGINA =====================
 st.set_page_config(page_title="Cabrito Analytics", layout="wide")
 
-# ------------------ Carga de archivo y modelos ------------------
+# ------------------ Subida de archivo ------------------
 with st.sidebar:
     st.image("danu_logo.png", use_container_width=True)
     st.header("📂 Sube tu archivo CSV")
     archivo_csv = st.file_uploader("Archivo .csv con los datos completos", type="csv")
 
-# ===================== CLASE OPCIONAL (si se requiere) =====================
-class MiTransformadorEspecial(BaseEstimator, TransformerMixin):
-    def __init__(self, parametro1=None):
-        self.parametro1 = parametro1
+# ------------------ Función auxiliar ------------------
+def clasificar_zonas(df, estado_sel):
+    if estado_sel == "Nacional":
+        principales = ['Ciudad de México', 'Nuevo León', 'Jalisco']
+        return df['estado_del_cliente'].apply(lambda x: x if x in principales else 'Provincia')
+    else:
+        top_ciudades = (
+            df[df['estado_del_cliente'] == estado_sel]['ciudad_cliente']
+            .value_counts()
+            .nlargest(3)
+            .index
+            .tolist()
+        )
+        return df['ciudad_cliente'].apply(lambda x: x if x in top_ciudades else 'Otras')
 
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, X):
-        return X
-
-# ===================== SI SE CARGA CSV =====================
+# ------------------ Si se sube el CSV ------------------
 if archivo_csv:
-    # Carga de datos
     df = pd.read_csv(archivo_csv)
     df2 = df.copy()
 
-    # Carga de modelos
+    # Calcular desviacion_vs_promesa si no existe
+    if 'desviacion_vs_promesa' not in df.columns and {'fecha_entrega_al_cliente', 'fecha_de_entrega_estimada'}.issubset(df.columns):
+        df['desviacion_vs_promesa'] = (
+            pd.to_datetime(df['fecha_entrega_al_cliente'], errors='coerce') -
+            pd.to_datetime(df['fecha_de_entrega_estimada'], errors='coerce')
+        ).dt.days
+
+    # Cargar modelos
     modelo_flete = joblib.load("modelo_costoflete.sav")
     modelo_dias = joblib.load("modelo_dias_pipeline_70.joblib")
     label_encoder = joblib.load("label_encoder_dias_70.joblib")
 
-    st.success("✅ Datos y modelos cargados correctamente. Dashboard en funcionamiento.")
-
-    # ========== Sidebar: filtro de estado ==========
-    st.sidebar.subheader("🎛️ Filtro de Estado")
-    estados = ["Nacional"] + sorted(df['estado_del_cliente'].dropna().unique().tolist())
-    estado_sel = option_menu(
-        menu_title="Selecciona un estado",
-        options=estados,
-        icons=["globe"] + ["geo"] * (len(estados) - 1),
-        default_index=0
-    )
+    with st.sidebar:
+        st.subheader("🎛️ Filtro de Estado")
+        estados = ["Nacional"] + sorted(df['estado_del_cliente'].dropna().unique().tolist())
+        estado_sel = option_menu(
+            menu_title="Selecciona un estado",
+            options=estados,
+            icons=["globe"] + ["geo"] * (len(estados) - 1),
+            default_index=0
+        )
 
     df_filtrado = df if estado_sel == "Nacional" else df[df['estado_del_cliente'] == estado_sel]
 
-    # ========== Función auxiliar ==========
-    def clasificar_zonas(df, estado_sel):
-        if estado_sel == "Nacional":
-            principales = ['Ciudad de México', 'Nuevo León', 'Jalisco']
-            return df['estado_del_cliente'].apply(lambda x: x if x in principales else 'Provincia')
-        else:
-            top_ciudades = (
-                df[df['estado_del_cliente'] == estado_sel]['ciudad_cliente']
-                .value_counts()
-                .nlargest(3)
-                .index
-                .tolist()
-            )
-            return df['ciudad_cliente'].apply(lambda x: x if x in top_ciudades else 'Otras')
+    st.success("✅ Datos y modelos cargados correctamente. Dashboard en funcionamiento.")
 
-    # ========== Tabs principales ==========
     tabs = st.tabs(["📊 Resumen Nacional", "🏠 Costo de Envío", "🧮 Calculadora", "🗃️ Data"])
 
-    # ========== Tab 0: Resumen Nacional ==========
+    # ========== TAB 0: Resumen Nacional ==========
     with tabs[0]:
         st.title(f"📊 ¿Entrega Rápida o Margen Inflado? – {estado_sel}")
         col1, col2 = st.columns(2)
@@ -93,7 +86,7 @@ if archivo_csv:
             fig = px.bar(conteo, x='zona_entrega', y='conteo', color='estatus_entrega', barmode='stack')
             st.plotly_chart(fig, use_container_width=True)
 
-    # ========== Tab 1: Costo de Envío ==========
+    # ========== TAB 1: Costo de Envío ==========
     with tabs[1]:
         st.header("💰 Costo de Envío")
         col1, col2 = st.columns(2)
@@ -104,9 +97,10 @@ if archivo_csv:
         )
 
         df_filtrado['porcentaje_flete'] = (df_filtrado['costo_de_flete'] / df_filtrado['precio']) * 100
-        st.dataframe(df_filtrado[['categoria', 'porcentaje_flete']].groupby('categoria').mean().round(2).sort_values(by='porcentaje_flete', ascending=False))
+        resumen = df_filtrado[['categoria', 'porcentaje_flete']].groupby('categoria').mean().round(2).sort_values(by='porcentaje_flete', ascending=False)
+        st.dataframe(resumen, use_container_width=True)
 
-    # ========== Tab 2: Calculadora ==========
+    # ========== TAB 2: Calculadora ==========
     with tabs[2]:
         st.header("🧮 Calculadora de Predicción")
 
@@ -131,9 +125,10 @@ if archivo_csv:
         def predecir(df_input):
             if df_input.empty:
                 return df_input
-            df_flete = df_input[['total_peso_g', 'precio', '#_deproductos', 'duracion_estimada_min', 'ciudad_cliente',
-                                 'nombre_dc', 'hora_compra', 'año', 'mes', 'datetime_origen', 'region',
-                                 'dias_promedio_ciudad', 'categoria', 'tipo_de_pago']].copy()
+            columnas_flete = ['total_peso_g', 'precio', '#_deproductos', 'duracion_estimada_min', 'ciudad_cliente',
+                              'nombre_dc', 'hora_compra', 'año', 'mes', 'datetime_origen', 'region',
+                              'dias_promedio_ciudad', 'categoria', 'tipo_de_pago']
+            df_flete = df_input[columnas_flete].copy()
             df_encoded = pd.get_dummies(df_flete)
             columnas_modelo = modelo_flete.get_booster().feature_names
             df_encoded = df_encoded.reindex(columns=columnas_modelo, fill_value=0)
@@ -151,9 +146,6 @@ if archivo_csv:
             df_input['clase_entrega'] = label_encoder.inverse_transform(pred)
             return df_input
 
-        df_mes1 = predecir(df_mes1)
-        df_mes2 = predecir(df_mes2)
-
         def agrupar(df, mes_nombre):
             if 'costo_estimado' in df.columns and 'clase_entrega' in df.columns:
                 return df.groupby('ciudad_cliente').agg({
@@ -161,6 +153,9 @@ if archivo_csv:
                     'clase_entrega': lambda x: x.mode()[0] if not x.mode().empty else 'NA'
                 }).rename(columns={'costo_estimado': mes_nombre, 'clase_entrega': f'Entrega {mes_nombre}'}).reset_index()
             return pd.DataFrame(columns=['ciudad_cliente', mes_nombre, f'Entrega {mes_nombre}'])
+
+        df_mes1 = predecir(df_mes1)
+        df_mes2 = predecir(df_mes2)
 
         res1 = agrupar(df_mes1, mes1_nombre)
         res2 = agrupar(df_mes2, mes2_nombre)
@@ -171,7 +166,7 @@ if archivo_csv:
         st.dataframe(comparacion.style.format(precision=2))
         st.download_button("⬇️ Descargar Comparación CSV", comparacion.to_csv(index=False), file_name="comparacion.csv")
 
-    # ========== Tab 3: Ver Datos ==========
+    # ========== TAB 3: Vista de Datos ==========
     with tabs[3]:
         st.subheader("🔍 Vista Previa del Dataset")
         st.dataframe(df.head(100), use_container_width=True)
