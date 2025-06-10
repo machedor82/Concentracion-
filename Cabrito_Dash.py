@@ -604,7 +604,7 @@ cols_kpi_arriba[1].markdown(
 cols_kpi_arriba[2].markdown(
     f"<span style='font-size:28px; font-weight:bold'>{costo_prom_mes2:.2f}</span>", unsafe_allow_html=True)
 # Fin de los KPIS    
-    st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
+        st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
     st.dataframe(
         comparacion.style
         .applymap(resaltar, subset=['Diferencia'])
