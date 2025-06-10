@@ -137,11 +137,9 @@ tabs = st.tabs(["📊 Resumen Nacional", "🏠 Costo de Envío", "🧮 Calculado
 with st.sidebar:
     st.image("danu_logo.png", use_container_width=True)
     st.header("Sube tu archivo ZIP")
-    archivo_zip = st.file_uploader("ZIP con DF.csv, DF2.csv y modelos", type="zip")
+    archivo_csv = st.sidebar.file_uploader("Sube tu archivo CSV de pedidos", type="csv")
 
 # ===================== CARGA Y PROCESAMIENTO DE DATOS =====================
-archivo_csv = st.sidebar.file_uploader("Sube tu archivo CSV de pedidos", type="csv")
-
 if archivo_csv:
     df = pd.read_csv(archivo_csv)
 
