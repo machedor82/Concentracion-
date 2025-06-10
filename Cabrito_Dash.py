@@ -134,11 +134,10 @@ def clasificar_zonas(df, estado_sel):
 
 tabs = st.tabs(["📊 Resumen Nacional", "🏠 Costo de Envío", "🧮 Calculadora","App Danu 📈"])
 
-with st.sidebar:
+with st.sidebar: 
     st.image("danu_logo.png", use_container_width=True)
     st.header("Sube tu archivo CSV")
-    archivo_csv = st.sidebar.file_uploader( type="csv")
-
+    archivo_csv = file_uploader("Archivo CSV", type="csv")
 # ===================== CARGA Y PROCESAMIENTO DE DATOS =====================
 if archivo_csv:
     df = pd.read_csv(archivo_csv)
