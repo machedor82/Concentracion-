@@ -508,7 +508,7 @@ with tabs[2]:
     df2['orden_compra_timestamp'] = pd.to_datetime(df2['orden_compra_timestamp'])
     df2['año'] = df2['orden_compra_timestamp'].dt.year
     df2['mes'] = df2['orden_compra_timestamp'].dt.month
-    estado = estado_sel  # Usamos la selección del sidebar
+    estado = estado_sel
     st.markdown(f"**Estado seleccionado:** {estado}")
 
     categoria = st.selectbox("Categoría", sorted(df2['Categoría'].dropna().unique()))
@@ -570,10 +570,9 @@ with tabs[2]:
     res2 = agrupar_resultados(df_mes2, mes2_nombre)
     comparacion = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
     comparacion['Diferencia'] = (comparacion[mes2_nombre] - comparacion[mes1_nombre]).round(2)
-    comparacion = comparacion[[
-        'ciudad_cliente', mes1_nombre, mes2_nombre, 'Diferencia',
-        f"Entrega {mes1_nombre}", f"Entrega {mes2_nombre}"
-    ]].rename(columns={'ciudad_cliente': 'Ciudad'})
+    comparacion = comparacion[[ 'ciudad_cliente', mes1_nombre, mes2_nombre, 'Diferencia',
+                                 f"Entrega {mes1_nombre}", f"Entrega {mes2_nombre}" ]]
+    comparacion = comparacion.rename(columns={'ciudad_cliente': 'Ciudad'})
 
     def resaltar(val):
         if isinstance(val, (int, float, np.number)):
@@ -583,28 +582,28 @@ with tabs[2]:
                 return 'color: red; font-weight: bold'
         return ''
 
-
     # =================== KPIs ===================
-costo_prom_mes1 = df_mes1['costo_estimado'].mean() if not df_mes1.empty else np.nan
-costo_prom_mes2 = df_mes2['costo_estimado'].mean() if not df_mes2.empty else np.nan
-cambio_pct = ((costo_prom_mes2 - costo_prom_mes1) / costo_prom_mes1 * 100) if costo_prom_mes1 != 0 else 0
+    costo_prom_mes1 = df_mes1['costo_estimado'].mean() if not df_mes1.empty else np.nan
+    costo_prom_mes2 = df_mes2['costo_estimado'].mean() if not df_mes2.empty else np.nan
+    cambio_pct = ((costo_prom_mes2 - costo_prom_mes1) / costo_prom_mes1 * 100) if costo_prom_mes1 != 0 else 0
 
-st.markdown("---")
-cols_kpi_arriba = st.columns(3)
-cols_kpi_arriba[0].markdown(f"**Costo de Flete Promedio {mes1_nombre}**")
-cols_kpi_arriba[1].markdown("**% Cambio**")
-cols_kpi_arriba[2].markdown(f"**Costo de Flete Promedio {mes2_nombre}**")
+    st.markdown("---")
+    cols_kpi_arriba = st.columns(3)
+    cols_kpi_arriba[0].markdown(f"**Costo de Flete Promedio {mes1_nombre}**")
+    cols_kpi_arriba[1].markdown("**% Cambio**")
+    cols_kpi_arriba[2].markdown(f"**Costo de Flete Promedio {mes2_nombre}**")
 
-cols_kpi_arriba[0].markdown(
-    f"<span style='font-size:28px; font-weight:bold'>{costo_prom_mes1:.2f}</span>", unsafe_allow_html=True)
-color_cambio = 'green' if cambio_pct > 0 else 'red'
-cols_kpi_arriba[1].markdown(
-    f"<span style='color:{color_cambio}; font-size:28px; font-weight:bold'>{cambio_pct:.2f}%</span>",
-    unsafe_allow_html=True)
-cols_kpi_arriba[2].markdown(
-    f"<span style='font-size:28px; font-weight:bold'>{costo_prom_mes2:.2f}</span>", unsafe_allow_html=True)
-# Fin de los KPIS    
-st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
+    cols_kpi_arriba[0].markdown(
+        f"<span style='font-size:28px; font-weight:bold'>{costo_prom_mes1:.2f}</span>", unsafe_allow_html=True)
+    color_cambio = 'green' if cambio_pct > 0 else 'red'
+    cols_kpi_arriba[1].markdown(
+        f"<span style='color:{color_cambio}; font-size:28px; font-weight:bold'>{cambio_pct:.2f}%</span>",
+        unsafe_allow_html=True)
+    cols_kpi_arriba[2].markdown(
+        f"<span style='font-size:28px; font-weight:bold'>{costo_prom_mes2:.2f}</span>", unsafe_allow_html=True)
+
+    # =================== Tabla Comparativa ===================
+    st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
     st.dataframe(
         comparacion.style
         .applymap(resaltar, subset=['Diferencia'])
@@ -617,4 +616,3 @@ st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
         file_name="comparacion.csv",
         mime="text/csv"
     )
-
