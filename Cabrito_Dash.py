@@ -115,9 +115,6 @@ st.markdown("""
         }
     </style>
 """, unsafe_allow_html=True)
-
-
-
 # ===================== INTERFAZ BÁSICA =====================
 
 def clasificar_zonas(df, estado_sel):
@@ -146,9 +143,15 @@ with st.sidebar:
 archivo_csv = st.sidebar.file_uploader("Sube tu archivo CSV de pedidos", type="csv")
 
 if archivo_csv:
-    # Leer el archivo subido
     df = pd.read_csv(archivo_csv)
-    df2 = df.copy()  # para compatibilidad con otras pestañas
+
+    # Calcular columna 'desviacion_vs_promesa'
+    df['fecha_entrega_al_cliente'] = pd.to_datetime(df['fecha_entrega_al_cliente'])
+    df['fecha_de_entrega_estimada'] = pd.to_datetime(df['fecha_de_entrega_estimada'])
+    df['desviacion_vs_promesa'] = (df['fecha_entrega_al_cliente'] - df['fecha_de_entrega_estimada']).dt.days
+
+    # Copia auxiliar para la calculadora
+    df2 = df.copy()
 
     # Cargar modelos locales
     modelo_flete = joblib.load('modelo_costoflete.sav')
