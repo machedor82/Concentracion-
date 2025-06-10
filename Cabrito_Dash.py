@@ -606,11 +606,14 @@ with tabs[2]:
 
     st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
     st.dataframe(
-        comparacion.style
-        .applymap(resaltar, subset=['Diferencia'])
-        .format(precision=2)
-    )
-
+    comparacion.style
+    .applymap(resaltar, subset=['Diferencia'])
+    .format({
+        mes1_nombre: "${:,.2f}",
+        mes2_nombre: "${:,.2f}",
+        "Diferencia": "${:,.2f}"
+    })
+)
     st.download_button(
         "⬇️ Descargar CSV",
         comparacion.to_csv(index=False),
