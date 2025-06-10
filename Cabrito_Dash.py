@@ -1,6 +1,4 @@
-Corrige este
-
-# Cabrito Dash 09/06/2025 6:26PM
+# Cabrito Dash 10/06/2025 v1
 
 import streamlit as st
 import pandas as pd
