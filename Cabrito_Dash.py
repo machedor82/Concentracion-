@@ -520,7 +520,7 @@ with tabs[2]:
     mes1 = [k for k, v in meses_dict.items() if v == mes1_nombre][0]
     mes2 = [k for k, v in meses_dict.items() if v == mes2_nombre][0]
 
-    filtro = (df2['estado_del_cliente'] == estado) & (df2['categoria'] == categoria)
+    filtro = (df2['estado_del_cliente'] == estado) & (df2['Categoría'] == categoria)
     df_mes1 = df2[(df2['mes'] == mes1) & filtro].copy()
     df_mes2 = df2[(df2['mes'] == mes2) & filtro].copy()
 
