@@ -74,11 +74,14 @@ if archivo_csv:
 
         col1, col2 = st.columns(2)
         with col1:
-            df_tmp = df_filtrado.copy()
-            df_tmp['zona_entrega'] = clasificar_zonas(df_tmp, estado_sel)
-            conteo = df_tmp['zona_entrega'].value_counts().reset_index()
-            fig = px.pie(conteo, names='index', values='zona_entrega', hole=0.4)
-            st.plotly_chart(fig, use_container_width=True)
+    df_tmp = df_filtrado.copy()
+    df_tmp['zona_entrega'] = clasificar_zonas(df_tmp, estado_sel)
+    conteo = df_tmp['zona_entrega'].value_counts().reset_index()
+    conteo.columns = ['zona', 'cantidad']  # ← renombrar columnas
+    fig = px.pie(conteo, names='zona', values='cantidad', hole=0.4,
+                 title="📍 Pedidos por Zona")
+    st.plotly_chart(fig, use_container_width=True)
+
 
         with col2:
             df_tmp['estatus_entrega'] = df_tmp['llego_tarde'].apply(lambda x: 'A tiempo' if x == 0 else 'Tardío')
