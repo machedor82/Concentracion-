@@ -383,7 +383,7 @@ with tabs[1]:
     df_precio = df_filtrado.copy()
     df_precio['porcentaje_flete'] = (df_precio['costo_de_flete'] / df_precio['precio']) * 100
     
-    tabla = df_precio.groupby('Categoría')['porcentaje_flete'].mean().reset_index()
+    tabla = df_precio.groupby('categoria')['porcentaje_flete'].mean().reset_index()
     tabla = tabla.sort_values(by='porcentaje_flete', ascending=False)
     
     # Aplicar el emoji y formatear
@@ -392,7 +392,7 @@ with tabs[1]:
         lambda x: f"🔺 {x:.1f}%" if x >= 40 else f"{x:.1f}%"
     )
     
-    tabla_h = tabla.set_index('Categoría')[['porcentaje_flete']].T
+    tabla_h = tabla.set_index('categoria')[['porcentaje_flete']].T
     
     # Estilo condicional: rojo si ≥ 40%
     def highlight_if_high(s):
@@ -413,7 +413,7 @@ with tabs[1]:
 
     # --------- BARRA: Precio vs Flete por Categoría ---------
     with col1:
-        totales = df_filtrado.groupby('Categoría')[['precio', 'costo_de_flete']].sum().reset_index()
+        totales = df_filtrado.groupby('categoria')[['precio', 'costo_de_flete']].sum().reset_index()
         totales = totales.sort_values(by='precio', ascending=False)
 
         fig_totales = px.bar(
@@ -503,7 +503,7 @@ with tabs[2]:
     estado = estado_sel
     st.markdown(f"**Estado seleccionado:** {estado}")
 
-    categoria = st.selectbox("Categoría", sorted(df2['Categoría'].dropna().unique()))
+    categoria = st.selectbox("Categoría", sorted(df2['categoria'].dropna().unique()))
 
     col1, col2 = st.columns(2)
     mes1_nombre = col1.selectbox("Mes 1", list(meses_dict.values()), index=0)
@@ -511,7 +511,7 @@ with tabs[2]:
     mes1 = [k for k, v in meses_dict.items() if v == mes1_nombre][0]
     mes2 = [k for k, v in meses_dict.items() if v == mes2_nombre][0]
 
-    filtro = (df2['estado_del_cliente'] == estado) & (df2['Categoría'] == categoria)
+    filtro = (df2['estado_del_cliente'] == estado) & (df2['categoria'] == categoria)
     df_mes1 = df2[(df2['mes'] == mes1) & filtro].copy()
     df_mes2 = df2[(df2['mes'] == mes2) & filtro].copy()
 
@@ -521,7 +521,7 @@ with tabs[2]:
 
         columnas_flete = ['total_peso_g', 'precio', '#_deproductos', 'duracion_estimada_min', 'ciudad_cliente',
                           'nombre_dc', 'hora_compra', 'año', 'mes', 'datetime_origen', 'region',
-                          'dias_promedio_ciudad', 'Categoría', 'tipo_de_pago']
+                          'dias_promedio_ciudad', 'categoria', 'tipo_de_pago']
 
         df_flete = df_input[columnas_flete].copy()
         df_encoded = pd.get_dummies(df_flete)
@@ -531,7 +531,7 @@ with tabs[2]:
         df_input['costo_estimado'] = modelo_flete.predict(df_encoded).round(2)
         df_input['costo_de_flete'] = df_input['costo_estimado']
 
-        columnas_dias = ['Categoría', 'categoria_peso', '#_deproductos', 'total_peso_g', 'precio', 'costo_de_flete',
+        columnas_dias = ['categoria', 'categoria_peso', '#_deproductos', 'total_peso_g', 'precio', 'costo_de_flete',
                          'distancia_km', 'velocidad_kmh', 'duracion_estimada_min', 'region', 'dc_asignado',
                          'es_feriado', 'es_fin_de_semana', 'hora_compra', 'dias_promedio_ciudad', 'nombre_dia',
                          'mes', 'año', 'traffic', 'area']
