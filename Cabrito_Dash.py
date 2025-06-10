@@ -603,11 +603,7 @@ cols_kpi_arriba[1].markdown(
     unsafe_allow_html=True)
 cols_kpi_arriba[2].markdown(
     f"<span style='font-size:28px; font-weight:bold'>{costo_prom_mes2:.2f}</span>", unsafe_allow_html=True)
-
-# =================== Tabla Comparativa ===================
-st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
-
-    
+# Fin de los KPIS    
     st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
     st.dataframe(
         comparacion.style
