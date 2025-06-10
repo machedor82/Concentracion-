@@ -143,25 +143,28 @@ with st.sidebar:
     archivo_zip = st.file_uploader("ZIP con DF.csv, DF2.csv y modelos", type="zip")
 
 # ===================== CARGA Y PROCESAMIENTO DE DATOS =====================
-if archivo_zip:
-    with zipfile.ZipFile(archivo_zip) as z:
-        requeridos = [
-            'DF.csv', 'DF2.csv',
-            'modelo_costoflete.sav',
-            'modelo_dias_pipeline.joblib',
-            'label_encoder_dias.joblib'
-        ]
-        contenidos = z.namelist()
-        faltantes = [r for r in requeridos if r not in contenidos]
-        if faltantes:
-            st.error(f"❌ Faltan archivos en el ZIP: {faltantes}")
-            st.stop()
+archivo_csv = st.sidebar.file_uploader("Sube tu archivo CSV de pedidos", type="csv")
 
-        df = pd.read_csv(z.open('DF.csv'))
-        df2 = pd.read_csv(z.open('DF2.csv'))
-        modelo_flete = joblib.load(z.open('modelo_costoflete.sav'))
-        modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
-        label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
+if archivo_csv:
+    df = pd.read_csv(archivo_csv)
+
+    # Cargar modelos locales
+    modelo_flete = joblib.load('modelo_costoflete.sav')
+    modelo_dias = joblib.load('modelo_dias_pipeline_70.joblib')
+    label_encoder = joblib.load('label_encoder_dias_70.joblib')
+
+    # --------- SIDEBAR FILTRO ---------
+    st.sidebar.subheader("🎛️ Filtro de Estado")
+    estados = ["Nacional"] + sorted(df['estado_del_cliente'].dropna().unique().tolist())
+    estado_sel = option_menu(
+        menu_title="Selecciona un estado",
+        options=estados,
+        icons=["globe"] + ["geo"] * (len(estados) - 1),
+        default_index=0
+    )
+
+    # --------- FILTRADO DE DATOS ---------
+    df_filtrado = df.copy() if estado_sel == "Nacional" else df[df['estado_del_cliente'] == estado_sel]
 
         # --------- SIDEBAR FILTRO ---------
     with st.sidebar:
