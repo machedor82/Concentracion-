@@ -158,12 +158,25 @@ if archivo_csv:
         col3, col4 = st.columns(2)
         with col3:
             tot = df_filtrado.groupby('categoria')[['precio','costo_de_flete']].sum().reset_index()
-            tot = tot.sort_values(by='precio', ascending=False)  # Ordenar de mayor a menor por precio
-            fig5 = px.bar(tot, x='categoria', y=['precio','costo_de_flete'], barmode='group',
-                          color_discrete_map={'precio':'#005BAC','costo_de_flete':'#4FA0D9'},
-                          title="📊 Total Precio vs Costo de Envío")
-            fig5.update_xaxes(tickangle=-40); fig5.update_layout(height=360)
+            tot = tot.sort_values(by='precio', ascending=False)
+
+            fig5 = px.bar(
+                tot,
+                x='categoria',
+                y=['precio','costo_de_flete'],
+                barmode='group',
+                color_discrete_map={'precio':'#005BAC','costo_de_flete':'#4FA0D9'},
+                title="📊 Total Precio vs Costo de Envío"
+    )
+
+            fig5.update_layout(
+                height=360,
+                xaxis={'categoryorder': 'array', 'categoryarray': tot['categoria'].tolist()},
+                title_x=0.5
+    )
+            fig5.update_xaxes(tickangle=-40)
             st.plotly_chart(fig5, use_container_width=True)
+
 
         with col4:
             df_m = df_filtrado.groupby('mes')['costo_de_flete'].mean().reset_index()
