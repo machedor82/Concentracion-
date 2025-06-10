@@ -157,26 +157,39 @@ if archivo_csv:
 
         col3, col4 = st.columns(2)
         with col3:
-            tot = df_filtrado.groupby('categoria')[['precio','costo_de_flete']].sum().reset_index()
+            tot = df_filtrado.groupby('categoria')[['precio', 'costo_de_flete']].sum().reset_index()
             tot = tot.sort_values(by='precio', ascending=False)
 
+    # Convertimos a formato largo
+            tot_long = tot.melt(id_vars='categoria', value_vars=['precio', 'costo_de_flete'],
+                        var_name='Concepto', value_name='Monto')
+
+    # Orden forzado
+            orden_categorias = tot['categoria'].tolist()
+
             fig5 = px.bar(
-                tot,
+                tot_long,
                 x='categoria',
-                y=['precio','costo_de_flete'],
+                y='Monto',
+                color='Concepto',
                 barmode='group',
-                color_discrete_map={'precio':'#005BAC','costo_de_flete':'#4FA0D9'},
-                title="📊 Total Precio vs Costo de Envío"
+                 title="📊 Total Precio vs Costo de Envío",
+                color_discrete_map={
+                    'precio': '#005BAC',
+                    'costo_de_flete': '#4FA0D9'
+        },
+                category_orders={'categoria': orden_categorias}
     )
 
             fig5.update_layout(
                 height=360,
-                xaxis={'categoryorder': 'array', 'categoryarray': tot['categoria'].tolist()},
-                title_x=0.5
+                xaxis_title='Categoría',
+                yaxis_title='Monto ($)',
+                legend_title_text='',
+                margin=dict(t=40, b=60, l=10, r=10)
     )
             fig5.update_xaxes(tickangle=-40)
             st.plotly_chart(fig5, use_container_width=True)
-
 
         with col4:
             df_m = df_filtrado.groupby('mes')['costo_de_flete'].mean().reset_index()
