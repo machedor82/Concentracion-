@@ -511,7 +511,8 @@ with tabs[2]:
     estado = estado_sel  # Usamos la selección del sidebar
     st.markdown(f"**Estado seleccionado:** {estado}")
 
-    categoria = st.selectbox("Categoría", sorted(df2['categoria'].dropna().unique()))
+    categoria = st.selectbox("Categoría", sorted(df2['Categoría'].dropna().unique()))
+
 
     col1, col2 = st.columns(2)
     mes1_nombre = col1.selectbox("Mes 1", list(meses_dict.values()), index=0)
