@@ -508,8 +508,8 @@ with tabs[2]:
     df2['orden_compra_timestamp'] = pd.to_datetime(df2['orden_compra_timestamp'])
     df2['año'] = df2['orden_compra_timestamp'].dt.year
     df2['mes'] = df2['orden_compra_timestamp'].dt.month
-estado = estado_sel  # Usamos la selección del sidebar
-st.markdown(f"**Estado seleccionado:** {estado}")
+    estado = estado_sel  # Usamos la selección del sidebar
+    st.markdown(f"**Estado seleccionado:** {estado}")
 
     categoria = st.selectbox("Categoría", sorted(df2['categoria'].dropna().unique()))
 
