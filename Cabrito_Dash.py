@@ -83,19 +83,19 @@ if archivo_csv:
                 for i, z in enumerate(conteo['zona'])
     }
 
-    fig = px.pie(
-        conteo,
-        names='zona',
-        values='cantidad',
-        hole=0.4,
-        color='zona',
-        color_discrete_map=color_map,
-        title="📍 Pedidos por Zona"
+            fig = px.pie(
+            conteo,
+            names='zona',
+            values='cantidad',
+            hole=0.4,
+            color='zona',
+            color_discrete_map=color_map,
+            title="📍 Pedidos por Zona"
     )
 
-    fig.update_traces(
-        textinfo='percent+label+value',
-        hovertemplate="<b>%{label}</b><br>Pedidos: %{value}<br>Porcentaje: %{percent}"
+        fig.update_traces(
+            textinfo='percent+label+value',
+            hovertemplate="<b>%{label}</b><br>Pedidos: %{value}<br>Porcentaje: %{percent}"
     )
 
     st.plotly_chart(fig, use_container_width=True)
