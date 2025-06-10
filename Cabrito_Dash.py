@@ -491,7 +491,7 @@ with tabs[1]:
         st.plotly_chart(fig, use_container_width=True)
         
 
-    # ========================= CALCULADORA =========================
+# ========================= CALCULADORA =========================
 with tabs[2]:
     import joblib
     from sklearn.base import BaseEstimator, TransformerMixin
@@ -511,7 +511,7 @@ with tabs[2]:
     estado = estado_sel  # Usamos la selección del sidebar
     st.markdown(f"**Estado seleccionado:** {estado}")
 
-    categoria = st.selectbox("Categoría", sorted(df2['categoria'].dropna().unique()))
+    categoria = st.selectbox("Categoría", sorted(df2['Categoría'].dropna().unique()))
 
     col1, col2 = st.columns(2)
     mes1_nombre = col1.selectbox("Mes 1", list(meses_dict.values()), index=0)
@@ -519,7 +519,7 @@ with tabs[2]:
     mes1 = [k for k, v in meses_dict.items() if v == mes1_nombre][0]
     mes2 = [k for k, v in meses_dict.items() if v == mes2_nombre][0]
 
-    filtro = (df2['estado_del_cliente'] == estado) & (df2['categoria'] == categoria)
+    filtro = (df2['estado_del_cliente'] == estado) & (df2['Categoría'] == categoria)
     df_mes1 = df2[(df2['mes'] == mes1) & filtro].copy()
     df_mes2 = df2[(df2['mes'] == mes2) & filtro].copy()
 
@@ -529,7 +529,7 @@ with tabs[2]:
 
         columnas_flete = ['total_peso_g', 'precio', '#_deproductos', 'duracion_estimada_min', 'ciudad_cliente',
                           'nombre_dc', 'hora_compra', 'año', 'mes', 'datetime_origen', 'region',
-                          'dias_promedio_ciudad', 'categoria', 'tipo_de_pago']
+                          'dias_promedio_ciudad', 'Categoría', 'tipo_de_pago']
 
         df_flete = df_input[columnas_flete].copy()
         df_encoded = pd.get_dummies(df_flete)
@@ -539,7 +539,7 @@ with tabs[2]:
         df_input['costo_estimado'] = modelo_flete.predict(df_encoded).round(2)
         df_input['costo_de_flete'] = df_input['costo_estimado']
 
-        columnas_dias = ['categoria', 'categoria_peso', '#_deproductos', 'total_peso_g', 'precio', 'costo_de_flete',
+        columnas_dias = ['Categoría', 'categoria_peso', '#_deproductos', 'total_peso_g', 'precio', 'costo_de_flete',
                          'distancia_km', 'velocidad_kmh', 'duracion_estimada_min', 'region', 'dc_asignado',
                          'es_feriado', 'es_fin_de_semana', 'hora_compra', 'dias_promedio_ciudad', 'nombre_dia',
                          'mes', 'año', 'traffic', 'area']
