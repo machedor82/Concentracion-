@@ -491,14 +491,13 @@ with tabs[1]:
         st.plotly_chart(fig, use_container_width=True)
         
 
-  # ========================= CALCULADORA =========================
+ # ========================= CALCULADORA =========================
 with tabs[2]:
     import joblib
     from sklearn.base import BaseEstimator, TransformerMixin
 
     st.header("🧮 Calculadora de Predicción")
 
-    # Diccionario de meses
     meses_dict = {
         1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
         5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
@@ -566,14 +565,12 @@ with tabs[2]:
     df_mes1 = predecir(df_mes1)
     df_mes2 = predecir(df_mes2)
 
-      res1 = agrupar_resultados(df_mes1, mes1_nombre)
+    res1 = agrupar_resultados(df_mes1, mes1_nombre)
     res2 = agrupar_resultados(df_mes2, mes2_nombre)
     comparacion = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
 
-    # Conversión explícita a numérico para evitar errores al aplicar .round()
     comparacion[mes1_nombre] = pd.to_numeric(comparacion[mes1_nombre], errors='coerce')
     comparacion[mes2_nombre] = pd.to_numeric(comparacion[mes2_nombre], errors='coerce')
-
     comparacion['Diferencia'] = (comparacion[mes2_nombre] - comparacion[mes1_nombre]).round(2)
     comparacion = comparacion[[
         'ciudad_cliente', mes1_nombre, mes2_nombre, 'Diferencia',
@@ -588,7 +585,6 @@ with tabs[2]:
                 return 'color: red; font-weight: bold'
         return ''
 
-    # =================== KPIs ===================
     costo_prom_mes1 = df_mes1['costo_estimado'].mean() if not df_mes1.empty else np.nan
     costo_prom_mes2 = df_mes2['costo_estimado'].mean() if not df_mes2.empty else np.nan
     cambio_pct = ((costo_prom_mes2 - costo_prom_mes1) / costo_prom_mes1 * 100) if costo_prom_mes1 != 0 else 0
