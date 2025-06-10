@@ -35,9 +35,9 @@ if not csv_file:
 # Cargar datos y modelos
 df = pd.read_csv(csv_file)
 df.columns = [normalize(c) for c in df.columns]
-modelo_flete = joblib.load('modelo_costoflete.sav')
-modelo_dias = joblib.load('modelo_dias_pipeline_70.joblib')
-label_encoder = joblib.load('label_encoder_dias_70.joblib')
+modelo_flete   = joblib.load('modelo_costoflete.sav')
+modelo_dias    = joblib.load('modelo_dias_pipeline_70.joblib')
+label_encoder  = joblib.load('label_encoder_dias_70.joblib')
 
 # Filtro de estado
 with st.sidebar:
@@ -154,7 +154,7 @@ with tabs[1]:
             f"{(df_filtrado['costo_de_flete']/df_filtrado['precio']>0.5).mean()*100:.1f}%"
         )
 
-        # → Aquí comienza la tabla horizontal
+        # → Aquí comienza la tabla horizontal con nombres abreviados
         st.subheader("💸 Relación Envío–Precio")
         tmp = df_filtrado.copy()
         tmp['porcentaje_flete'] = tmp['costo_de_flete'] / tmp['precio'] * 100
@@ -170,12 +170,34 @@ with tabs[1]:
             # formateamos el display
             tbl['display'] = tbl['porcentaje_flete'] \
                                  .apply(lambda v: f"🔺 {v:.1f}%" if v >= 40 else f"{v:.1f}%")
+
+            # diccionario de abreviaturas para encabezados
+            name_map = {
+                'Festividades':             'Festividades',
+                'Florería':                 'Florería',
+                'Electronica y Tecnología': 'Electrónica/Tec.',
+                'Alimentos y Bebidas':      'Alimentos/Bebidas',
+                'Automotriz':               'Auto',
+                'Industria y Comercio':     'Ind./Comercio',
+                'Libros y Papelería':       'Libros/Papel',
+                'Hogar y Muebles':          'Hogar',
+                'Moda y Accesorios':        'Moda/Acc.',
+                'Mascotas':                 'Mascotas',
+                'Deportes':                 'Deportes',
+                'Belleza y Salud':          'Belleza',
+                'Bebés y Niños':            'Bebés',
+                'Servicios y Otros':        'Servicios',
+                'Arte y Manualidades':      'Arte/Manual.'
+            }
+            # aplicar abreviaturas
+            tbl['categoria'] = tbl['categoria'].map(name_map).fillna(tbl['categoria'])
+
             # pivoteamos para que quede una sola fila
             tbl_horiz = (
                 tbl[['categoria','display']]
-                .rename(columns={'display':'% Flete'})
-                .set_index('categoria')
-                .T
+                   .rename(columns={'display':'% Flete'})
+                   .set_index('categoria')
+                   .T
             )
             st.table(tbl_horiz)
         # ← Aquí termina la tabla horizontal
@@ -210,47 +232,13 @@ with tabs[2]:
     st.header("🧮 Calculadora de Predicción")
     if 'orden_compra_timestamp' in df:
         df['orden_compra_timestamp'] = pd.to_datetime(df['orden_compra_timestamp'], errors='coerce')
-        df['año'] = df['orden_compra_timestamp'].dt.year
-        df['mes'] = df['orden_compra_timestamp'].dt.month
+        df['año']  = df['orden_compra_timestamp'].dt.year
+        df['mes']  = df['orden_compra_timestamp'].dt.month
+
     est2 = st.selectbox("Estado", sorted(df['estado_del_cliente'].dropna().unique()))
     cat2 = st.selectbox("Categoría", sorted(df['categoria'].dropna().unique()))
-    meses = {1:"Enero",2:"Febrero",3:"Marzo",4:"Abril",5:"Mayo",6:"Junio",7:"Julio",8:"Agosto",9:"Septiembre",10:"Octubre",11:"Noviembre",12:"Diciembre"}
-    m1n2 = st.selectbox("Mes 1", list(meses.values()), index=0)
-    m2n2 = st.selectbox("Mes 2", list(meses.values()), index=1)
-    m1_ = [k for k,v in meses.items() if v==m1n2][0]
-    m2_ = [k for k,v in meses.items() if v==m2n2][0]
-    df1 = df[(df['mes']==m1_) & (df['estado_del_cliente']==est2) & (df['categoria']==cat2)].copy()
-    df2b = df[(df['mes']==m2_) & (df['estado_del_cliente']==est2) & (df['categoria']==cat2)].copy()
-    def predecir(d):
-        if d.empty: return d
-        cols = ['total_peso_g','precio','#_deproductos','duracion_estimada_min','ciudad_cliente','nombre_dc','hora_compra','año','mes','datetime_origen','region','dias_promedio_ciudad','categoria','tipo_de_pago']
-        d_f = d.reindex(columns=cols).copy()
-        enc = pd.get_dummies(d_f)
-        feats = modelo_flete.get_booster().feature_names
-        enc = enc.reindex(columns=feats, fill_value=0)
-        d['costo_estimado'] = modelo_flete.predict(enc).round(2)
-        return d
-    def agr(d, name):
-        if 'costo_estimado' not in d:
-            return pd.DataFrame(columns=['ciudad_cliente', name])
-        agg = d.groupby('ciudad_cliente')['costo_estimado'].mean().round(2).reset_index().rename(columns={'costo_estimado': name})
-        return agg
-    r1 = agr(predecir(df1), m1n2)
-    r2 = agr(predecir(df2b), m2n2)
-    comp2 = pd.merge(r1, r2, on='ciudad_cliente', how='outer')
-    comp2[m1n2] = pd.to_numeric(comp2[m1n2], errors='coerce')
-    comp2[m2n2] = pd.to_numeric(comp2[m2n2], errors='coerce')
-    comp2['Diferencia'] = (comp2[m2n2] - comp2[m1n2]).round(2)
-    comp2 = comp2.rename(columns={'ciudad_cliente':'Ciudad'})
-    st.subheader(f"Comparación: {m1n2} vs {m2n2}")
-    st.dataframe(comp2, use_container_width=True)
-    st.download_button(
-        "⬇️ Descargar CSV",
-        data=comp2.to_csv(index=False).encode('utf-8'),
-        file_name='comparacion.csv',
-        mime='text/csv'
-    )
 
-# Pestaña 3: App Danu
-with tabs[3]:
-    pass
+    meses = {
+        1:"Enero",2:"Febrero",3:"Marzo",4:"Abril",5:"Mayo",6:"Junio",
+        7:"Julio",8:"Agosto",9:"Septiembre",10:"Octubre",
+        11:"Noviembre
