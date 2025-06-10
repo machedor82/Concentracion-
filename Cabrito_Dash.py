@@ -605,7 +605,7 @@ with tabs[2]:
         f"<span style='font-size:28px; font-weight:bold'>{costo_prom_mes2:.2f}</span>", unsafe_allow_html=True)
 
     st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
-    st.dataframe(
+    st.table(
     comparacion.style
     .applymap(resaltar, subset=['Diferencia'])
     .format({
