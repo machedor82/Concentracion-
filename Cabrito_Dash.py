@@ -136,8 +136,8 @@ tabs = st.tabs(["📊 Resumen Nacional", "🏠 Costo de Envío", "🧮 Calculado
 
 with st.sidebar:
     st.image("danu_logo.png", use_container_width=True)
-    st.header("Sube tu archivo ZIP")
-    archivo_csv = st.sidebar.file_uploader("Sube tu archivo CSV de pedidos", type="csv")
+    st.header("Sube tu archivo CSV")
+    archivo_csv = st.sidebar.file_uploader( type="csv")
 
 # ===================== CARGA Y PROCESAMIENTO DE DATOS =====================
 if archivo_csv:
