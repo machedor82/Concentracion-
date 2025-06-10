@@ -33,19 +33,16 @@ if archivo_csv:
     df = pd.read_csv(archivo_csv)
     df2 = df.copy()
 
-    # Cálculo desviación si es necesario
     if 'desviacion_vs_promesa' not in df.columns and {'fecha_entrega_al_cliente','fecha_de_entrega_estimada'}.issubset(df.columns):
         df['desviacion_vs_promesa'] = (
             pd.to_datetime(df['fecha_entrega_al_cliente'], errors='coerce') -
             pd.to_datetime(df['fecha_de_entrega_estimada'], errors='coerce')
         ).dt.days
 
-    # Carga modelos
     modelo_flete = joblib.load("modelo_costoflete.sav")
     modelo_dias = joblib.load("modelo_dias_pipeline_70.joblib")
     label_encoder = joblib.load("label_encoder_dias_70.joblib")
 
-    # Filtro por estado en sidebar
     with st.sidebar:
         st.subheader("🎛️ Filtro de Estado")
         estados = ["Nacional"] + sorted(df['estado_del_cliente'].dropna().unique().tolist())
@@ -56,12 +53,10 @@ if archivo_csv:
             default_index=0
         )
 
-    df_filtrado = df if estado_sel=="Nacional" else df[df['estado_del_cliente']==estado_sel]
+    df_filtrado = df if estado_sel == "Nacional" else df[df['estado_del_cliente'] == estado_sel]
     st.success("✅ Datos y modelos cargados correctamente.")
-
     tabs = st.tabs(["📊 Resumen Nacional", "🏠 Costo de Envío", "🧮 Calculadora", "🗃️ Data"])
 
-    # Tab 0: Resumen Nacional
     with tabs[0]:
         st.title(f"📊 ¿Entrega Rápida o Margen Inflado? – {estado_sel}")
         col1, col2 = st.columns(2)
@@ -70,7 +65,6 @@ if archivo_csv:
                     f"{(df_filtrado['desviacion_vs_promesa'] < -10).mean()*100:.1f}%")
 
         col1, col2 = st.columns(2)
-        # Gráfica de dona
         with col1:
             df_tmp = df_filtrado.copy()
             df_tmp['zona_entrega'] = clasificar_zonas(df_tmp, estado_sel)
@@ -81,27 +75,25 @@ if archivo_csv:
             color_map = {
                 z: '#B0B0B0' if z == 'Provincia' else tonos_azules[min(i, len(tonos_azules)-1)]
                 for i, z in enumerate(conteo['zona'])
-    }
+            }
 
             fig = px.pie(
-            conteo,
-            names='zona',
-            values='cantidad',
-            hole=0.4,
-            color='zona',
-            color_discrete_map=color_map,
-            title="📍 Pedidos por Zona"
-    )
+                conteo,
+                names='zona',
+                values='cantidad',
+                hole=0.4,
+                color='zona',
+                color_discrete_map=color_map,
+                title="📍 Pedidos por Zona"
+            )
 
-        fig.update_traces(
-            textinfo='percent+label+value',
-            hovertemplate="<b>%{label}</b><br>Pedidos: %{value}<br>Porcentaje: %{percent}"
-    )
+            fig.update_traces(
+                textinfo='percent+label+value',
+                hovertemplate="<b>%{label}</b><br>Pedidos: %{value}<br>Porcentaje: %{percent}"
+            )
 
-    st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
 
-
-        # Gráfica barras entregas
         with col2:
             df_tmp = df_filtrado.copy()
             df_tmp['zona_entrega'] = clasificar_zonas(df_tmp, estado_sel)
@@ -117,22 +109,21 @@ if archivo_csv:
             fig2.update_layout(barmode='stack',height=500)
             st.plotly_chart(fig2, use_container_width=True)
 
-        # Segunda fila
         col3, col4 = st.columns(2)
         with col3:
             df_tmp = df_filtrado[df_filtrado['dias_entrega'].notna()].copy()
-            df_tmp['grupo_dias'] = pd.cut(df_tmp['dias_entrega'],bins=[0,5,10,float('inf')],
+            df_tmp['grupo_dias'] = pd.cut(df_tmp['dias_entrega'], bins=[0,5,10,float('inf')],
                                           labels=['1-5','6-10','Más de 10'])
             df_tmp['zona_entrega'] = clasificar_zonas(df_tmp, estado_sel)
             conteo3 = df_tmp.groupby(['zona_entrega','grupo_dias']).size().reset_index(name='conteo')
-            conteo3['porcentaje'] = conteo3['conteo']/conteo3.groupby('zona_entrega')['conteo'].transform('sum')*100
+            conteo3['porcentaje'] = conteo3['conteo'] / conteo3.groupby('zona_entrega')['conteo'].transform('sum') * 100
             orden_z = df_tmp['zona_entrega'].value_counts().index.tolist()
             colores_dias = {'1-5':'#A7D3F4','6-10':'#4FA0D9','Más de 10':'#FF6B6B'}
             fig3 = px.bar(conteo3, x='zona_entrega', y='porcentaje', color='grupo_dias',
                           category_orders={'zona_entrega':orden_z},
                           color_discrete_map=colores_dias,
                           title="📦 Distribución de días de entrega")
-            fig3.update_layout(barmode='stack',height=500)
+            fig3.update_layout(barmode='stack', height=500)
             st.plotly_chart(fig3, use_container_width=True)
 
         with col4:
@@ -184,7 +175,7 @@ if archivo_csv:
             fig6.update_layout(height=420)
             st.plotly_chart(fig6, use_container_width=True)
 
-    # Tab 2: Calculadora (ya corregida)
+    # Tab 2: Calculadora
     with tabs[2]:
         st.header("🧮 Calculadora de Predicción")
         meses_dict = {1:"Enero",2:"Febrero",3:"Marzo",4:"Abril",5:"Mayo",6:"Junio",
@@ -251,3 +242,4 @@ if archivo_csv:
 
 else:
     st.warning("⚠️ Sube un archivo CSV para activar el dashboard.")
+
