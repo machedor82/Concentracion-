@@ -566,13 +566,19 @@ with tabs[2]:
     df_mes1 = predecir(df_mes1)
     df_mes2 = predecir(df_mes2)
 
-    res1 = agrupar_resultados(df_mes1, mes1_nombre)
+      res1 = agrupar_resultados(df_mes1, mes1_nombre)
     res2 = agrupar_resultados(df_mes2, mes2_nombre)
     comparacion = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
+
+    # Conversión explícita a numérico para evitar errores al aplicar .round()
+    comparacion[mes1_nombre] = pd.to_numeric(comparacion[mes1_nombre], errors='coerce')
+    comparacion[mes2_nombre] = pd.to_numeric(comparacion[mes2_nombre], errors='coerce')
+
     comparacion['Diferencia'] = (comparacion[mes2_nombre] - comparacion[mes1_nombre]).round(2)
-    comparacion = comparacion[[ 'ciudad_cliente', mes1_nombre, mes2_nombre, 'Diferencia',
-                                 f"Entrega {mes1_nombre}", f"Entrega {mes2_nombre}" ]]
-    comparacion = comparacion.rename(columns={'ciudad_cliente': 'Ciudad'})
+    comparacion = comparacion[[
+        'ciudad_cliente', mes1_nombre, mes2_nombre, 'Diferencia',
+        f"Entrega {mes1_nombre}", f"Entrega {mes2_nombre}"
+    ]].rename(columns={'ciudad_cliente': 'Ciudad'})
 
     def resaltar(val):
         if isinstance(val, (int, float, np.number)):
@@ -602,7 +608,6 @@ with tabs[2]:
     cols_kpi_arriba[2].markdown(
         f"<span style='font-size:28px; font-weight:bold'>{costo_prom_mes2:.2f}</span>", unsafe_allow_html=True)
 
-    # =================== Tabla Comparativa ===================
     st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
     st.dataframe(
         comparacion.style
