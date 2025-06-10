@@ -56,7 +56,6 @@ if archivo_csv:
     df_filtrado = df if estado_sel == "Nacional" else df[df['estado_del_cliente'] == estado_sel]
     st.success("✅ Datos y modelos cargados correctamente.")
     tabs = st.tabs(["📊 Resumen Nacional", "🏠 Costo de Envío", "🧮 Calculadora", "🗃️ Data"])
-
     with tabs[0]:
         st.title(f"📊 ¿Entrega Rápida o Margen Inflado? – {estado_sel}")
         col1, col2 = st.columns(2)
@@ -108,7 +107,6 @@ if archivo_csv:
             fig2.update_traces(hovertemplate="<b>%{x}</b><br>%{color}: %{y}")
             fig2.update_layout(barmode='stack',height=500)
             st.plotly_chart(fig2, use_container_width=True)
-
         col3, col4 = st.columns(2)
         with col3:
             df_tmp = df_filtrado[df_filtrado['dias_entrega'].notna()].copy()
@@ -139,136 +137,120 @@ if archivo_csv:
             fig4.add_shape(type='line', x0=avg, x1=avg, y0=-0.5, y1=len(medios)-0.5, line=dict(color='blue', dash='dash'))
             fig4.update_layout(barmode='group',height=500,xaxis_title='Días Promedio', yaxis_title=label)
             st.plotly_chart(fig4, use_container_width=True)
+# Tab 1: Costo de Envío
+with tabs[1]:
+    col1, col2 = st.columns(2)
+    col1.metric("📦 Total Pedidos", f"{len(df_filtrado):,}")
+    col2.metric("💰 % Flete > 50% del precio",
+                f"{(df_filtrado['costo_de_flete']/df_filtrado['precio']>0.5).mean()*100:.1f}%")
 
-    # Tab 1: Costo de Envío
-    with tabs[1]:
-        col1, col2 = st.columns(2)
-        col1.metric("📦 Total Pedidos", f"{len(df_filtrado):,}")
-        col2.metric("💰 % Flete > 50% del precio",
-                    f"{(df_filtrado['costo_de_flete']/df_filtrado['precio']>0.5).mean()*100:.1f}%")
+    st.subheader("💸 Relación Envío vs Precio por Categoría")
+    df_rel = df_filtrado.copy()
+    df_rel['porcentaje_flete'] = df_rel['costo_de_flete']/df_rel['precio']*100
+    tabla = df_rel.groupby('categoria')['porcentaje_flete'].mean().reset_index().sort_values('porcentaje_flete',ascending=False)
+    tabla['porcentaje_form'] = tabla['porcentaje_flete'].apply(lambda x: f"🔺 {x:.1f}%" if x>=40 else f"{x:.1f}%")
+    tabla_display = tabla.set_index('categoria')['porcentaje_form'].to_frame().T
+    st.dataframe(tabla_display.style.applymap(lambda v: 'color:red;font-weight:bold' if '🔺' in v else ''), use_container_width=True)
 
-        st.subheader("💸 Relación Envío vs Precio por Categoría")
-        df_rel = df_filtrado.copy()
-        df_rel['porcentaje_flete'] = df_rel['costo_de_flete']/df_rel['precio']*100
-        tabla = df_rel.groupby('categoria')['porcentaje_flete'].mean().reset_index().sort_values('porcentaje_flete',ascending=False)
-        tabla['porcentaje_form'] = tabla['porcentaje_flete'].apply(lambda x: f"🔺 {x:.1f}%" if x>=40 else f"{x:.1f}%")
-        tabla_display = tabla.set_index('categoria')['porcentaje_form'].to_frame().T
-        st.dataframe(tabla_display.style.applymap(lambda v: 'color:red;font-weight:bold' if '🔺' in v else ''),use_container_width=True)
+    col3, col4 = st.columns(2)
+    with col3:
+        tot = df_filtrado.groupby('categoria')[['precio', 'costo_de_flete']].sum().reset_index()
+        tot = tot.sort_values(by='precio', ascending=False)
+        tot_long = tot.melt(id_vars='categoria', value_vars=['precio', 'costo_de_flete'],
+                            var_name='Concepto', value_name='Monto')
+        orden_categorias = tot['categoria'].tolist()
+        tot_long['categoria'] = pd.Categorical(tot_long['categoria'], categories=orden_categorias, ordered=True)
 
-        col3, col4 = st.columns(2)
-       with col3:
-    # Agrupamos y ordenamos por precio total
-    tot = df_filtrado.groupby('categoria')[['precio', 'costo_de_flete']].sum().reset_index()
-    tot = tot.sort_values(by='precio', ascending=False)
+        fig5 = px.bar(
+            tot_long,
+            x='categoria', y='Monto', color='Concepto', barmode='group',
+            title="📊 Total Precio vs Costo de Envío",
+            color_discrete_map={'precio': '#005BAC', 'costo_de_flete': '#4FA0D9'}
+        )
+        fig5.update_layout(height=360, xaxis_title='Categoría', yaxis_title='Monto ($)', legend_title_text='',
+                           margin=dict(t=40, b=60, l=10, r=10))
+        fig5.update_xaxes(tickangle=-40)
+        st.plotly_chart(fig5, use_container_width=True)
 
-    # Convertimos a formato largo
-    tot_long = tot.melt(id_vars='categoria', value_vars=['precio', 'costo_de_flete'],
-                        var_name='Concepto', value_name='Monto')
+    with col4:
+        df_m = df_filtrado.groupby('mes')['costo_de_flete'].mean().reset_index()
+        meses_txt = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+        df_m['mes_nombre'] = df_m['mes'].apply(lambda x: meses_txt[x-1])
+        fig6 = px.line(df_m, x='mes_nombre', y='costo_de_flete', markers=True,
+                      title="📈 Costo Promedio Mensual de Flete",
+                      labels={'mes_nombre':'Mes','costo_de_flete':'Costo Promedio'})
+        fig6.update_traces(line=dict(width=3, color='#2c7be5'), marker=dict(size=7, color='#2c7be5'))
+        fig6.update_layout(height=420)
+        st.plotly_chart(fig6, use_container_width=True)
 
-    # Forzar orden categórico en el eje x
-    orden_categorias = tot['categoria'].tolist()
-    tot_long['categoria'] = pd.Categorical(tot_long['categoria'], categories=orden_categorias, ordered=True)
+# Tab 2: Calculadora
+with tabs[2]:
+    st.header("🧮 Calculadora de Predicción")
+    meses_dict = {
+        1:"Enero",2:"Febrero",3:"Marzo",4:"Abril",5:"Mayo",6:"Junio",
+        7:"Julio",8:"Agosto",9:"Septiembre",10:"Octubre",11:"Noviembre",12:"Diciembre"
+    }
+    df2['orden_compra_timestamp'] = pd.to_datetime(df2['orden_compra_timestamp'], errors='coerce')
+    df2['año'] = df2['orden_compra_timestamp'].dt.year
+    df2['mes'] = df2['orden_compra_timestamp'].dt.month
 
-    # Crear gráfica de barras ordenada
-    fig5 = px.bar(
-        tot_long,
-        x='categoria',
-        y='Monto',
-        color='Concepto',
-        barmode='group',
-        title="📊 Total Precio vs Costo de Envío",
-        color_discrete_map={
-            'precio': '#005BAC',
-            'costo_de_flete': '#4FA0D9'
-        }
-    )
+    categoria = st.selectbox("Categoría", sorted(df2['categoria'].dropna().unique()))
+    c1, c2 = st.columns(2)
+    mes1_nombre = c1.selectbox("Mes 1", list(meses_dict.values()), index=0)
+    mes2_nombre = c2.selectbox("Mes 2", list(meses_dict.values()), index=1)
+    mes1 = [k for k, v in meses_dict.items() if v == mes1_nombre][0]
+    mes2 = [k for k, v in meses_dict.items() if v == mes2_nombre][0]
 
-    fig5.update_layout(
-        height=360,
-        xaxis_title='Categoría',
-        yaxis_title='Monto ($)',
-        legend_title_text='',
-        margin=dict(t=40, b=60, l=10, r=10)
-    )
-    fig5.update_xaxes(tickangle=-40)
-    st.plotly_chart(fig5, use_container_width=True)
+    filtro = (df2['estado_del_cliente'] == estado_sel) & (df2['categoria'] == categoria)
+    df_mes1 = df2[(df2['mes'] == mes1) & filtro].copy()
+    df_mes2 = df2[(df2['mes'] == mes2) & filtro].copy()
 
-        with col4:
-            df_m = df_filtrado.groupby('mes')['costo_de_flete'].mean().reset_index()
-            meses_txt = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
-            df_m['mes_nombre'] = df_m['mes'].apply(lambda x: meses_txt[x-1])
-            fig6 = px.line(df_m, x='mes_nombre', y='costo_de_flete', markers=True,
-                          title="📈 Costo Promedio Mensual de Flete",
-                          labels={'mes_nombre':'Mes','costo_de_flete':'Costo Promedio'})
-            fig6.update_traces(line=dict(width=3, color='#2c7be5'), marker=dict(size=7, color='#2c7be5'))
-            fig6.update_layout(height=420)
-            st.plotly_chart(fig6, use_container_width=True)
+    def predecir(df_input):
+        if df_input.empty: return df_input
+        cols_f = ['total_peso_g','precio','#_deproductos','duracion_estimada_min',
+                  'ciudad_cliente','nombre_dc','hora_compra','año','mes','datetime_origen',
+                  'region','dias_promedio_ciudad','categoria','tipo_de_pago']
+        df_f = df_input[cols_f].copy()
+        df_enc = pd.get_dummies(df_f)
+        cols_modelo = modelo_flete.get_booster().feature_names
+        df_enc = df_enc.reindex(columns=cols_modelo, fill_value=0)
+        df_input['costo_estimado'] = modelo_flete.predict(df_enc).round(2)
+        df_input['costo_de_flete'] = df_input['costo_estimado']
 
-    # Tab 2: Calculadora
-    with tabs[2]:
-        st.header("🧮 Calculadora de Predicción")
-        meses_dict = {1:"Enero",2:"Febrero",3:"Marzo",4:"Abril",5:"Mayo",6:"Junio",
-                      7:"Julio",8:"Agosto",9:"Septiembre",10:"Octubre",11:"Noviembre",12:"Diciembre"}
-        df2['orden_compra_timestamp'] = pd.to_datetime(df2['orden_compra_timestamp'],errors='coerce')
-        df2['año']=df2['orden_compra_timestamp'].dt.year
-        df2['mes']=df2['orden_compra_timestamp'].dt.month
+        cols_d = ['categoria','categoria_peso','#_deproductos','total_peso_g','precio',
+                  'costo_de_flete','distancia_km','velocidad_kmh','duracion_estimada_min',
+                  'region','dc_asignado','es_feriado','es_fin_de_semana','hora_compra',
+                  'dias_promedio_ciudad','nombre_dia','mes','año','traffic','area']
+        if not all(c in df_input.columns for c in cols_d): return df_input
+        Xd = df_input[cols_d]
+        pred = modelo_dias.predict(Xd)
+        df_input['clase_entrega'] = label_encoder.inverse_transform(pred)
+        return df_input
 
-        categoria = st.selectbox("Categoría", sorted(df2['categoria'].dropna().unique()))
-        c1,c2 = st.columns(2)
-        mes1_nombre = c1.selectbox("Mes 1",list(meses_dict.values()),index=0)
-        mes2_nombre = c2.selectbox("Mes 2",list(meses_dict.values()),index=1)
-        mes1 = [k for k,v in meses_dict.items() if v==mes1_nombre][0]
-        mes2 = [k for k,v in meses_dict.items() if v==mes2_nombre][0]
+    def agrupar(df_input, nombre):
+        if 'costo_estimado' in df_input and 'clase_entrega' in df_input:
+            return df_input.groupby('ciudad_cliente').agg({
+                'costo_estimado':'mean',
+                'clase_entrega': lambda x: x.mode()[0] if not x.mode().empty else 'NA'
+            }).rename(columns={
+                'costo_estimado': nombre,
+                'clase_entrega': f'Entrega {nombre}'
+            }).reset_index()
+        return pd.DataFrame(columns=['ciudad_cliente', nombre, f'Entrega {nombre}'])
 
-        filtro = (df2['estado_del_cliente']==estado_sel)&(df2['categoria']==categoria)
-        df_mes1 = df2[(df2['mes']==mes1)&filtro].copy()
-        df_mes2 = df2[(df2['mes']==mes2)&filtro].copy()
+    df_mes1 = predecir(df_mes1)
+    df_mes2 = predecir(df_mes2)
+    res1 = agrupar(df_mes1, mes1_nombre)
+    res2 = agrupar(df_mes2, mes2_nombre)
+    comparacion = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
+    comparacion[mes1_nombre] = pd.to_numeric(comparacion[mes1_nombre], errors='coerce')
+    comparacion[mes2_nombre] = pd.to_numeric(comparacion[mes2_nombre], errors='coerce')
+    comparacion['Diferencia'] = (comparacion[mes2_nombre] - comparacion[mes1_nombre]).round(2)
+    comparacion = comparacion.rename(columns={'ciudad_cliente': 'Ciudad'})
+    st.dataframe(comparacion.style.format(precision=2))
+    st.download_button("⬇️ Descargar CSV", comparacion.to_csv(index=False), file_name="comparacion.csv")
 
-        def predecir(df_input):
-            if df_input.empty: return df_input
-            cols_f = ['total_peso_g','precio','#_deproductos','duracion_estimada_min','ciudad_cliente',
-                      'nombre_dc','hora_compra','año','mes','datetime_origen','region','dias_promedio_ciudad',
-                      'categoria','tipo_de_pago']
-            df_f = df_input[cols_f].copy()
-            df_enc = pd.get_dummies(df_f)
-            cols_modelo = modelo_flete.get_booster().feature_names
-            df_enc = df_enc.reindex(columns=cols_modelo,fill_value=0)
-            df_input['costo_estimado']=modelo_flete.predict(df_enc).round(2)
-            df_input['costo_de_flete']=df_input['costo_estimado']
-
-            cols_d = ['categoria','categoria_peso','#_deproductos','total_peso_g','precio','costo_de_flete',
-                      'distancia_km','velocidad_kmh','duracion_estimada_min','region','dc_asignado',
-                      'es_feriado','es_fin_de_semana','hora_compra','dias_promedio_ciudad','nombre_dia',
-                      'mes','año','traffic','area']
-            if not all(c in df_input.columns for c in cols_d): return df_input
-            Xd = df_input[cols_d]; pred = modelo_dias.predict(Xd)
-            df_input['clase_entrega']=label_encoder.inverse_transform(pred)
-            return df_input
-
-        def agrupar(df_input, nombre):
-            if 'costo_estimado' in df_input and 'clase_entrega' in df_input:
-                return df_input.groupby('ciudad_cliente').agg({
-                    'costo_estimado':'mean',
-                    'clase_entrega': lambda x: x.mode()[0] if not x.mode().empty else 'NA'
-                }).rename(columns={'costo_estimado':nombre,f'clase_entrega':f'Entrega {nombre}'}).reset_index()
-            return pd.DataFrame(columns=['ciudad_cliente',nombre,f'Entrega {nombre}'])
-
-        df_mes1 = predecir(df_mes1)
-        df_mes2 = predecir(df_mes2)
-        res1, res2 = agrupar(df_mes1,mes1_nombre), agrupar(df_mes2,mes2_nombre)
-        comparacion = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
-        comparacion[mes1_nombre] = pd.to_numeric(comparacion[mes1_nombre],errors='coerce')
-        comparacion[mes2_nombre] = pd.to_numeric(comparacion[mes2_nombre],errors='coerce')
-        comparacion['Diferencia'] = (comparacion[mes2_nombre]-comparacion[mes1_nombre]).round(2)
-        comparacion = comparacion.rename(columns={'ciudad_cliente':'Ciudad'})
-        st.dataframe(comparacion.style.format(precision=2))
-        st.download_button("⬇️ Descargar CSV",comparacion.to_csv(index=False),file_name="comparacion.csv")
-
-    # Tab 3: Data preview
-    with tabs[3]:
-        st.subheader("🔍 Vista Previa del Dataset")
-        st.dataframe(df.head(100), use_container_width=True)
-
-else:
-    st.warning("⚠️ Sube un archivo CSV para activar el dashboard.")
-
+# Tab 3: Vista de Datos
+with tabs[3]:
+    st.subheader("🔍 Vista Previa del Dataset")
+    st.dataframe(df.head(100), use_container_width=True)
