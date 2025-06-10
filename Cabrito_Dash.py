@@ -569,7 +569,12 @@ with tabs[2]:
     res1 = agrupar_resultados(df_mes1, mes1_nombre)
     res2 = agrupar_resultados(df_mes2, mes2_nombre)
     comparacion = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
+
+    # Asegurar que las columnas sean numéricas
+    comparacion[mes1_nombre] = pd.to_numeric(comparacion[mes1_nombre], errors='coerce')
+    comparacion[mes2_nombre] = pd.to_numeric(comparacion[mes2_nombre], errors='coerce')
     comparacion['Diferencia'] = (comparacion[mes2_nombre] - comparacion[mes1_nombre]).round(2)
+
     comparacion = comparacion[[
         'ciudad_cliente', mes1_nombre, mes2_nombre, 'Diferencia',
         f"Entrega {mes1_nombre}", f"Entrega {mes2_nombre}"
