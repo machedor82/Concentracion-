@@ -156,40 +156,42 @@ if archivo_csv:
         st.dataframe(tabla_display.style.applymap(lambda v: 'color:red;font-weight:bold' if '🔺' in v else ''),use_container_width=True)
 
         col3, col4 = st.columns(2)
-        with col3:
-            tot = df_filtrado.groupby('categoria')[['precio', 'costo_de_flete']].sum().reset_index()
-            tot = tot.sort_values(by='precio', ascending=False)
+       with col3:
+    # Agrupamos y ordenamos por precio total
+    tot = df_filtrado.groupby('categoria')[['precio', 'costo_de_flete']].sum().reset_index()
+    tot = tot.sort_values(by='precio', ascending=False)
 
     # Convertimos a formato largo
-            tot_long = tot.melt(id_vars='categoria', value_vars=['precio', 'costo_de_flete'],
+    tot_long = tot.melt(id_vars='categoria', value_vars=['precio', 'costo_de_flete'],
                         var_name='Concepto', value_name='Monto')
 
-    # Orden forzado
-            orden_categorias = tot['categoria'].tolist()
+    # Forzar orden categórico en el eje x
+    orden_categorias = tot['categoria'].tolist()
+    tot_long['categoria'] = pd.Categorical(tot_long['categoria'], categories=orden_categorias, ordered=True)
 
-            fig5 = px.bar(
-                tot_long,
-                x='categoria',
-                y='Monto',
-                color='Concepto',
-                barmode='group',
-                 title="📊 Total Precio vs Costo de Envío",
-                color_discrete_map={
-                    'precio': '#005BAC',
-                    'costo_de_flete': '#4FA0D9'
-        },
-                category_orders={'categoria': orden_categorias}
+    # Crear gráfica de barras ordenada
+    fig5 = px.bar(
+        tot_long,
+        x='categoria',
+        y='Monto',
+        color='Concepto',
+        barmode='group',
+        title="📊 Total Precio vs Costo de Envío",
+        color_discrete_map={
+            'precio': '#005BAC',
+            'costo_de_flete': '#4FA0D9'
+        }
     )
 
-            fig5.update_layout(
-                height=360,
-                xaxis_title='Categoría',
-                yaxis_title='Monto ($)',
-                legend_title_text='',
-                margin=dict(t=40, b=60, l=10, r=10)
+    fig5.update_layout(
+        height=360,
+        xaxis_title='Categoría',
+        yaxis_title='Monto ($)',
+        legend_title_text='',
+        margin=dict(t=40, b=60, l=10, r=10)
     )
-            fig5.update_xaxes(tickangle=-40)
-            st.plotly_chart(fig5, use_container_width=True)
+    fig5.update_xaxes(tickangle=-40)
+    st.plotly_chart(fig5, use_container_width=True)
 
         with col4:
             df_m = df_filtrado.groupby('mes')['costo_de_flete'].mean().reset_index()
