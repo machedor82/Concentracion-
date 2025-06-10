@@ -322,7 +322,7 @@ with tabs[0]:
         # --------- Gráfico horizontal: Días vs colchón por zona dinámica ---------
         with col4:
             label = "Ciudad" if estado_sel != "Nacional" else "Estado"
-            st.subheader(f"📦 {label}s con mayor colchón de entrega")
+            st.subheader(f"📦 {label}es con mayor colchón de entrega")
         
             if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
                 import plotly.graph_objects as go
