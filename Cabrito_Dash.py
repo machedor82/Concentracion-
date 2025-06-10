@@ -418,7 +418,7 @@ with tabs[1]:
 
         fig_totales = px.bar(
             totales,
-            x='Categoría',
+            x='categoria',
             y=['precio', 'costo_de_flete'],
             barmode='group',
             title="📊 Total Precio vs Costo de Envío",
