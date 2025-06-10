@@ -583,6 +583,31 @@ with tabs[2]:
                 return 'color: red; font-weight: bold'
         return ''
 
+
+    # =================== KPIs ===================
+costo_prom_mes1 = df_mes1['costo_estimado'].mean() if not df_mes1.empty else np.nan
+costo_prom_mes2 = df_mes2['costo_estimado'].mean() if not df_mes2.empty else np.nan
+cambio_pct = ((costo_prom_mes2 - costo_prom_mes1) / costo_prom_mes1 * 100) if costo_prom_mes1 != 0 else 0
+
+st.markdown("---")
+cols_kpi_arriba = st.columns(3)
+cols_kpi_arriba[0].markdown(f"**Costo de Flete Promedio {mes1_nombre}**")
+cols_kpi_arriba[1].markdown("**% Cambio**")
+cols_kpi_arriba[2].markdown(f"**Costo de Flete Promedio {mes2_nombre}**")
+
+cols_kpi_arriba[0].markdown(
+    f"<span style='font-size:28px; font-weight:bold'>{costo_prom_mes1:.2f}</span>", unsafe_allow_html=True)
+color_cambio = 'green' if cambio_pct > 0 else 'red'
+cols_kpi_arriba[1].markdown(
+    f"<span style='color:{color_cambio}; font-size:28px; font-weight:bold'>{cambio_pct:.2f}%</span>",
+    unsafe_allow_html=True)
+cols_kpi_arriba[2].markdown(
+    f"<span style='font-size:28px; font-weight:bold'>{costo_prom_mes2:.2f}</span>", unsafe_allow_html=True)
+
+# =================== Tabla Comparativa ===================
+st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
+
+    
     st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
     st.dataframe(
         comparacion.style
