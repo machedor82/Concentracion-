@@ -4,7 +4,6 @@ import joblib
 import plotly.express as px
 import numpy as np
 from streamlit_option_menu import option_menu
-from sklearn.base import BaseEstimator, TransformerMixin
 
 st.set_page_config(page_title="Cabrito Analytics", layout="wide")
 
@@ -77,11 +76,10 @@ if archivo_csv:
             df_tmp = df_filtrado.copy()
             df_tmp['zona_entrega'] = clasificar_zonas(df_tmp, estado_sel)
             conteo = df_tmp['zona_entrega'].value_counts().reset_index()
-            conteo.columns = ['zona', 'cantidad']  # ← renombrar columnas
+            conteo.columns = ['zona', 'cantidad']
             fig = px.pie(conteo, names='zona', values='cantidad', hole=0.4,
-                 title="📍 Pedidos por Zona")
+                         title="📍 Pedidos por Zona")
             st.plotly_chart(fig, use_container_width=True)
-
 
         with col2:
             df_tmp['estatus_entrega'] = df_tmp['llego_tarde'].apply(lambda x: 'A tiempo' if x == 0 else 'Tardío')
@@ -163,6 +161,10 @@ if archivo_csv:
         res1 = agrupar(df_mes1, mes1_nombre)
         res2 = agrupar(df_mes2, mes2_nombre)
         comparacion = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
+
+        comparacion[mes1_nombre] = pd.to_numeric(comparacion[mes1_nombre], errors='coerce')
+        comparacion[mes2_nombre] = pd.to_numeric(comparacion[mes2_nombre], errors='coerce')
+
         comparacion['Diferencia'] = (comparacion[mes2_nombre] - comparacion[mes1_nombre]).round(2)
         comparacion = comparacion.rename(columns={'ciudad_cliente': 'Ciudad'})
 
