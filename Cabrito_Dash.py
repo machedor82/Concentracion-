@@ -496,7 +496,7 @@ with tabs[2]:
     import joblib
     from sklearn.base import BaseEstimator, TransformerMixin
 
-    st.header("🧼 Calculadora de Predicción")
+    st.header("🧮 Calculadora de Predicción")
 
     # Diccionario de meses
     meses_dict = {
