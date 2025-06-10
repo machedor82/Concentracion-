@@ -107,22 +107,43 @@ if archivo_csv:
             fig2.update_traces(hovertemplate="<b>%{x}</b><br>%{color}: %{y}")
             fig2.update_layout(barmode='stack',height=500)
             st.plotly_chart(fig2, use_container_width=True)
-        col3, col4 = st.columns(2)
+                col3, col4 = st.columns(2)
+
         with col3:
-            df_tmp = df_filtrado[df_filtrado['dias_entrega'].notna()].copy()
-            df_tmp['grupo_dias'] = pd.cut(df_tmp['dias_entrega'], bins=[0,5,10,float('inf')],
-                                          labels=['1-5','6-10','Más de 10'])
-            df_tmp['zona_entrega'] = clasificar_zonas(df_tmp, estado_sel)
-            conteo3 = df_tmp.groupby(['zona_entrega','grupo_dias']).size().reset_index(name='conteo')
-            conteo3['porcentaje'] = conteo3['conteo'] / conteo3.groupby('zona_entrega')['conteo'].transform('sum') * 100
-            orden_z = df_tmp['zona_entrega'].value_counts().index.tolist()
-            colores_dias = {'1-5':'#A7D3F4','6-10':'#4FA0D9','Más de 10':'#FF6B6B'}
-            fig3 = px.bar(conteo3, x='zona_entrega', y='porcentaje', color='grupo_dias',
-                          category_orders={'zona_entrega':orden_z},
-                          color_discrete_map=colores_dias,
-                          title="📦 Distribución de días de entrega")
-            fig3.update_layout(barmode='stack', height=500)
-            st.plotly_chart(fig3, use_container_width=True)
+            tot = df_filtrado.groupby('categoria')[['precio', 'costo_de_flete']].sum().reset_index()
+            tot = tot.sort_values(by='precio', ascending=False)
+
+            # Convertimos a formato largo
+            tot_long = tot.melt(id_vars='categoria', value_vars=['precio', 'costo_de_flete'],
+                                var_name='Concepto', value_name='Monto')
+
+            # Orden forzado
+            orden_categorias = tot['categoria'].tolist()
+
+            fig5 = px.bar(
+                tot_long,
+                x='categoria',
+                y='Monto',
+                color='Concepto',
+                barmode='group',
+                title="📊 Total Precio vs Costo de Envío",
+                color_discrete_map={
+                    'precio': '#005BAC',
+                    'costo_de_flete': '#4FA0D9'
+                },
+                category_orders={'categoria': orden_categorias}
+            )
+
+            fig5.update_layout(
+                height=360,
+                xaxis_title='Categoría',
+                yaxis_title='Monto ($)',
+                legend_title_text='',
+                margin=dict(t=40, b=60, l=10, r=10)
+            )
+            fig5.update_xaxes(tickangle=-40)
+            st.plotly_chart(fig5, use_container_width=True)
+
 
         with col4:
             label = "Ciudad" if estado_sel!="Nacional" else "Estado"
