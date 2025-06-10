@@ -1,14 +1,36 @@
-# Cabrito Dash 10/06/2025 v2 – Todo integrado
+# Cabrito Dash (versión corregida con indentación adecuada)
 
 import streamlit as st
 import pandas as pd
 import zipfile
+import io
 import joblib
 import plotly.express as px
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from streamlit_option_menu import option_menu
 
+# ===================== CONFIGURACIÓN DE PÁGINA =====================
+st.set_page_config(page_title="Cabrito Analytics", layout="wide")
+
+# CSS personalizado
+st.markdown("""
+    <style>
+        .main { background-color: #f5f7fa !important; font-family: 'Segoe UI', sans-serif; }
+        .main > div { color: #1e2022 !important; }
+        [data-testid="stMetricLabel"] { font-size: 1.5rem; font-weight: 600; color: #1a73e8 !important; }
+        [data-testid="stMetricValue"] { font-size: 2rem; font-weight: 700; color: #202124 !important; }
+        [data-testid="stMetricDelta"] { font-weight: bold; color: #34a853 !important; }
+        [data-testid="stSidebar"] { background-color: #ffffff !important; border-right: 1px solid #e0e0e0; }
+        [data-testid="stSidebar"] * { color: #1a3c5a !important; }
+        .stExpander > summary { font-weight: 600; color: #1a3c5a !important; }
+        .stTabs [data-baseweb="tab"] { font-size: 15px; padding: 12px; border-bottom: 2px solid transparent; color: #5f6368; }
+        .stTabs [aria-selected="true"] { border-bottom: 3px solid #1a73e8; color: #1a73e8; font-weight: 600; }
+        .css-1wa3eu0 { display: none !important; }
+    </style>
+""", unsafe_allow_html=True)
+
+# Clases personalizadas
 class MiTransformadorEspecial(BaseEstimator, TransformerMixin):
     def __init__(self, parametro1=None):
         self.parametro1 = parametro1
@@ -17,38 +39,49 @@ class MiTransformadorEspecial(BaseEstimator, TransformerMixin):
     def transform(self, X):
         return X
 
-st.set_page_config(page_title="Cabrito Analytics", layout="wide")
-st.markdown("""<style>/* Estilos omitidos por brevedad */</style>""", unsafe_allow_html=True)
+# Tabs
+if 'tabs' not in st.session_state:
+    st.session_state.tabs = st.tabs(["📊 Resumen Nacional", "🏠 Costo de Envío", "🧮 Calculadora", "App Danu 📈"])
 
-def clasificar_zonas(df, estado_sel):
-    if estado_sel == "Nacional":
-        principales = ['Ciudad de México','Nuevo León','Jalisco']
-        return df['estado_del_cliente'].apply(lambda x: x if x in principales else 'Provincia')
-    else:
-        top = df[df['estado_del_cliente']==estado_sel]['ciudad_cliente'].value_counts().head(3).index.tolist()
-        return df['ciudad_cliente'].apply(lambda x: x if x in top else 'Otras')
-
-tabs = st.tabs(["📊 Resumen Nacional","🏠 Costo de Envío","🧮 Calculadora","App Danu 📈"])
+tabs = st.session_state.tabs
 
 with st.sidebar:
     st.image("danu_logo.png", use_container_width=True)
+    st.header("Sube tu archivo ZIP")
     archivo_zip = st.file_uploader("ZIP con DF.csv, DF2.csv y modelos", type="zip")
-    if archivo_zip:
-        with zipfile.ZipFile(archivo_zip) as z:
-            required = ['DF.csv','DF2.csv','modelo_costoflete.sav',
-                        'modelo_dias_pipeline.joblib','label_encoder_dias.joblib']
-            missing = [r for r in required if r not in z.namelist()]
-            if missing:
-                st.error(f"Faltan archivos: {missing}")
-                st.stop()
-            df = pd.read_csv(z.open('DF.csv'))
-            df2 = pd.read_csv(z.open('DF2.csv'))
-            modelo_flete = joblib.load(z.open('modelo_costoflete.sav'))
-            modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
-            label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
+
+# ===================== CARGA Y PROCESAMIENTO DE DATOS =====================
+if archivo_zip:
+    with zipfile.ZipFile(archivo_zip) as z:
+        requeridos = [
+            'DF.csv', 'DF2.csv',
+            'modelo_costoflete.sav',
+            'modelo_dias_pipeline.joblib',
+            'label_encoder_dias.joblib'
+        ]
+        contenidos = z.namelist()
+        faltantes = [r for r in requeridos if r not in contenidos]
+        if faltantes:
+            st.error(f"❌ Faltan archivos en el ZIP: {faltantes}")
+            st.stop()
+
+        df = pd.read_csv(z.open('DF.csv'))
+        df2 = pd.read_csv(z.open('DF2.csv'))
+        modelo_flete = joblib.load(z.open('modelo_costoflete.sav'))
+        modelo_dias = joblib.load(z.open('modelo_dias_pipeline.joblib'))
+        label_encoder = joblib.load(z.open('label_encoder_dias.joblib'))
+
+    with st.sidebar:
+        st.subheader("🎛️ Filtro de Estado")
         estados = ["Nacional"] + sorted(df['estado_del_cliente'].dropna().unique().tolist())
-        estado_sel = option_menu("Filtro de Estado", estados, icons=["globe"]+["geo"]*(len(estados)-1))
-        df_filtrado = df if estado_sel=="Nacional" else df[df['estado_del_cliente']==estado_sel]
+        estado_sel = option_menu(
+            menu_title="Selecciona un estado",
+            options=estados,
+            icons=["globe"] + ["geo"] * (len(estados) - 1),
+            default_index=0
+        )
+
+    df_filtrado = df if estado_sel == "Nacional" else df[df['estado_del_cliente'] == estado_sel]
     else:
         st.warning("Sube el ZIP para continuar.")
         st.stop()
