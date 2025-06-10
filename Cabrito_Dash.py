@@ -75,16 +75,31 @@ if archivo_csv:
             df_tmp = df_filtrado.copy()
             df_tmp['zona_entrega'] = clasificar_zonas(df_tmp, estado_sel)
             conteo = df_tmp['zona_entrega'].value_counts().reset_index()
-            conteo.columns = ['zona','cantidad']
-            tonos_azules = ['#005BAC','#4FA0D9','#A7D3F4']
-            color_map = {z: tonos_azules[i] if z!='Provincia' else '#B0B0B0' 
-                         for i,z in enumerate(conteo['zona'])}
-            fig = px.pie(conteo, names='zona', values='cantidad', hole=0.4,
-                         color='zona', color_discrete_map=color_map,
-                         title="📍 Pedidos por Zona")
-            fig.update_traces(textinfo='percent+label+value',
-                              hovertemplate="<b>%{label}</b><br>Pedidos: %{value}<br>Porc: %{percent}")
-            st.plotly_chart(fig, use_container_width=True)
+            conteo.columns = ['zona', 'cantidad']
+
+            tonos_azules = ['#005BAC', '#4FA0D9', '#A7D3F4']
+            color_map = {
+                z: '#B0B0B0' if z == 'Provincia' else tonos_azules[min(i, len(tonos_azules)-1)]
+                for i, z in enumerate(conteo['zona'])
+    }
+
+    fig = px.pie(
+        conteo,
+        names='zona',
+        values='cantidad',
+        hole=0.4,
+        color='zona',
+        color_discrete_map=color_map,
+        title="📍 Pedidos por Zona"
+    )
+
+    fig.update_traces(
+        textinfo='percent+label+value',
+        hovertemplate="<b>%{label}</b><br>Pedidos: %{value}<br>Porcentaje: %{percent}"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
 
         # Gráfica barras entregas
         with col2:
