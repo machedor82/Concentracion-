@@ -153,16 +153,34 @@ with tabs[1]:
             "💰 Flete Alto vs Precio",
             f"{(df_filtrado['costo_de_flete']/df_filtrado['precio']>0.5).mean()*100:.1f}%"
         )
+
+        # → Aquí comienza la tabla horizontal
         st.subheader("💸 Relación Envío–Precio")
         tmp = df_filtrado.copy()
-        tmp['porcentaje_flete'] = tmp['costo_de_flete']/tmp['precio']*100
+        tmp['porcentaje_flete'] = tmp['costo_de_flete'] / tmp['precio'] * 100
+
         if 'categoria' in tmp:
-            tbl = tmp.groupby('categoria')['porcentaje_flete'] \
-                     .mean().reset_index() \
-                     .sort_values('porcentaje_flete', ascending=False)
+            # calculamos el promedio por categoría
+            tbl = (
+                tmp.groupby('categoria')['porcentaje_flete']
+                   .mean()
+                   .reset_index()
+                   .sort_values('porcentaje_flete', ascending=False)
+            )
+            # formateamos el display
             tbl['display'] = tbl['porcentaje_flete'] \
-                             .apply(lambda v: f"🔺 {v:.1f}%" if v>=40 else f"{v:.1f}%")
-            st.table(tbl[['categoria','display']].rename(columns={'display':'% Flete'}))
+                                 .apply(lambda v: f"🔺 {v:.1f}%" if v >= 40 else f"{v:.1f}%")
+            # pivoteamos para que quede una sola fila
+            tbl_horiz = (
+                tbl[['categoria','display']]
+                .rename(columns={'display':'% Flete'})
+                .set_index('categoria')
+                .T
+            )
+            st.table(tbl_horiz)
+        # ← Aquí termina la tabla horizontal
+
+        # resto de gráficas...
         tot = df_filtrado.groupby('categoria')[['precio','costo_de_flete']].sum().reset_index()
         fig_tot = px.bar(
             tot, x='categoria', y=['precio','costo_de_flete'], barmode='group',
@@ -171,7 +189,12 @@ with tabs[1]:
             color_discrete_sequence=blue_seq
         )
         st.plotly_chart(fig_tot, use_container_width=True)
-        df_month = df_filtrado.groupby('mes')['costo_de_flete'].mean().reset_index()
+
+        df_month = (
+            df_filtrado.groupby('mes')['costo_de_flete']
+                        .mean()
+                        .reset_index()
+        )
         meses_txt = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
         df_month['mes_nombre'] = df_month['mes'].apply(lambda x: meses_txt[x-1])
         fig_line = px.line(
