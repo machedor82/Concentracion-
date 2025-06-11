@@ -1,4 +1,4 @@
-# Cabrito Dash 10/06/2025 8:07 pm
+# Cabrito Dash 10/06/2025 8:20 pm
 
 import streamlit as st
 import pandas as pd
@@ -351,12 +351,12 @@ with col4:
     )
 
     fig_pie.update_traces(
-        textinfo='percent+label+value',
-        hovertemplate="<b>%{label}</b><br>Pedidos: %{value}<br>Porcentaje: %{percent}"
+        textinfo='label+percent',
+        textfont_color='white',
+        hovertemplate="<b>%{label}</b><br>Porcentaje: %{percent}"
     )
 
     st.plotly_chart(fig_pie, use_container_width=True)
-
 
 # ========================= PESTAÑA 1: Costo de Envío =========================
 with tabs[1]:
