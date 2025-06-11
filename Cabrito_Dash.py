@@ -602,13 +602,13 @@ else:
     cambio_pct = 0
 
 cols_kpi_arriba[0].markdown(
-    f"<span style='font-size:28px; font-weight:bold'>{costo_prom_mes1:.2f}</span>", unsafe_allow_html=True)
+    f"<span style='font-size:28px; font-weight:bold'>${costo_prom_mes1:,.2f}</span>", unsafe_allow_html=True)
 color_cambio = 'green' if cambio_pct > 0 else 'red'
 cols_kpi_arriba[1].markdown(
     f"<span style='color:{color_cambio}; font-size:28px; font-weight:bold'>{cambio_pct:.2f}%</span>",
     unsafe_allow_html=True)
 cols_kpi_arriba[2].markdown(
-    f"<span style='font-size:28px; font-weight:bold'>{costo_prom_mes2:.2f}</span>", unsafe_allow_html=True)
+    f"<span style='font-size:28px; font-weight:bold'>${costo_prom_mes2:,.2f}</span>", unsafe_allow_html=True)
 
 # Mostrar tabla final
 st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
