@@ -330,28 +330,32 @@ with col4:
     conteo_zona.columns = ['Zona', 'Pedidos']
     zonas = conteo_zona['Zona'].tolist()
 
-    tonos_azules = ['#005BAC', '#4FA0D9', '#A7D3F4']
-    colores_discretos = {
-        zona: '#B0B0B0' if zona == 'Provincia' else tonos_azules[min(i, 2)]
-        for i, zona in enumerate(zonas)
-    }
+    tonos_azules = [
+    '#08306b', '#08519c', '#2171b5', '#4292c6',
+    '#6baed6', '#9ecae1', '#c6dbef', '#deebf7'
+]
 
-    fig_pie = px.pie(
-        conteo_zona,
-        names='Zona',
-        values='Pedidos',
-        hole=0.4,
-        title="📍 Pedidos por Zona",
-        color='Zona',
-        color_discrete_map=colores_discretos
-    )
+colores_discretos = {
+    zona: '#B0B0B0' if zona == 'Provincia' else tonos_azules[i % len(tonos_azules)]
+    for i, zona in enumerate(zonas)
+}
 
-    fig_pie.update_traces(
-        textinfo='percent+label+value',
-        hovertemplate="<b>%{label}</b><br>Pedidos: %{value}<br>Porcentaje: %{percent}"
-    )
+fig_pie = px.pie(
+    conteo_zona,
+    names='Zona',
+    values='Pedidos',
+    hole=0.4,
+    title="📍 Pedidos por Zona",
+    color='Zona',
+    color_discrete_map=colores_discretos
+)
 
-    st.plotly_chart(fig_pie, use_container_width=True)
+fig_pie.update_traces(
+    textinfo='percent+label+value',
+    hovertemplate="<b>%{label}</b><br>Pedidos: %{value}<br>Porcentaje: %{percent}"
+)
+
+st.plotly_chart(fig_pie, use_container_width=True)
 
 # ========================= PESTAÑA 1: Costo de Envío =========================
 with tabs[1]:
