@@ -220,7 +220,10 @@ with col2:
     label_plural = "Ciudades" if estado_sel != "Nacional" else "Estados"
     st.subheader(f"📦 {label_plural} con mayor colchón de entrega")
 
-    if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
+    if (
+        {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns)
+        and not df_filtrado[['dias_entrega', 'colchon_dias']].dropna().empty
+    ):
         import plotly.graph_objects as go
 
         df_tmp = df_filtrado.copy()
@@ -265,6 +268,10 @@ with col2:
         )
 
         st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("No hay datos suficientes para mostrar el gráfico.")
+
+
 # ================== NUEVA FILA 2 ==================
 col3, col4 = st.columns(2)
 
