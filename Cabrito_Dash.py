@@ -427,18 +427,17 @@ with tabs[1]:
         )
 
         fig_totales.update_layout(
-            height=360,
-            margin=dict(t=40, b=60, l=10, r=10),
-            legend_title="",
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=-0.3,
-                xanchor="center",
-                x=0.5
-            )
-        )
-
+    height=360,
+    margin=dict(t=40, b=60, l=10, r=10),
+    legend_title="",
+    legend=dict(
+        orientation="v",          # vertical en lugar de horizontal
+        yanchor="top",
+        y=1,
+        xanchor="right",
+        x=1
+    )
+)
         fig_totales.update_traces(
             hovertemplate="<b>%{x}</b><br>%{legendgroup}: %{y:,.0f} $<extra></extra>"
         )
