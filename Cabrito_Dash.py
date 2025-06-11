@@ -559,12 +559,15 @@ with tabs[2]:
     res2 = agrupar_resultados(df_mes2, mes2_nombre)
     comparacion = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
 
-    # Ajustar nombres de columnas correctamente
+# Crear columnas con nombres personalizados
 comparacion[f"Flete {mes1_nombre}"] = pd.to_numeric(comparacion[mes1_nombre], errors='coerce')
 comparacion[f"Flete {mes2_nombre}"] = pd.to_numeric(comparacion[mes2_nombre], errors='coerce')
 comparacion['Diferencia Flete'] = (comparacion[f"Flete {mes2_nombre}"] - comparacion[f"Flete {mes1_nombre}"]).round(2)
 
-# Reorganizar y renombrar columnas
+# Eliminar columnas originales del promedio si existen
+comparacion.drop(columns=[col for col in [mes1_nombre, mes2_nombre] if col in comparacion.columns], inplace=True)
+
+# Reordenar columnas y renombrar ciudad
 comparacion = comparacion[[
     'ciudad_cliente',
     f"Flete {mes1_nombre}",
@@ -574,7 +577,7 @@ comparacion = comparacion[[
     f"Entrega {mes2_nombre}"
 ]].rename(columns={'ciudad_cliente': 'Ciudad'})
 
-# Función para resaltar cambios
+# Función para resaltar diferencias
 def resaltar(val):
     if isinstance(val, (int, float, np.number)):
         if val > 0:
@@ -583,7 +586,7 @@ def resaltar(val):
             return 'color: red; font-weight: bold'
     return ''
 
-# Mostrar KPIs
+# KPIs arriba
 st.markdown("---")
 cols_kpi_arriba = st.columns(3)
 cols_kpi_arriba[0].markdown(f"**Costo de Flete Promedio {mes1_nombre}**")
@@ -599,7 +602,7 @@ cols_kpi_arriba[1].markdown(
 cols_kpi_arriba[2].markdown(
     f"<span style='font-size:28px; font-weight:bold'>{costo_prom_mes2:.2f}</span>", unsafe_allow_html=True)
 
-# Mostrar tabla
+# Mostrar tabla final
 st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
 st.table(
     comparacion.style
@@ -611,7 +614,7 @@ st.table(
     })
 )
 
-# Botón de descarga
+# Botón para descargar CSV
 st.download_button(
     "⬇️ Descargar CSV",
     comparacion.to_csv(index=False),
