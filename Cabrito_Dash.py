@@ -1,4 +1,4 @@
-# Cabrito Dash 10/06/2025 5:54 pm
+# Cabrito Dash 10/06/2025 7:44 pm
 
 import streamlit as st
 import pandas as pd
@@ -449,7 +449,7 @@ with col1:
     fig_totales.update_xaxes(tickangle=-40)
 
     st.plotly_chart(fig_totales, use_container_width=True)
-    
+
     # --------- BOXPLOT: Variabilidad % Flete / Precio ---------
     with col2:
           # Agrupar por mes y calcular el promedio general (sin distinguir por año)
@@ -563,73 +563,67 @@ with tabs[2]:
     res2 = agrupar_resultados(df_mes2, mes2_nombre)
     comparacion = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
 
-# Crear columnas con nombres personalizados
-comparacion[f"Flete {mes1_nombre}"] = pd.to_numeric(comparacion[mes1_nombre], errors='coerce')
-comparacion[f"Flete {mes2_nombre}"] = pd.to_numeric(comparacion[mes2_nombre], errors='coerce')
-comparacion['Diferencia Flete'] = (comparacion[f"Flete {mes2_nombre}"] - comparacion[f"Flete {mes1_nombre}"]).round(2)
+    comparacion[f"Flete {mes1_nombre}"] = pd.to_numeric(comparacion[mes1_nombre], errors='coerce')
+    comparacion[f"Flete {mes2_nombre}"] = pd.to_numeric(comparacion[mes2_nombre], errors='coerce')
+    comparacion['Diferencia Flete'] = (
+        comparacion[f"Flete {mes2_nombre}"] - comparacion[f"Flete {mes1_nombre}"]
+    ).round(2)
 
-# Eliminar columnas originales del promedio si existen
-comparacion.drop(columns=[col for col in [mes1_nombre, mes2_nombre] if col in comparacion.columns], inplace=True)
+    comparacion.drop(columns=[col for col in [mes1_nombre, mes2_nombre] if col in comparacion.columns], inplace=True)
 
-# Reordenar columnas y renombrar ciudad
-comparacion = comparacion[[
-    'ciudad_cliente',
-    f"Flete {mes1_nombre}",
-    f"Flete {mes2_nombre}",
-    'Diferencia Flete',
-    f"Entrega {mes1_nombre}",
-    f"Entrega {mes2_nombre}"
-]].rename(columns={'ciudad_cliente': 'Ciudad'})
+    comparacion = comparacion[[
+        'ciudad_cliente',
+        f"Flete {mes1_nombre}",
+        f"Flete {mes2_nombre}",
+        'Diferencia Flete',
+        f"Entrega {mes1_nombre}",
+        f"Entrega {mes2_nombre}"
+    ]].rename(columns={'ciudad_cliente': 'Ciudad'})
 
-# Función para resaltar diferencias
-def resaltar(val):
-    if isinstance(val, (int, float, np.number)):
-        if val > 0:
-            return 'color: green; font-weight: bold'
-        elif val < 0:
-            return 'color: red; font-weight: bold'
-    return ''
+    def resaltar(val):
+        if isinstance(val, (int, float, np.number)):
+            if val > 0:
+                return 'color: green; font-weight: bold'
+            elif val < 0:
+                return 'color: red; font-weight: bold'
+        return ''
 
-# KPIs arriba
-st.markdown("---")
-cols_kpi_arriba = st.columns(3)
-cols_kpi_arriba[0].markdown(f"**Costo de Flete Promedio {mes1_nombre}**")
-cols_kpi_arriba[1].markdown("**% Cambio**")
-cols_kpi_arriba[2].markdown(f"**Costo de Flete Promedio {mes2_nombre}**")
+    st.markdown("---")
+    cols_kpi_arriba = st.columns(3)
+    cols_kpi_arriba[0].markdown(f"**Costo de Flete Promedio {mes1_nombre}**")
+    cols_kpi_arriba[1].markdown("**% Cambio**")
+    cols_kpi_arriba[2].markdown(f"**Costo de Flete Promedio {mes2_nombre}**")
 
-# Calcular KPIs
-costo_prom_mes1 = comparacion[f"Flete {mes1_nombre}"].mean(skipna=True)
-costo_prom_mes2 = comparacion[f"Flete {mes2_nombre}"].mean(skipna=True)
-if costo_prom_mes1 and not np.isnan(costo_prom_mes1):
-    cambio_pct = ((costo_prom_mes2 - costo_prom_mes1) / costo_prom_mes1) * 100
-else:
-    cambio_pct = 0
+    costo_prom_mes1 = comparacion[f"Flete {mes1_nombre}"].mean(skipna=True)
+    costo_prom_mes2 = comparacion[f"Flete {mes2_nombre}"].mean(skipna=True)
+    if costo_prom_mes1 and not np.isnan(costo_prom_mes1):
+        cambio_pct = ((costo_prom_mes2 - costo_prom_mes1) / costo_prom_mes1) * 100
+    else:
+        cambio_pct = 0
 
-cols_kpi_arriba[0].markdown(
-    f"<span style='font-size:28px; font-weight:bold'>${costo_prom_mes1:,.2f}</span>", unsafe_allow_html=True)
-color_cambio = 'green' if cambio_pct > 0 else 'red'
-cols_kpi_arriba[1].markdown(
-    f"<span style='color:{color_cambio}; font-size:28px; font-weight:bold'>{cambio_pct:.2f}%</span>",
-    unsafe_allow_html=True)
-cols_kpi_arriba[2].markdown(
-    f"<span style='font-size:28px; font-weight:bold'>${costo_prom_mes2:,.2f}</span>", unsafe_allow_html=True)
+    cols_kpi_arriba[0].markdown(
+        f"<span style='font-size:28px; font-weight:bold'>${costo_prom_mes1:,.2f}</span>", unsafe_allow_html=True)
+    color_cambio = 'green' if cambio_pct > 0 else 'red'
+    cols_kpi_arriba[1].markdown(
+        f"<span style='color:{color_cambio}; font-size:28px; font-weight:bold'>{cambio_pct:.2f}%</span>",
+        unsafe_allow_html=True)
+    cols_kpi_arriba[2].markdown(
+        f"<span style='font-size:28px; font-weight:bold'>${costo_prom_mes2:,.2f}</span>", unsafe_allow_html=True)
 
-# Mostrar tabla final
-st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
-st.table(
-    comparacion.style
-    .applymap(resaltar, subset=['Diferencia Flete'])
-    .format({
-        f"Flete {mes1_nombre}": "${:,.2f}",
-        f"Flete {mes2_nombre}": "${:,.2f}",
-        "Diferencia Flete": "${:,.2f}"
-    })
-)
+    st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
+    st.table(
+        comparacion.style
+        .applymap(resaltar, subset=['Diferencia Flete'])
+        .format({
+            f"Flete {mes1_nombre}": "${:,.2f}",
+            f"Flete {mes2_nombre}": "${:,.2f}",
+            "Diferencia Flete": "${:,.2f}"
+        })
+    )
 
-# Botón para descargar CSV
-st.download_button(
-    "⬇️ Descargar CSV",
-    comparacion.to_csv(index=False),
-    file_name="comparacion.csv",
-    mime="text/csv"
-)
+    st.download_button(
+        "⬇️ Descargar CSV",
+        comparacion.to_csv(index=False),
+        file_name="comparacion.csv",
+        mime="text/csv"
+    )
