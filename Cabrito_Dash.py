@@ -248,7 +248,7 @@ with col2:
 # ================== NUEVA FILA 2 ==================
 col3, col4 = st.columns(2)
 
-# BARRAS: Días de entrega por zona
+# --------- Gráfico de barras: Días de entrega por zona dinámica ---------
 with col3:
     df_tmp = df_filtrado[df_filtrado['dias_entrega'].notna()].copy()
     df_tmp['grupo_dias'] = pd.cut(
@@ -276,7 +276,11 @@ with col3:
         category_orders={'zona_entrega': orden_zonas},
         color_discrete_map=colores_dias,
         title="📦 ¿Éxito logístico o maquillaje de tiempos?",
-        labels={'zona_entrega': 'Zona', 'porcentaje': 'Porcentaje', 'grupo_dias': 'Días de Entrega'},
+        labels={
+            'zona_entrega': 'Zona',
+            'porcentaje': 'Porcentaje',
+            'grupo_dias': 'Días de Entrega'
+        },
         text_auto='.1f'
     )
 
@@ -290,7 +294,7 @@ with col3:
 
     st.plotly_chart(fig_barras, use_container_width=True)
 
-# DONA: Pedidos por zona
+# --------- Gráfico de dona: Pedidos por zona dinámica ---------
 with col4:
     df_tmp = df_filtrado.copy()
     df_tmp['zona_entrega'] = clasificar_zonas(df_tmp, estado_sel)
@@ -300,7 +304,10 @@ with col4:
     zonas = conteo_zona['Zona'].tolist()
 
     tonos_azules = ['#005BAC', '#4FA0D9', '#A7D3F4']
-    colores_discretos = {zona: (tonos_azules[i] if zona != 'Provincia' else '#B0B0B0') for i, zona in enumerate(zonas)}
+    colores_discretos = {
+        zona: '#B0B0B0' if zona == 'Provincia' else tonos_azules[min(i, 2)]
+        for i, zona in enumerate(zonas)
+    }
 
     fig_pie = px.pie(
         conteo_zona,
