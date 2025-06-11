@@ -1,4 +1,4 @@
-# Cabrito Dash 10/06/2025 v1
+# Cabrito Dash 10/06/2025 5:54 pm
 
 import streamlit as st
 import pandas as pd
@@ -559,54 +559,62 @@ with tabs[2]:
     res2 = agrupar_resultados(df_mes2, mes2_nombre)
     comparacion = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
 
-    comparacion[mes1_nombre] = pd.to_numeric(comparacion[mes1_nombre], errors='coerce')
-    comparacion[mes2_nombre] = pd.to_numeric(comparacion[mes2_nombre], errors='coerce')
-    comparacion['Diferencia'] = (comparacion[mes2_nombre] - comparacion[mes1_nombre]).round(2)
-    comparacion = comparacion[[
-        'ciudad_cliente', mes1_nombre, mes2_nombre, 'Diferencia',
-        f"Entrega {mes1_nombre}", f"Entrega {mes2_nombre}"
-    ]].rename(columns={'ciudad_cliente': 'Ciudad'})
+    # Ajustar nombres de columnas correctamente
+comparacion[f"Flete {mes1_nombre}"] = pd.to_numeric(comparacion[mes1_nombre], errors='coerce')
+comparacion[f"Flete {mes2_nombre}"] = pd.to_numeric(comparacion[mes2_nombre], errors='coerce')
+comparacion['Diferencia Flete'] = (comparacion[f"Flete {mes2_nombre}"] - comparacion[f"Flete {mes1_nombre}"]).round(2)
 
-    def resaltar(val):
-        if isinstance(val, (int, float, np.number)):
-            if val > 0:
-                return 'color: green; font-weight: bold'
-            elif val < 0:
-                return 'color: red; font-weight: bold'
-        return ''
+# Reorganizar y renombrar columnas
+comparacion = comparacion[[
+    'ciudad_cliente',
+    f"Flete {mes1_nombre}",
+    f"Flete {mes2_nombre}",
+    'Diferencia Flete',
+    f"Entrega {mes1_nombre}",
+    f"Entrega {mes2_nombre}"
+]].rename(columns={'ciudad_cliente': 'Ciudad'})
 
-    costo_prom_mes1 = df_mes1['costo_estimado'].mean() if not df_mes1.empty else np.nan
-    costo_prom_mes2 = df_mes2['costo_estimado'].mean() if not df_mes2.empty else np.nan
-    cambio_pct = ((costo_prom_mes2 - costo_prom_mes1) / costo_prom_mes1 * 100) if costo_prom_mes1 != 0 else 0
+# Función para resaltar cambios
+def resaltar(val):
+    if isinstance(val, (int, float, np.number)):
+        if val > 0:
+            return 'color: green; font-weight: bold'
+        elif val < 0:
+            return 'color: red; font-weight: bold'
+    return ''
 
-    st.markdown("---")
-    cols_kpi_arriba = st.columns(3)
-    cols_kpi_arriba[0].markdown(f"**Costo de Flete Promedio {mes1_nombre}**")
-    cols_kpi_arriba[1].markdown("**% Cambio**")
-    cols_kpi_arriba[2].markdown(f"**Costo de Flete Promedio {mes2_nombre}**")
+# Mostrar KPIs
+st.markdown("---")
+cols_kpi_arriba = st.columns(3)
+cols_kpi_arriba[0].markdown(f"**Costo de Flete Promedio {mes1_nombre}**")
+cols_kpi_arriba[1].markdown("**% Cambio**")
+cols_kpi_arriba[2].markdown(f"**Costo de Flete Promedio {mes2_nombre}**")
 
-    cols_kpi_arriba[0].markdown(
-        f"<span style='font-size:28px; font-weight:bold'>{costo_prom_mes1:.2f}</span>", unsafe_allow_html=True)
-    color_cambio = 'green' if cambio_pct > 0 else 'red'
-    cols_kpi_arriba[1].markdown(
-        f"<span style='color:{color_cambio}; font-size:28px; font-weight:bold'>{cambio_pct:.2f}%</span>",
-        unsafe_allow_html=True)
-    cols_kpi_arriba[2].markdown(
-        f"<span style='font-size:28px; font-weight:bold'>{costo_prom_mes2:.2f}</span>", unsafe_allow_html=True)
+cols_kpi_arriba[0].markdown(
+    f"<span style='font-size:28px; font-weight:bold'>{costo_prom_mes1:.2f}</span>", unsafe_allow_html=True)
+color_cambio = 'green' if cambio_pct > 0 else 'red'
+cols_kpi_arriba[1].markdown(
+    f"<span style='color:{color_cambio}; font-size:28px; font-weight:bold'>{cambio_pct:.2f}%</span>",
+    unsafe_allow_html=True)
+cols_kpi_arriba[2].markdown(
+    f"<span style='font-size:28px; font-weight:bold'>{costo_prom_mes2:.2f}</span>", unsafe_allow_html=True)
 
-    st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
-    st.table(
+# Mostrar tabla
+st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
+st.table(
     comparacion.style
-    .applymap(resaltar, subset=['Diferencia'])
+    .applymap(resaltar, subset=['Diferencia Flete'])
     .format({
-        mes1_nombre: "${:,.2f}",
-        mes2_nombre: "${:,.2f}",
-        "Diferencia": "${:,.2f}"
+        f"Flete {mes1_nombre}": "${:,.2f}",
+        f"Flete {mes2_nombre}": "${:,.2f}",
+        "Diferencia Flete": "${:,.2f}"
     })
 )
-    st.download_button(
-        "⬇️ Descargar CSV",
-        comparacion.to_csv(index=False),
-        file_name="comparacion.csv",
-        mime="text/csv"
-    )
+
+# Botón de descarga
+st.download_button(
+    "⬇️ Descargar CSV",
+    comparacion.to_csv(index=False),
+    file_name="comparacion.csv",
+    mime="text/csv"
+)
