@@ -1,4 +1,4 @@
-# Cabrito Dash 11/06/2025 12:03 pm
+# Cabrito Dash 11/06/2025 12:17 pm
 
 import streamlit as st
 import pandas as pd
@@ -488,139 +488,141 @@ with tabs[2]:
         from sklearn.base import BaseEstimator, TransformerMixin
 
         st.header("🧮 Calculadora de Predicción")
-        
-    meses_dict = {
-        1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
-        5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
-        9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
-    }
 
-    df2['orden_compra_timestamp'] = pd.to_datetime(df2['orden_compra_timestamp'])
-    df2['año'] = df2['orden_compra_timestamp'].dt.year
-    df2['mes'] = df2['orden_compra_timestamp'].dt.month
-    estado = estado_sel
-    st.markdown(f"**Estado seleccionado:** {estado}")
+        meses_dict = {
+            1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+            5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+            9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+        }
 
-    categoria = st.selectbox("Categoría", sorted(df2['categoria'].dropna().unique()))
+        df2['orden_compra_timestamp'] = pd.to_datetime(df2['orden_compra_timestamp'])
+        df2['año'] = df2['orden_compra_timestamp'].dt.year
+        df2['mes'] = df2['orden_compra_timestamp'].dt.month
+        estado = estado_sel
+        st.markdown(f"**Estado seleccionado:** {estado}")
 
-    col1, col2 = st.columns(2)
-    mes1_nombre = col1.selectbox("Mes 1", list(meses_dict.values()), index=0)
-    mes2_nombre = col2.selectbox("Mes 2", list(meses_dict.values()), index=1)
-    mes1 = [k for k, v in meses_dict.items() if v == mes1_nombre][0]
-    mes2 = [k for k, v in meses_dict.items() if v == mes2_nombre][0]
+        categoria = st.selectbox("Categoría", sorted(df2['categoria'].dropna().unique()))
 
-    filtro = (df2['estado_del_cliente'] == estado) & (df2['categoria'] == categoria)
-    df_mes1 = df2[(df2['mes'] == mes1) & filtro].copy()
-    df_mes2 = df2[(df2['mes'] == mes2) & filtro].copy()
+        col1, col2 = st.columns(2)
+        mes1_nombre = col1.selectbox("Mes 1", list(meses_dict.values()), index=0)
+        mes2_nombre = col2.selectbox("Mes 2", list(meses_dict.values()), index=1)
+        mes1 = [k for k, v in meses_dict.items() if v == mes1_nombre][0]
+        mes2 = [k for k, v in meses_dict.items() if v == mes2_nombre][0]
 
-    def predecir(df_input):
-        if df_input.empty:
+        filtro = (df2['estado_del_cliente'] == estado) & (df2['categoria'] == categoria)
+        df_mes1 = df2[(df2['mes'] == mes1) & filtro].copy()
+        df_mes2 = df2[(df2['mes'] == mes2) & filtro].copy()
+
+        def predecir(df_input):
+            if df_input.empty:
+                return df_input
+
+            columnas_flete = ['total_peso_g', 'precio', '#_deproductos', 'duracion_estimada_min', 'ciudad_cliente',
+                              'nombre_dc', 'hora_compra', 'año', 'mes', 'datetime_origen', 'region',
+                              'dias_promedio_ciudad', 'categoria', 'tipo_de_pago']
+
+            df_flete = df_input[columnas_flete].copy()
+            df_encoded = pd.get_dummies(df_flete)
+            columnas_modelo = modelo_flete.get_booster().feature_names
+            df_encoded = df_encoded.reindex(columns=columnas_modelo, fill_value=0)
+
+            df_input['costo_estimado'] = modelo_flete.predict(df_encoded).round(2)
+            df_input['costo_de_flete'] = df_input['costo_estimado']
+
+            columnas_dias = ['categoria', 'categoria_peso', '#_deproductos', 'total_peso_g', 'precio', 'costo_de_flete',
+                             'distancia_km', 'velocidad_kmh', 'duracion_estimada_min', 'region', 'dc_asignado',
+                             'es_feriado', 'es_fin_de_semana', 'hora_compra', 'dias_promedio_ciudad', 'nombre_dia',
+                             'mes', 'año', 'traffic', 'area']
+
+            if not all(c in df_input.columns for c in columnas_dias):
+                return df_input
+
+            X_dias = df_input[columnas_dias]
+            pred = modelo_dias.predict(X_dias)
+            df_input['clase_entrega'] = label_encoder.inverse_transform(pred)
             return df_input
 
-        columnas_flete = ['total_peso_g', 'precio', '#_deproductos', 'duracion_estimada_min', 'ciudad_cliente',
-                          'nombre_dc', 'hora_compra', 'año', 'mes', 'datetime_origen', 'region',
-                          'dias_promedio_ciudad', 'categoria', 'tipo_de_pago']
+        def agrupar_resultados(df, nombre_mes):
+            if 'costo_estimado' in df.columns and 'clase_entrega' in df.columns:
+                return df.groupby('ciudad_cliente').agg({
+                    'costo_estimado': lambda x: round(x.mean(), 2),
+                    'clase_entrega': lambda x: x.mode()[0] if not x.mode().empty else 'NA'
+                }).rename(columns={
+                    'costo_estimado': nombre_mes,
+                    'clase_entrega': f"Entrega {nombre_mes}"
+                }).reset_index()
+            return pd.DataFrame(columns=['ciudad_cliente', nombre_mes, f"Entrega {nombre_mes}"])
 
-        df_flete = df_input[columnas_flete].copy()
-        df_encoded = pd.get_dummies(df_flete)
-        columnas_modelo = modelo_flete.get_booster().feature_names
-        df_encoded = df_encoded.reindex(columns=columnas_modelo, fill_value=0)
+        df_mes1 = predecir(df_mes1)
+        df_mes2 = predecir(df_mes2)
 
-        df_input['costo_estimado'] = modelo_flete.predict(df_encoded).round(2)
-        df_input['costo_de_flete'] = df_input['costo_estimado']
+        res1 = agrupar_resultados(df_mes1, mes1_nombre)
+        res2 = agrupar_resultados(df_mes2, mes2_nombre)
+        comparacion = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
 
-        columnas_dias = ['categoria', 'categoria_peso', '#_deproductos', 'total_peso_g', 'precio', 'costo_de_flete',
-                         'distancia_km', 'velocidad_kmh', 'duracion_estimada_min', 'region', 'dc_asignado',
-                         'es_feriado', 'es_fin_de_semana', 'hora_compra', 'dias_promedio_ciudad', 'nombre_dia',
-                         'mes', 'año', 'traffic', 'area']
+        comparacion[f"Flete {mes1_nombre}"] = pd.to_numeric(comparacion[mes1_nombre], errors='coerce')
+        comparacion[f"Flete {mes2_nombre}"] = pd.to_numeric(comparacion[mes2_nombre], errors='coerce')
+        comparacion['Diferencia Flete'] = (
+            comparacion[f"Flete {mes2_nombre}"] - comparacion[f"Flete {mes1_nombre}"]
+        ).round(2)
 
-        if not all(c in df_input.columns for c in columnas_dias):
-            return df_input
+        comparacion.drop(columns=[col for col in [mes1_nombre, mes2_nombre] if col in comparacion.columns], inplace=True)
 
-        X_dias = df_input[columnas_dias]
-        pred = modelo_dias.predict(X_dias)
-        df_input['clase_entrega'] = label_encoder.inverse_transform(pred)
-        return df_input
+        comparacion = comparacion[[ 
+            'ciudad_cliente',
+            f"Flete {mes1_nombre}",
+            f"Flete {mes2_nombre}",
+            'Diferencia Flete',
+            f"Entrega {mes1_nombre}",
+            f"Entrega {mes2_nombre}"
+        ]].rename(columns={'ciudad_cliente': 'Ciudad'})
 
-    def agrupar_resultados(df, nombre_mes):
-        if 'costo_estimado' in df.columns and 'clase_entrega' in df.columns:
-            return df.groupby('ciudad_cliente').agg({
-                'costo_estimado': lambda x: round(x.mean(), 2),
-                'clase_entrega': lambda x: x.mode()[0] if not x.mode().empty else 'NA'
-            }).rename(columns={
-                'costo_estimado': nombre_mes,
-                'clase_entrega': f"Entrega {nombre_mes}"
-            }).reset_index()
-        return pd.DataFrame(columns=['ciudad_cliente', nombre_mes, f"Entrega {nombre_mes}"])
+        def resaltar(val):
+            if isinstance(val, (int, float, np.number)):
+                if val > 0:
+                    return 'color: green; font-weight: bold'
+                elif val < 0:
+                    return 'color: red; font-weight: bold'
+            return ''
 
-    df_mes1 = predecir(df_mes1)
-    df_mes2 = predecir(df_mes2)
+        st.markdown("---")
+        cols_kpi_arriba = st.columns(3)
+        cols_kpi_arriba[0].markdown(f"**Costo de Flete Promedio {mes1_nombre}**")
+        cols_kpi_arriba[1].markdown("**% Cambio**")
+        cols_kpi_arriba[2].markdown(f"**Costo de Flete Promedio {mes2_nombre}**")
 
-    res1 = agrupar_resultados(df_mes1, mes1_nombre)
-    res2 = agrupar_resultados(df_mes2, mes2_nombre)
-    comparacion = pd.merge(res1, res2, on='ciudad_cliente', how='outer')
+        costo_prom_mes1 = comparacion[f"Flete {mes1_nombre}"].mean(skipna=True)
+        costo_prom_mes2 = comparacion[f"Flete {mes2_nombre}"].mean(skipna=True)
+        if costo_prom_mes1 and not np.isnan(costo_prom_mes1):
+            cambio_pct = ((costo_prom_mes2 - costo_prom_mes1) / costo_prom_mes1) * 100
+        else:
+            cambio_pct = 0
 
-    comparacion[f"Flete {mes1_nombre}"] = pd.to_numeric(comparacion[mes1_nombre], errors='coerce')
-    comparacion[f"Flete {mes2_nombre}"] = pd.to_numeric(comparacion[mes2_nombre], errors='coerce')
-    comparacion['Diferencia Flete'] = (
-        comparacion[f"Flete {mes2_nombre}"] - comparacion[f"Flete {mes1_nombre}"]
-    ).round(2)
+        cols_kpi_arriba[0].markdown(
+            f"<span style='font-size:28px; font-weight:bold'>${costo_prom_mes1:,.2f}</span>", unsafe_allow_html=True)
+        color_cambio = 'green' if cambio_pct > 0 else 'red'
+        cols_kpi_arriba[1].markdown(
+            f"<span style='color:{color_cambio}; font-size:28px; font-weight:bold'>{cambio_pct:.2f}%</span>",
+            unsafe_allow_html=True)
+        cols_kpi_arriba[2].markdown(
+            f"<span style='font-size:28px; font-weight:bold'>${costo_prom_mes2:,.2f}</span>", unsafe_allow_html=True)
 
-    comparacion.drop(columns=[col for col in [mes1_nombre, mes2_nombre] if col in comparacion.columns], inplace=True)
+        st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
+        st.table(
+            comparacion.style
+            .applymap(resaltar, subset=['Diferencia Flete'])
+            .format({
+                f"Flete {mes1_nombre}": "${:,.2f}",
+                f"Flete {mes2_nombre}": "${:,.2f}",
+                "Diferencia Flete": "${:,.2f}"
+            })
+        )
 
-    comparacion = comparacion[[
-        'ciudad_cliente',
-        f"Flete {mes1_nombre}",
-        f"Flete {mes2_nombre}",
-        'Diferencia Flete',
-        f"Entrega {mes1_nombre}",
-        f"Entrega {mes2_nombre}"
-    ]].rename(columns={'ciudad_cliente': 'Ciudad'})
-
-    def resaltar(val):
-        if isinstance(val, (int, float, np.number)):
-            if val > 0:
-                return 'color: green; font-weight: bold'
-            elif val < 0:
-                return 'color: red; font-weight: bold'
-        return ''
-
-    st.markdown("---")
-    cols_kpi_arriba = st.columns(3)
-    cols_kpi_arriba[0].markdown(f"**Costo de Flete Promedio {mes1_nombre}**")
-    cols_kpi_arriba[1].markdown("**% Cambio**")
-    cols_kpi_arriba[2].markdown(f"**Costo de Flete Promedio {mes2_nombre}**")
-
-    costo_prom_mes1 = comparacion[f"Flete {mes1_nombre}"].mean(skipna=True)
-    costo_prom_mes2 = comparacion[f"Flete {mes2_nombre}"].mean(skipna=True)
-    if costo_prom_mes1 and not np.isnan(costo_prom_mes1):
-        cambio_pct = ((costo_prom_mes2 - costo_prom_mes1) / costo_prom_mes1) * 100
+        st.download_button(
+            "⬇️ Descargar CSV",
+            comparacion.to_csv(index=False),
+            file_name="comparacion.csv",
+            mime="text/csv"
+        )
     else:
-        cambio_pct = 0
-
-    cols_kpi_arriba[0].markdown(
-        f"<span style='font-size:28px; font-weight:bold'>${costo_prom_mes1:,.2f}</span>", unsafe_allow_html=True)
-    color_cambio = 'green' if cambio_pct > 0 else 'red'
-    cols_kpi_arriba[1].markdown(
-        f"<span style='color:{color_cambio}; font-size:28px; font-weight:bold'>{cambio_pct:.2f}%</span>",
-        unsafe_allow_html=True)
-    cols_kpi_arriba[2].markdown(
-        f"<span style='font-size:28px; font-weight:bold'>${costo_prom_mes2:,.2f}</span>", unsafe_allow_html=True)
-
-    st.subheader(f"Comparación: {mes1_nombre} vs {mes2_nombre}")
-    st.table(
-        comparacion.style
-        .applymap(resaltar, subset=['Diferencia Flete'])
-        .format({
-            f"Flete {mes1_nombre}": "${:,.2f}",
-            f"Flete {mes2_nombre}": "${:,.2f}",
-            "Diferencia Flete": "${:,.2f}"
-        })
-    )
-
-    st.download_button(
-        "⬇️ Descargar CSV",
-        comparacion.to_csv(index=False),
-        file_name="comparacion.csv",
-        mime="text/csv"
-    )
+        st.info("Por favor sube un archivo CSV para activar esta sección.")
