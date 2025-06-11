@@ -1,4 +1,4 @@
-# Cabrito Dash 10/06/2025 8:01 pm
+# Cabrito Dash 10/06/2025 8:07 pm
 
 import streamlit as st
 import pandas as pd
@@ -217,8 +217,9 @@ with col1:
 
 # HORIZONTAL: Colchón vs entrega
 with col2:
-    label = "Ciudad" if estado_sel != "Nacional" else "Estado"
-    st.subheader(f"📦 {label}es con mayor colchón de entrega")
+    label_plural = "Ciudades" if estado_sel != "Nacional" else "Estados"
+    st.subheader(f"📦 {label_plural} con mayor colchón de entrega")
+
 
     if {'dias_entrega', 'colchon_dias'}.issubset(df_filtrado.columns):
         import plotly.graph_objects as go
