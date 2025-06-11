@@ -408,43 +408,48 @@ with tabs[1]:
     # ==================== GRÁFICAS COMPARATIVAS ====================
     col1, col2 = st.columns(2)
 
-    # --------- BARRA: Precio vs Flete por Categoría ---------
-    with col1:
-        totales = df_filtrado.groupby('categoria')[['precio', 'costo_de_flete']].sum().reset_index()
-        totales = totales.sort_values(by='precio', ascending=False)
+ # --------- BARRA: Precio vs Flete por Categoría ---------
+with col1:
+    totales = df_filtrado.groupby('categoria')[['precio', 'costo_de_flete']].sum().reset_index()
+    totales = totales.rename(columns={
+        'precio': 'Precio',
+        'costo_de_flete': 'Costo de Flete'
+    })
+    totales = totales.sort_values(by='Precio', ascending=False)
 
-        fig_totales = px.bar(
-            totales,
-            x='categoria',
-            y=['precio', 'costo_de_flete'],
-            barmode='group',
-            title="📊 Total Precio vs Costo de Envío",
-            labels={'value': 'Monto ($)', 'variable': 'Concepto'},
-            color_discrete_map={
-                'precio': '#005BAC',
-                'costo_de_flete': '#4FA0D9'
-            }
-        )
-
-        fig_totales.update_layout(
-    height=360,
-    margin=dict(t=40, b=60, l=10, r=10),
-    legend_title="",
-    legend=dict(
-        orientation="v",          # vertical en lugar de horizontal
-        yanchor="top",
-        y=1,
-        xanchor="right",
-        x=1
+    fig_totales = px.bar(
+        totales,
+        x='categoria',
+        y=['Precio', 'Costo de Flete'],
+        barmode='group',
+        title="📊 Total Precio vs Costo de Envío",
+        labels={'value': 'Monto ($)', 'variable': 'Concepto'},
+        color_discrete_map={
+            'Precio': '#005BAC',
+            'Costo de Flete': '#4FA0D9'
+        }
     )
-)
-        fig_totales.update_traces(
-            hovertemplate="<b>%{x}</b><br>%{legendgroup}: %{y:,.0f} $<extra></extra>"
+
+    fig_totales.update_layout(
+        height=360,
+        margin=dict(t=40, b=60, l=10, r=10),
+        legend_title="",
+        legend=dict(
+            orientation="v",          # vertical en lugar de horizontal
+            yanchor="top",
+            y=1,
+            xanchor="right",
+            x=1
         )
-        fig_totales.update_xaxes(tickangle=-40)
+    )
 
-        st.plotly_chart(fig_totales, use_container_width=True)
+    fig_totales.update_traces(
+        hovertemplate="<b>%{x}</b><br>%{legendgroup}: $%{y:,.0f}<extra></extra>"
+    )
+    fig_totales.update_xaxes(tickangle=-40)
 
+    st.plotly_chart(fig_totales, use_container_width=True)
+    
     # --------- BOXPLOT: Variabilidad % Flete / Precio ---------
     with col2:
           # Agrupar por mes y calcular el promedio general (sin distinguir por año)
