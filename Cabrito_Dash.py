@@ -593,6 +593,14 @@ cols_kpi_arriba[0].markdown(f"**Costo de Flete Promedio {mes1_nombre}**")
 cols_kpi_arriba[1].markdown("**% Cambio**")
 cols_kpi_arriba[2].markdown(f"**Costo de Flete Promedio {mes2_nombre}**")
 
+# Calcular KPIs
+costo_prom_mes1 = comparacion[f"Flete {mes1_nombre}"].mean(skipna=True)
+costo_prom_mes2 = comparacion[f"Flete {mes2_nombre}"].mean(skipna=True)
+if costo_prom_mes1 and not np.isnan(costo_prom_mes1):
+    cambio_pct = ((costo_prom_mes2 - costo_prom_mes1) / costo_prom_mes1) * 100
+else:
+    cambio_pct = 0
+
 cols_kpi_arriba[0].markdown(
     f"<span style='font-size:28px; font-weight:bold'>{costo_prom_mes1:.2f}</span>", unsafe_allow_html=True)
 color_cambio = 'green' if cambio_pct > 0 else 'red'
