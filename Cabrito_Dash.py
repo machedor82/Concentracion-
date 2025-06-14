@@ -651,22 +651,20 @@ with tabs[3]:
             }
         )
 
-    modelo = joblib.load("modelo_dias_pipeline_3clases.sav")
-    le = joblib.load("label_encoder_dias_3clases.sav")
+    try:
+        modelo = joblib.load("modelo_dias_pipeline_3clases.sav")
+        le = joblib.load("label_encoder_dias_3clases.sav")
+    except FileNotFoundError:
+        st.error("❌ No se encontraron los archivos del modelo. Verifica que estén en el mismo directorio que el script.")
+        st.stop()
 
     if archivo_csv is not None:
         if "df" not in st.session_state:
-            df = pd.read_csv(archivo_csv)
-            df['orden_compra_timestamp'] = pd.to_datetime(df['orden_compra_timestamp'], errors='coerce')
-            if 'estado' not in df.columns:
-                df['estado'] = 'pendiente de despacho'
-            st.session_state.df = df
-        else:
-            df = st.session_state.df
+            st.session_state.df = df.copy()
+        df = st.session_state.df
     else:
         st.warning("Por favor sube un archivo CSV para activar esta sección.")
         st.stop()
-
     columnas_modelo = ['categoria', '#_deproductos', 'total_peso_g', 'precio', 'costo_de_flete',
                        'distancia_km', 'velocidad_kmh', 'duracion_estimada_min', 'region', 'dc_asignado',
                        'es_feriado', 'es_fin_de_semana', 'dias_promedio_ciudad',
