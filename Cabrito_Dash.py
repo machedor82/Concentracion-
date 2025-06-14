@@ -767,16 +767,20 @@ with st.container():
         return df
 
     df_con_pred = generar_predicciones(df_filtrado)
-
-    # ✅ Aseguramos que la columna es datetime
     df_con_pred['orden_compra_timestamp'] = pd.to_datetime(df_con_pred['orden_compra_timestamp'], errors='coerce')
-
     df_reporte = df_con_pred[df_con_pred['orden_compra_timestamp'].dt.date == st.session_state.fecha_reporte]
 
     if not df_reporte.empty:
-        st.dataframe(df_reporte[['order_id', 'ciudad_cliente', 'categoria', 'nombre_dc', 'prediccion', 'estado']])
-        columnas_csv = ['order_id', 'ciudad_cliente', 'categoria', 'nombre_dc',
-                        'orden_compra_timestamp', 'prediccion', 'estado']
+        columnas_deseadas = ['order_id', 'ciudad_cliente', 'categoria', 'nombre_dc', 'prediccion', 'estado']
+        columnas_presentes = [col for col in columnas_deseadas if col in df_reporte.columns]
+
+        st.write("🧾 Columnas disponibles en df_reporte:", df_reporte.columns.tolist())
+        if columnas_presentes:
+            st.dataframe(df_reporte[columnas_presentes])
+        else:
+            st.warning("⚠️ El DataFrame no contiene las columnas esperadas para mostrar.")
+
+        columnas_csv = columnas_presentes + ['orden_compra_timestamp'] if 'orden_compra_timestamp' in df_reporte.columns else columnas_presentes
         csv = df_reporte[columnas_csv].to_csv(index=False).encode('utf-8')
         st.download_button("📥 Descargar reporte CSV", data=csv,
                            file_name=f"reporte_urgentes_{fecha_elegida}.csv")
