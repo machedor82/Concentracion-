@@ -748,7 +748,7 @@ with tabs[3]:
             else:
                 st.success(f"📦 Tiempo estimado de entrega: **{y_pred_label}**")
 
-   with st.container():
+with st.container():
     st.subheader("Generar reporte de pedidos urgentes por fecha")
     if "fecha_reporte" not in st.session_state:
         st.session_state.fecha_reporte = pd.to_datetime("2018-01-16").date()
