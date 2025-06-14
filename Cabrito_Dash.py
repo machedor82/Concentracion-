@@ -631,8 +631,10 @@ with tabs[2]:
 with tabs[3]:
     import tempfile
     from PIL import Image
+    import os
+    import requests
 
-    def send_report_mailgun(df_reporte, destinatario):
+    def send_report_mailgun(df_reporte, destinatario, fecha):
         with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
             df_reporte.to_csv(tmp.name, index=False)
             files = [("attachment", (os.path.basename(tmp.name), open(tmp.name, "rb").read()))]
@@ -644,7 +646,7 @@ with tabs[3]:
             data={
                 "from": "DANU Logística <postmaster@sandbox138ddb58dac54bf0a75f15e6a5a7b998.mailgun.org>",
                 "to": f"Logístico <{destinatario}>",
-                "subject": f"📦 Reporte de pedidos urgentes del {fecha_elegida}",
+                "subject": f"📦 Reporte de pedidos urgentes del {fecha}",
                 "text": "Adjunto encontrarás el reporte de pedidos urgentes generados en la fecha seleccionada."
             }
         )
@@ -652,14 +654,18 @@ with tabs[3]:
     modelo = joblib.load("modelo_dias_pipeline_3clases.sav")
     le = joblib.load("label_encoder_dias_3clases.sav")
 
-    if "df" not in st.session_state:
-        df = pd.read_csv('df_equipo5.csv')
-        df['orden_compra_timestamp'] = pd.to_datetime(df['orden_compra_timestamp'], errors='coerce')
-        if 'estado' not in df.columns:
-            df['estado'] = 'pendiente de despacho'
-        st.session_state.df = df
+    if archivo_csv is not None:
+        if "df" not in st.session_state:
+            df = pd.read_csv(archivo_csv)
+            df['orden_compra_timestamp'] = pd.to_datetime(df['orden_compra_timestamp'], errors='coerce')
+            if 'estado' not in df.columns:
+                df['estado'] = 'pendiente de despacho'
+            st.session_state.df = df
+        else:
+            df = st.session_state.df
     else:
-        df = st.session_state.df
+        st.warning("Por favor sube un archivo CSV para activar esta sección.")
+        st.stop()
 
     columnas_modelo = ['categoria', '#_deproductos', 'total_peso_g', 'precio', 'costo_de_flete',
                        'distancia_km', 'velocidad_kmh', 'duracion_estimada_min', 'region', 'dc_asignado',
@@ -677,7 +683,6 @@ with tabs[3]:
     if categoria_sel != "Todas":
         df_filtrado = df_filtrado[df_filtrado["categoria"] == categoria_sel]
 
-    # Aquí empieza tab1
     with st.container():
         if len(df_filtrado) == 0:
             st.warning("⚠ No hay pedidos disponibles con los filtros actuales.")
@@ -745,7 +750,6 @@ with tabs[3]:
             else:
                 st.success(f"📦 Tiempo estimado de entrega: **{y_pred_label}**")
 
-    # Aquí empieza tab2
     with st.container():
         st.subheader("Generar reporte de pedidos urgentes por fecha")
         if "fecha_reporte" not in st.session_state:
@@ -774,7 +778,7 @@ with tabs[3]:
             st.download_button("📥 Descargar reporte CSV", data=csv, file_name=f"reporte_urgentes_{fecha_elegida}.csv")
             destinatario = st.text_input("Correo del destinatario", placeholder="gerente@danulogistica.com")
             if st.button("📧 Enviar reporte"):
-                response = send_report_mailgun(df_reporte[columnas_csv], destinatario)
+                response = send_report_mailgun(df_reporte[columnas_csv], destinatario, fecha_elegida)
                 if response.status_code == 200:
                     st.success("📤 Reporte enviado exitosamente al encargado del centro de distribución.")
                 else:
