@@ -748,38 +748,44 @@ with tabs[3]:
             else:
                 st.success(f"📦 Tiempo estimado de entrega: **{y_pred_label}**")
 
-    with st.container():
-        st.subheader("Generar reporte de pedidos urgentes por fecha")
-        if "fecha_reporte" not in st.session_state:
-            st.session_state.fecha_reporte = pd.to_datetime("2018-01-16").date()
+   with st.container():
+    st.subheader("Generar reporte de pedidos urgentes por fecha")
+    if "fecha_reporte" not in st.session_state:
+        st.session_state.fecha_reporte = pd.to_datetime("2018-01-16").date()
 
-        fecha_elegida = st.date_input("Selecciona una fecha para el reporte", value=st.session_state.fecha_reporte)
+    fecha_elegida = st.date_input("Selecciona una fecha para el reporte", value=st.session_state.fecha_reporte)
 
-        if fecha_elegida != st.session_state.fecha_reporte:
-            st.session_state.fecha_reporte = fecha_elegida
+    if fecha_elegida != st.session_state.fecha_reporte:
+        st.session_state.fecha_reporte = fecha_elegida
 
-        @st.cache_data
-        def generar_predicciones(df):
-            df = df.copy()
-            X = df[columnas_modelo]
-            encoded_preds = modelo.predict(X)
-            df['prediccion'] = le.inverse_transform(encoded_preds)
-            return df
+    @st.cache_data
+    def generar_predicciones(df):
+        df = df.copy()
+        X = df[columnas_modelo]
+        encoded_preds = modelo.predict(X)
+        df['prediccion'] = le.inverse_transform(encoded_preds)
+        return df
 
-        df_con_pred = generar_predicciones(df_filtrado)
-        df_reporte = df_con_pred[df_con_pred['orden_compra_timestamp'].dt.date == st.session_state.fecha_reporte]
+    df_con_pred = generar_predicciones(df_filtrado)
 
-        if not df_reporte.empty:
-            st.dataframe(df_reporte[['order_id', 'ciudad_cliente', 'categoria', 'nombre_dc', 'prediccion', 'estado']])
-            columnas_csv = ['order_id','ciudad_cliente','categoria','nombre_dc','orden_compra_timestamp','prediccion','estado']
-            csv = df_reporte[columnas_csv].to_csv(index=False).encode('utf-8')
-            st.download_button("📥 Descargar reporte CSV", data=csv, file_name=f"reporte_urgentes_{fecha_elegida}.csv")
-            destinatario = st.text_input("Correo del destinatario", placeholder="gerente@danulogistica.com")
-            if st.button("📧 Enviar reporte"):
-                response = send_report_mailgun(df_reporte[columnas_csv], destinatario, fecha_elegida)
-                if response.status_code == 200:
-                    st.success("📤 Reporte enviado exitosamente al encargado del centro de distribución.")
-                else:
-                    st.error(f"❌ Error al enviar el reporte: {response.status_code}")
-        else:
-            st.success("📬 No se registraron pedidos urgentes en esta fecha.")
+    # ✅ Aseguramos que la columna es datetime
+    df_con_pred['orden_compra_timestamp'] = pd.to_datetime(df_con_pred['orden_compra_timestamp'], errors='coerce')
+
+    df_reporte = df_con_pred[df_con_pred['orden_compra_timestamp'].dt.date == st.session_state.fecha_reporte]
+
+    if not df_reporte.empty:
+        st.dataframe(df_reporte[['order_id', 'ciudad_cliente', 'categoria', 'nombre_dc', 'prediccion', 'estado']])
+        columnas_csv = ['order_id', 'ciudad_cliente', 'categoria', 'nombre_dc',
+                        'orden_compra_timestamp', 'prediccion', 'estado']
+        csv = df_reporte[columnas_csv].to_csv(index=False).encode('utf-8')
+        st.download_button("📥 Descargar reporte CSV", data=csv,
+                           file_name=f"reporte_urgentes_{fecha_elegida}.csv")
+        destinatario = st.text_input("Correo del destinatario", placeholder="gerente@danulogistica.com")
+        if st.button("📧 Enviar reporte"):
+            response = send_report_mailgun(df_reporte[columnas_csv], destinatario, fecha_elegida)
+            if response.status_code == 200:
+                st.success("📤 Reporte enviado exitosamente al encargado del centro de distribución.")
+            else:
+                st.error(f"❌ Error al enviar el reporte: {response.status_code}")
+    else:
+        st.success("📬 No se registraron pedidos urgentes en esta fecha.")
