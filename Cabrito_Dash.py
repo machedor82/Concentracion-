@@ -1,4 +1,4 @@
-# Cabrito Dash 11/06/2025 12:17 pm
+# Cabrito Dash 11/06/2025 12:19 pm
 
 import streamlit as st
 import pandas as pd
@@ -626,3 +626,158 @@ with tabs[2]:
         )
     else:
         st.info("Por favor sube un archivo CSV para activar esta sección.")
+
+# ========================= PESTAÑA 4: App Danu 📈 ========================
+with tabs[3]:
+    import tempfile
+    from PIL import Image
+
+    def send_report_mailgun(df_reporte, destinatario):
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
+            df_reporte.to_csv(tmp.name, index=False)
+            files = [("attachment", (os.path.basename(tmp.name), open(tmp.name, "rb").read()))]
+
+        return requests.post(
+            "https://api.mailgun.net/v3/sandbox138ddb58dac54bf0a75f15e6a5a7b998.mailgun.org/messages",
+            auth=("api", '789c5e807022d6156dae1358279a8afc-08c79601-5480927b'),
+            files=files,
+            data={
+                "from": "DANU Logística <postmaster@sandbox138ddb58dac54bf0a75f15e6a5a7b998.mailgun.org>",
+                "to": f"Logístico <{destinatario}>",
+                "subject": f"📦 Reporte de pedidos urgentes del {fecha_elegida}",
+                "text": "Adjunto encontrarás el reporte de pedidos urgentes generados en la fecha seleccionada."
+            }
+        )
+
+    modelo = joblib.load("modelo_dias_pipeline_3clases.sav")
+    le = joblib.load("label_encoder_dias_3clases.sav")
+
+    if "df" not in st.session_state:
+        df = pd.read_csv('df_equipo5.csv')
+        df['orden_compra_timestamp'] = pd.to_datetime(df['orden_compra_timestamp'], errors='coerce')
+        if 'estado' not in df.columns:
+            df['estado'] = 'pendiente de despacho'
+        st.session_state.df = df
+    else:
+        df = st.session_state.df
+
+    columnas_modelo = ['categoria', '#_deproductos', 'total_peso_g', 'precio', 'costo_de_flete',
+                       'distancia_km', 'velocidad_kmh', 'duracion_estimada_min', 'region', 'dc_asignado',
+                       'es_feriado', 'es_fin_de_semana', 'dias_promedio_ciudad',
+                       'hora_compra', 'nombre_dia', 'mes', 'año', 'traffic', 'area']
+
+    regiones = df['nombre_dc'].dropna().unique()
+    categorias = df['categoria'].dropna().unique()
+    region_sel = st.sidebar.selectbox("Elegir Centro Distribución", np.append(["Todas"], sorted(regiones)))
+    categoria_sel = st.sidebar.selectbox("Elegir Categoria", np.append(["Todas"], sorted(categorias)))
+
+    df_filtrado = df.copy()
+    if region_sel != "Todas":
+        df_filtrado = df_filtrado[df_filtrado["nombre_dc"] == region_sel]
+    if categoria_sel != "Todas":
+        df_filtrado = df_filtrado[df_filtrado["categoria"] == categoria_sel]
+
+    # Aquí empieza tab1
+    with st.container():
+        if len(df_filtrado) == 0:
+            st.warning("⚠ No hay pedidos disponibles con los filtros actuales.")
+        else:
+            if 'index_pedido' not in st.session_state:
+                st.session_state.index_pedido = 0
+
+            if st.session_state.index_pedido >= len(df_filtrado):
+                st.session_state.index_pedido = 0
+
+            index_final = st.session_state.index_pedido
+            pedido_actual = df_filtrado.iloc[index_final]
+
+            col1, col2, col3 = st.columns([1, 1, 2])
+
+            with col1:
+                if st.button("Siguiente pedido"):
+                    if st.session_state.index_pedido + 1 < len(df_filtrado):
+                        st.session_state.index_pedido += 1
+
+            with col2:
+                estado_actual = pedido_actual.get("estado", "pendiente de despacho")
+                index_real = df_filtrado.index[st.session_state.index_pedido]
+                if estado_actual != "despachado":
+                    if st.button("Marcar como despachado"):
+                        st.session_state.df.at[index_real, 'estado'] = 'despachado'
+                        st.success("✅ Pedido marcado como despachado.")
+                        st.rerun()
+                else:
+                    st.info("✅ Este pedido ya fue marcado como despachado.")
+
+            with col3:
+                if 'busqueda_id' not in st.session_state:
+                    st.session_state.busqueda_id = ""
+                nuevo_id = st.text_input("🔍 Buscar pedido por ID", placeholder="Escribe el ID completo del pedido",
+                                         value=st.session_state.busqueda_id, key="input_busqueda_id")
+                if nuevo_id != st.session_state.busqueda_id:
+                    st.session_state.busqueda_id = nuevo_id
+                    if nuevo_id in df_filtrado['order_id'].astype(str).values:
+                        index_encontrado = df_filtrado[df_filtrado['order_id'].astype(str) == nuevo_id].index[0]
+                        st.session_state.index_pedido = df_filtrado.index.get_loc(index_encontrado)
+                        st.rerun()
+                    elif nuevo_id != "":
+                        st.warning("❌ El ID ingresado no existe en los pedidos filtrados.")
+
+            pedido_df = pd.DataFrame([pedido_actual[columnas_modelo]])
+            y_pred_encoded = modelo.predict(pedido_df)[0]
+            y_pred_label = le.inverse_transform([y_pred_encoded])[0]
+            pedido_actual['prediccion'] = y_pred_label
+
+            st.title("Reporte Pedidos con Predicción")
+            st.markdown(f"### Pedido #{pedido_actual['order_id']}")
+            st.write(f"**Ciudad:** {pedido_actual['ciudad_cliente']}")
+            st.write(f"**Categoría:** {pedido_actual['categoria']}")
+            st.write(f"**Peso (g):** {pedido_actual['total_peso_g']}")
+            st.write(f"**Productos:** {pedido_actual['#_deproductos']}")
+            st.write(f"**Distancia estimada:** {pedido_actual['distancia_km']} km")
+            st.write(f"**Estado actual del pedido:** {estado_actual}")
+            st.write("---")
+            st.subheader("Predicción")
+            if y_pred_label == "1-5 días":
+                st.error(f"⏳ Tiempo estimado de entrega: **{y_pred_label}**")
+            elif y_pred_label == "6-10 días":
+                st.warning(f"🕐 Tiempo estimado de entrega: **{y_pred_label}**")
+            else:
+                st.success(f"📦 Tiempo estimado de entrega: **{y_pred_label}**")
+
+    # Aquí empieza tab2
+    with st.container():
+        st.subheader("Generar reporte de pedidos urgentes por fecha")
+        if "fecha_reporte" not in st.session_state:
+            st.session_state.fecha_reporte = pd.to_datetime("2018-01-16").date()
+
+        fecha_elegida = st.date_input("Selecciona una fecha para el reporte", value=st.session_state.fecha_reporte)
+
+        if fecha_elegida != st.session_state.fecha_reporte:
+            st.session_state.fecha_reporte = fecha_elegida
+
+        @st.cache_data
+        def generar_predicciones(df):
+            df = df.copy()
+            X = df[columnas_modelo]
+            encoded_preds = modelo.predict(X)
+            df['prediccion'] = le.inverse_transform(encoded_preds)
+            return df
+
+        df_con_pred = generar_predicciones(df_filtrado)
+        df_reporte = df_con_pred[df_con_pred['orden_compra_timestamp'].dt.date == st.session_state.fecha_reporte]
+
+        if not df_reporte.empty:
+            st.dataframe(df_reporte[['order_id', 'ciudad_cliente', 'categoria', 'nombre_dc', 'prediccion', 'estado']])
+            columnas_csv = ['order_id','ciudad_cliente','categoria','nombre_dc','orden_compra_timestamp','prediccion','estado']
+            csv = df_reporte[columnas_csv].to_csv(index=False).encode('utf-8')
+            st.download_button("📥 Descargar reporte CSV", data=csv, file_name=f"reporte_urgentes_{fecha_elegida}.csv")
+            destinatario = st.text_input("Correo del destinatario", placeholder="gerente@danulogistica.com")
+            if st.button("📧 Enviar reporte"):
+                response = send_report_mailgun(df_reporte[columnas_csv], destinatario)
+                if response.status_code == 200:
+                    st.success("📤 Reporte enviado exitosamente al encargado del centro de distribución.")
+                else:
+                    st.error(f"❌ Error al enviar el reporte: {response.status_code}")
+        else:
+            st.success("📬 No se registraron pedidos urgentes en esta fecha.")
